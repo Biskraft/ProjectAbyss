@@ -16,3 +16,6 @@ Prevention rules:
 - Keep palette rows sourced from `Sheets/Content_System_Area_Palette.csv` through `areaPalettes.ts`.
 
 Verification on 2026-06-03: `npx tsc --noEmit`, `npm run build`, and `http://localhost:3000/play/?debug=1` Puppeteer smoke passed.
+
+- 2026-06-05: Wall palette selection is now level-aware. `LdtkWorldScene` resolves both BG and WALL AreaIDs per level prefix and calls `WorldTerrainPaletteRuntime.applyAreaPalette(bgAreaId, wallAreaId)` before rendering; `prologue_` maps use `world_prologue_bg` plus `world_prologue_wall`. Rim-light color is derived from the active wall palette instead of a hardcoded orange constant.
+

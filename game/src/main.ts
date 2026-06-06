@@ -13,6 +13,7 @@ if (window.__ECHORIS_MOBILE) {
 import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
+import { LdtkWorldScene } from '@scenes/LdtkWorldScene';
 import { installBitmapFont } from '@ui/fonts';
 import { loadHudLayout } from '@ui/HUD';
 import { loadBundleOnce } from '@data/assetBundles';
@@ -20,6 +21,7 @@ import { SFX } from '@audio/Sfx';
 import { raceWithTimeout } from '@core/AsyncTimeout';
 import { loadAndApplySettings } from '@core/SettingsStore';
 import { createWorldSceneSaveAccess } from '@scenes/shared/SceneSaveAccess';
+import { createLdtkSceneSaveAccess } from '@scenes/shared/SceneSaveAccess';
 
 import { trackGameStart, trackGameLoaded } from '@utils/Analytics';
 
@@ -98,6 +100,8 @@ try {
   const params = new URLSearchParams(window.location.search);
   if (params.has('procgen')) {
     await game.sceneManager.push(new WorldScene(game, createWorldSceneSaveAccess()));
+  } else if (params.has('prologueCutscene')) {
+    await game.sceneManager.push(new LdtkWorldScene(game, createLdtkSceneSaveAccess()));
   } else {
     await game.sceneManager.push(new TitleScene(game));
   }

@@ -2,7 +2,7 @@
 
 > **상태:** V1 설계 (2026-05-16) — Agent C systems-designer 산출 + cross-check 통과
 > **권위 SSoT:** `Documents/System/System_World_ChemicalReactions.md` (54 기존 + 15 신규)
-> **자매 문서:** `Documents/Design/Design_ItemWorld_Themes.md` (§2.3 emergent 표 갱신 대상)
+> **자매 문서:** `Documents/Design/_archive/NarrativeWorldReset_2026-05-28/Design_ItemWorld_Themes.md` (§2.3 emergent 표 갱신 대상, 📦 archived 2026-05-28)
 > **방법론:** 매트릭스 빈 셀 (fluid × fluid 14 + fluid × overlay 6 + 직관 부재 15) 에 대한 신규 emergent 설계 + 디자인 원칙 6항 통과 + 5색 기질 균형 + niche 정렬 4.07/5
 
 ---
@@ -232,7 +232,7 @@ Tier 1 구현 완료 시 다음 문서 동시 갱신:
 2. `Documents/System/System_World_TileSystem.md` §3.2 자동 상호작용 표 — Tier 1 7개 반응 행 추가
 3. `Documents/System/System_World_TileSystem.md` §3.3 상호작용 상세 — 각 반응 설명 추가
 4. `Documents/System/System_World_TileSystem.md` §3.4 VFX SSoT — 신규 VFX 이벤트 행 추가
-5. `Documents/Design/Design_ItemWorld_Themes.md` §2.3 Emergent 표 — 5기질 시그니처 emergent 갱신 (Tier 1 매핑)
+5. `Documents/Design/_archive/NarrativeWorldReset_2026-05-28/Design_ItemWorld_Themes.md` §2.3 Emergent 표 — 5기질 시그니처 emergent 갱신 (Tier 1 매핑, 📦 archived 2026-05-28)
 6. `.claude/skills/gdd-integrity-checker/references/csv_gdd_mapping.md` §16 — 반응 매트릭스 cross-validation 룰 추가
 
 ---

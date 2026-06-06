@@ -213,6 +213,7 @@ const FADE_DURATION = 200;
 // SSoT: Sheets/Content_ConstData.csv (ItemWorld.Entry.*, ItemWorld.Exp.*)
 const ENTRY_FREEZE_MS = ItemWorldConst.EntryFreezeMs;
 const BASE_EXP_PER_KILL = ItemWorldConst.BaseExpPerKill;
+const JUMP_TUTORIAL_AFTER_GROUND_MS = 1000;
 
 interface ItemWorldSceneOptions {
   entryCorridor?: boolean;
@@ -416,6 +417,8 @@ export class ItemWorldScene extends Scene {
   /** Gamepad hot-plug 토스트 unsubscribe (destroy 시 호출). */
   private _gpUnsub: (() => void) | null = null;
   private tutorialHint!: TutorialHint;
+  private jumpTutorialHintHandled = false;
+  private jumpTutorialGroundDelayMs: number | null = null;
   private lowHpHealHint!: LowHpHealHintRuntime;
   private captureOrbRuntime!: ItemWorldCaptureOrbRuntime;
   private hudRuntime!: ItemWorldHudRuntime;
@@ -2245,6 +2248,7 @@ export class ItemWorldScene extends Scene {
     this.player.update(dt);
 
     this.lowHpHealHint.update();
+    this.updateJumpTutorialHint(dt);
     this.tutorialHint.update(dt);
 
     // Updraft wind zones (IntGrid value 4 in fullGrid)
@@ -2316,7 +2320,7 @@ export class ItemWorldScene extends Scene {
       return;
     }
 
-    this.enemyRegistry.update(dt);
+    this.enemyRegistry.update(dt, this.entityLayer);
     // DEC-038 Town residents — idle anim + proximity 시 Ego 대사를 발화.
     this.residentRuntime.update(dt);
     // DEC-039 Trapdoor — idle anim + proximity prompt + ATTACK 상호작용.
@@ -2601,6 +2605,34 @@ export class ItemWorldScene extends Scene {
 
     // DEC-039 — A: 카메라를 totalGrid 범위로 clamp.
     this.cameraRuntime.update(dt);
+  }
+
+  private updateJumpTutorialHint(dt: number): void {
+    if (this.jumpTutorialHintHandled) {
+      return;
+    }
+
+    if (this.player.isGrounded() && this.jumpTutorialGroundDelayMs === null) {
+      this.jumpTutorialGroundDelayMs = JUMP_TUTORIAL_AFTER_GROUND_MS;
+    }
+
+    if (this.jumpTutorialGroundDelayMs !== null) {
+      this.jumpTutorialGroundDelayMs = Math.max(0, this.jumpTutorialGroundDelayMs - dt);
+    }
+
+    if (this.jumpTutorialGroundDelayMs === 0) {
+      this.tutorialHint.tryShow('hint_jump', {
+        actions: [GameAction.JUMP],
+        text: t('tutorial.jump'),
+        persistent: true,
+      });
+    }
+
+    if (this.tutorialHint.isShowing('hint_jump') && this.game.input.isJustPressed(GameAction.JUMP)) {
+      this.tutorialHint.dismissAfter('hint_jump', 1000);
+      this.jumpTutorialHintHandled = true;
+      this.jumpTutorialGroundDelayMs = null;
+    }
   }
 
   private updateMovementVfx(dt: number): void {

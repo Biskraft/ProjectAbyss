@@ -40,7 +40,7 @@
 | Auto Combo | 자동 콤보 | 기본 공격 버튼을 연타하면 1타→2타→3타가 자동으로 연결되는 시스템. 접근성을 높이고 전투 흐름을 유지하기 위해 채택되었다. | `Documents/System/System_Combat_Action.md`, `Documents/System/System_3C_Control.md` |
 | Blueprint | 블루프린트 | 빌더의 시공 패턴을 잔존자들이 추상해 부르는 이름. 빌더가 읽거나 따르는 계획이 아니라, 무지능 시공의 결과를 인간이 사후 분석한 명세. 인간은 한때 이 패턴 안에 있었으나 단절(Cascade) 이후 누락 카테고리가 되었다. | `Documents/Content/Content_Story_Synopsis.md` |
 | Builder | 빌더 | 메가 스트럭처를 끝없이 짓는 거대 산업 시공자. 의도·의지·계획이 없으며 인간을 적으로도 인지하지 않는다. 시공 경로상의 모든 것을 무관심하게 묻는다. 격파 불가 — 에코의 응답으로 시공에 한 박자의 공백만 만들 수 있다. | `Documents/Content/Content_Story_Synopsis.md`, `Reference/게임 기획 개요.md` |
-| Cascade | 단절 | 인간이 빌더의 시공 패턴(블루프린트) 에서 누락된 카테고리가 된 과거의 사건. 원인은 작품 내내 밝혀지지 않는다(코스믹 호러 — 이해 불가능성). | `Documents/Content/Content_Story_Synopsis.md` |
+| Cascade | 단절 | 인간이 빌더의 시공 패턴(블루프린트) 에서 누락된 카테고리가 된 과거의 사건. 원인은 작품 내내 밝혀지지 않는다(끝내 불가지 — 응답 없는 고독). | `Documents/Content/Content_Story_Synopsis.md` |
 | Chunk | 청크 | Room 내부에 배치되는 사전 제작된 지형·장애물의 소단위 블록. Tiled Map Editor로 제작하며, 바이옴별·레어리티별 풀로 분리된다. 높은 레어리티의 아이템계일수록 복잡한 Chunk 풀이 사용된다. | `Documents/System/System_ItemWorld_FloorGen.md`, `Documents/System/System_World_ProcGen.md` |
 | Combo End Lag | 콤보 후딜 | 자동 콤보 3타 완료 후 발생하는 공격 불가 경직 구간(기본값 600ms). 전투 리듬의 "숨 쉴 틈"이자 적의 반격 기회를 보장하는 설계 장치. 대시로 캔슬 가능하다(대시 렐릭 획득 후). | `Documents/System/System_Combat_Action.md` |
 | Cooldown | 쿨다운 | 스킬 또는 대시(렐릭 해금 후)를 사용한 후, 동일 행동을 다시 사용할 수 있을 때까지 대기해야 하는 시간. 스킬 종류에 따라 3-15초 범위이며, UI에 원형 게이지로 표시된다. | `Documents/System/System_3C_Control.md` |
@@ -84,7 +84,8 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
-| Indexer | 인덱서 | 빌더에게 에코를 헌납하면 블루프린트에 다시 등재될 수 있다고 믿는 잔존자 집단. 그러나 빌더는 인지하지 않으므로 등재는 작동하지 않는다 — 거짓 신앙. 작품의 인격적 안타고니스트는 인덱서 지도자다. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Content/Content_Characters.md` |
+| Indexed | 색인체 | 사적 등재단(인덱서 하위 분파) 의 종(從) 역할. 자기 자율 전부를 등재인에게 양도(사적 등재) 한 자 — 채워질 자아가 없는 "빈 그릇". 봉합 보존복 + 목/등의 탯줄 1가닥 실루엣. 구성원은 전원 젊은 성인 여성. | `Documents/Idea/Idea_WorldBuilding.md` |
+| Indexer | 인덱서 | 빌더에게 에코를 헌납하면 블루프린트에 다시 등재될 수 있다고 믿는 잔존자 집단. 그러나 빌더는 인지하지 않으므로 등재는 작동하지 않는다 — 거짓 신앙. 작품의 인격적 안타고니스트는 인덱서 지도자다. 하위 분파로 사적 등재단(등재인/색인체) 이 있다. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Content/Content_Characters.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
 | Item World | 아이템계 | 장비 아이템 내부의 절차적 던전. 레어리티별 2-4개 지층으로 구성되며, 1-2인이 협동하여 (Phase 4+에서 최대 4인) 지층을 클리어하며 장비를 직접 강화한다. 2-Space 모델의 두 번째 공간이며 야리코미의 핵심 콘텐츠이다. | `Documents/Design/Design_Architecture_2Space.md`, `Documents/System/System_ItemWorld_FloorGen.md`, `Reference/게임 기획 개요.md` |
@@ -112,6 +113,7 @@
 | :--- | :--- | :--- | :--- |
 | Out-of-Combat | 전투 외 상태 | 전투 상태(In-Combat)가 아닌 평상시 상태. MP 자동 회복이 활성화되고 아이템 사용 제한이 해제된다. | `Documents/System/System_Combat_Action.md` |
 | Pillar | 기둥 | ECHORIS의 3대 핵심 설계 기둥. 모든 시스템과 기능은 (1) 메트로베니아 탐험, (2) 아이템계 야리코미, (3) 온라인 멀티플레이 중 최소 하나에 정렬되어야 한다. 어느 기둥에도 해당하지 않는 기능은 채택하지 않는다. | `CLAUDE.md` |
+| Private Registration | 사적 등재 | 빌더(시스템) 가 아니라 살아있는 사람(등재인) 에게 자기를 등재하는 행위·의례. 인덱서 등재의 신체화·사적(私的) 변종으로, 사적 등재단(인덱서 하위 분파) 의 핵심 교리. "복종=해방" 의 거짓 신앙이 대인(對人) 으로 실연된 형태. | `Documents/Idea/Idea_WorldBuilding.md` |
 | Procedural Generation | 절차적 생성 | 알고리즘과 시드를 사용하여 맵·룸·Chunk를 자동으로 생성하는 기법. 월드의 마이크로 계층과 아이템계 전 층에 적용된다. 스펠렁키의 Room Grid 방식을 레퍼런스로 사용한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 
 ---
@@ -129,6 +131,7 @@
 | :--- | :--- | :--- | :--- |
 | Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
+| Registrar | 등재인 | 사적 등재단(인덱서 하위 분파) 의 주(主) 역할. 여러 색인체의 자율을 거두어 책임지는 자. 등·어깨의 계류 릴 + 모여 감기는 탯줄 실루엣. 자신도 모체동 출신 "빈 그릇" 이라 주인 행세 뒤에 동일한 공백을 숨긴다. | `Documents/Idea/Idea_WorldBuilding.md` |
 | Registration | 등재 | 빌더의 블루프린트 안에 한 항목으로 다시 기록되는 행위. 인덱서의 신앙이나 실제로는 작동하지 않는다(빌더가 인지하지 않으므로). 등재의 대가는 자기 음성의 상실. 결말 B(등재) 의 핵심. | `Documents/Content/Content_Story_Synopsis.md` |
 | Resident | 잔존자 | 단절(Cascade) 이후 블루프린트 바깥에 잔존하며 점점 사라져 가는 인간. 빈 공동에 흩어져 산다. 인덱서·솔로 잔존자 등으로 분화. | `Documents/Content/Content_Story_Synopsis.md` |
 | Rustborn | 러스트본 | "부식에서 태어난 자". 프롤로그의 실험 동료. Cascade 때 죽으며 에르다의 절개도(Scalpel) 안으로 의식이 응결 → 수천 년 부식하여 녹날(Rustedge, 시작 검) 의 에코가 됨. 시작 후 약 5분 첫 다이브에서 그녀에게 자기 이름을 가르친다. 에르다 이름을 아는 이유 = 동료(정체성 미스터리 아님). 시각 친연성(붉은 머리·청록 눈) = 같은 연구소 동료. | `Documents/Content/Content_Characters.md`, `Documents/Design/Design_Art_Direction.md` |
@@ -187,8 +190,8 @@
 
 | 등급 | 색상 | 스탯 배율 | 아이템계 지층 수 | 드랍 확률 |
 | :--- | :--- | :--- | :--- | :--- |
-| Normal | 흰색 #FFFFFF | x1.0 | 2 지층 (4×4 고정) | 60% |
-| Magic | 파란 #6969FF | x1.3 | 3 지층 (4×4 고정) | 25% |
+| Normal | 흰색 #FFFFFF | x1.0 | 1 지층 (4×4 고정) | 60% |
+| Magic | 파란 #6969FF | x1.3 | 2 지층 (4×4 고정) | 25% |
 | Rare | 노란 #FFFF00 | x1.7 | 3 지층 (4×4 고정) | 10% |
 | Legendary | 주황 #FF8000 | x2.2 | 4 지층 (4×4 고정) | 4% |
 | Ancient | 초록 #00FF00 | x3.0 | 4 지층 + 심연 (4×4 고정) | 1% |

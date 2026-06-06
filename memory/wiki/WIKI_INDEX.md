@@ -2,6 +2,9 @@
 
 ## Decisions
 
+- [DEC-047-Tone-Solitude-Over-CosmicHorror](decisions/DEC-047-Tone-Solitude-Over-CosmicHorror.md)
+- [DEC-046-Bonded-Subfaction](decisions/DEC-046-Bonded-Subfaction.md)
+- [DEC-045-Monster-Roster-Volume](decisions/DEC-045-Monster-Roster-Volume.md)
 - [DEC-044-Faction-Visual-Identity](decisions/DEC-044-Faction-Visual-Identity.md)
 - [DEC-043-Prologue-Playable-Dive](decisions/DEC-043-Prologue-Playable-Dive.md)
 - [DEC-042-Official-Runtime-Collision-Scope](decisions/DEC-042-Official-Runtime-Collision-Scope.md)
@@ -13,6 +16,7 @@
 
 ## Features
 
+- [spec-canvas-tool](features/spec-canvas-tool.md) — 스펙 로드맵 방사형 마인드맵 툴 (in-progress)
 - [AltarItemSelectionUiHelpers](features/AltarItemSelectionUiHelpers.md)
 - [AnvilCyclePromptRuntime](features/AnvilCyclePromptRuntime.md)
 - [AnvilPromptController](features/AnvilPromptController.md)
@@ -33,6 +37,7 @@
 - [DistanceHelpers](features/DistanceHelpers.md)
 - [EffectNumeric](features/EffectNumeric.md)
 - [EnemyDefeatProcessingHelpers](features/EnemyDefeatProcessingHelpers.md)
+- [EnemyContentData](features/EnemyContentData.md)
 - [EntityCollisionBinding](features/EntityCollisionBinding.md)
 - [FilterLifecycleHelpers](features/FilterLifecycleHelpers.md)
 - [FeedbackSystem](features/FeedbackSystem.md)
@@ -50,6 +55,7 @@
 - [ItemSelectionInputHelpers](features/ItemSelectionInputHelpers.md)
 - [ItemRewardFactory](features/ItemRewardFactory.md)
 - [LdtkAreaRetagHelpers](features/LdtkAreaRetagHelpers.md)
+- [LdtkExternalEnums](features/LdtkExternalEnums.md)
 - [NumericHelpers](features/NumericHelpers.md)
 - [LegacyWorldAltarSpawnHelpers](features/LegacyWorldAltarSpawnHelpers.md)
 - [LegacyWorldDoorMarkerHelpers](features/LegacyWorldDoorMarkerHelpers.md)
@@ -320,5 +326,6 @@
 - [2026-06-03](daily/2026-06-03.md)
 - [2026-06-04](daily/2026-06-04.md)
 - [2026-06-05](daily/2026-06-05.md)
+- [2026-06-06](daily/2026-06-06.md)
 - [2026-06-08](daily/2026-06-08.md)
-
+- [WorldPrologueEndRuntime](features/WorldPrologueEndRuntime.md)

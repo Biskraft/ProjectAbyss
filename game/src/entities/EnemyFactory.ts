@@ -10,10 +10,12 @@ import { Ghost } from './Ghost';
 import { Slime } from './Slime';
 import { GoldenMonster } from './GoldenMonster';
 import { Boss01 } from './Boss01';
+import { MawDrone } from './MawDrone';
+import { Bulwark, CinderImp, Conduit, Lobber, Lurker, Sentry, SparkBat } from './ArchetypeEnemies';
 // Guardian: 폐기 후보 (Boss01 으로 통합). import 제거 — 필요 시 다시 추가.
 import type { Enemy } from './Enemy';
 
-export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'WeakSlime' | 'Guardian' | 'GoldenMonster' | 'Boss' | 'Boss01';
+export type EnemyTypeName = 'Skeleton' | 'Ghost' | 'Slime' | 'MawDrone' | 'SparkBat' | 'CinderImp' | 'Lobber' | 'Bulwark' | 'Lurker' | 'Conduit' | 'Sentry' | 'Guardian' | 'GoldenMonster' | 'Boss' | 'Boss01';
 
 /**
  * Create an enemy instance by type name.
@@ -32,8 +34,22 @@ export function createEnemy(
       return new Ghost(level);
     case 'Slime':
       return new Slime(level);
-    case 'WeakSlime':
-      return new Slime(level, 'WeakSlime');
+    case 'MawDrone':
+      return new MawDrone(level);
+    case 'SparkBat':
+      return new SparkBat(level);
+    case 'CinderImp':
+      return new CinderImp(level);
+    case 'Lobber':
+      return new Lobber(level);
+    case 'Bulwark':
+      return new Bulwark(level);
+    case 'Lurker':
+      return new Lurker(level);
+    case 'Conduit':
+      return new Conduit(level);
+    case 'Sentry':
+      return new Sentry(level);
     // 'Guardian' / 'Boss' / 'Boss01' 모두 Boss01 으로 통합 — 24-frame atlas 기반
     // 신규 보스로 시각 통일. Guardian 클래스는 import 만 유지 (rollback 용).
     case 'Guardian':

@@ -11,7 +11,7 @@ import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
 import { SWORD_DEFS, type Rarity, type WeaponDef, type WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
-// 2026-05-24: BARE_HAND_ATK import 제거 — 맨손 상태 폐기
+// 2026-05-24: BARE_HAND_ATK import ?�거 ??맨손 ?�태 ?�기
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
@@ -29,7 +29,7 @@ const DASH_DISTANCE = PlayerConst.DashDistance;
 const DASH_DURATION = PlayerConst.DashDurationMs;
 const DASH_GROUND_DELAY = PlayerConst.DashGroundDelayMs;
 const ATTACK_MOVE_MULT = PlayerConst.AttackMoveMult;
-/** Horizontal input multiplier during aerial attacks — much smaller than the
+/** Horizontal input multiplier during aerial attacks ??much smaller than the
  *  grounded value so the player can't drift sideways mid-swing. Keeps the
  *  aerial combo visually "anchored" instead of looking like they're sliding. */
 const AERIAL_ATTACK_MOVE_MULT = 0.05;
@@ -49,19 +49,19 @@ const APEX_THRESHOLD = PlayerConst.ApexThreshold;
 const APEX_GRAVITY_MULT = PlayerConst.ApexGravityMult;
 const AIR_ACCEL_MULT = PlayerConst.AirAccelMult;
 
-/** Oil slip — 플레이어가 oil 셀에서 빠져나온 후 미끄러짐이 지속되는 시간. */
+/** Oil slip ???�레?�어가 oil ?�?�서 빠져?�온 ??미끄?�짐??지?�되???�간. */
 export const OIL_SLIP_DURATION_MS = 5000;
 export const OIL_RESIDUE_DURATION_MS = OIL_SLIP_DURATION_MS;
-/** Acid residue — acid 셀 이탈 후 잔존 trail 발생 기간. */
+/** Acid residue ??acid ?� ?�탈 ???�존 trail 발생 기간. */
 export const ACID_RESIDUE_DURATION_MS = 10000;
-/** Magma residue — magma 셀 이탈 후 잔존 trail 발생 기간. */
+/** Magma residue ??magma ?� ?�탈 ???�존 trail 발생 기간. */
 export const MAGMA_RESIDUE_DURATION_MS = 10000;
-/** Water residue — water 셀 이탈 후 puddle 자국 잔존 기간 (2026-05-18 시각 only). */
+/** Water residue ??water ?� ?�탈 ??puddle ?�국 ?�존 기간 (2026-05-18 ?�각 only). */
 export const WATER_RESIDUE_DURATION_MS = 4000;
-/** Cyro residue — cyro 셀 이탈 후 ice 결정 잔존 기간 (2026-05-18 시각 only). */
+/** Cyro residue ??cyro ?� ?�탈 ??ice 결정 ?�존 기간 (2026-05-18 ?�각 only). */
 export const CYRO_RESIDUE_DURATION_MS = 6000;
 
-/** Ego Shard — 기본 보유 발수. Hades Bloodstone 동일 (3발). */
+/** Ego Shard ??기본 보유 발수. Hades Bloodstone ?�일 (3�?. */
 export const EGO_SHARD_MAX = 3;
 /** Time until a fired shard automatically returns to the player (ms). */
 export const SHARD_RECOVERY_MS = 8000;
@@ -73,35 +73,35 @@ const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upwar
 
 const FRAME_MS = 1000 / 60;
 /** Global attack speed multiplier across every equipped weapon.
- *  1.0 = baseline, <1 = slower, >1 = faster. Currently 1/1.5 ≈ 0.667 → 1.5x slower. */
+ *  1.0 = baseline, <1 = slower, >1 = faster. Currently 1/1.5 ??0.667 ??1.5x slower. */
 const ATTACK_SPEED_MUL = 1 / 1.5;
-/** Time-domain inverse of ATTACK_SPEED_MUL — multiplied into every attack
+/** Time-domain inverse of ATTACK_SPEED_MUL ??multiplied into every attack
  *  timer (combo step duration, hitbox active window, slash FX frame ms,
  *  Erda attack frame progress). Larger = slower swings. */
 const ATTACK_TIME_SCALE = 1 / ATTACK_SPEED_MUL;
 
-/** Per-combo-step time multiplier. Currently uniform — rhythm comes from the
- *  pre-3타 pause (COMBO_3_PRE_DELAY_MS) instead of slowing the 3타 swing itself.
+/** Per-combo-step time multiplier. Currently uniform ??rhythm comes from the
+ *  pre-3?� pause (COMBO_3_PRE_DELAY_MS) instead of slowing the 3?� swing itself.
  *  Compounds with weapon atkSpeed and ATTACK_TIME_SCALE inside startAttack. */
 const COMBO_STEP_TIME_MUL: ReadonlyArray<number> = [1.0, 1.0, 1.0];
 
-/** Pause inserted between 2타 끝과 3타 시작 — "슉슉(쉼)슉" 박자.
+/** Pause inserted between 2?� ?�과 3?� ?�작 ??"?�슉(???? 박자.
  *  Player stays in attack state (air stall remains active for hover combos),
- *  no hitbox / slash FX during the wait, then 3타 swings at normal pace. */
+ *  no hitbox / slash FX during the wait, then 3?� swings at normal pace. */
 const COMBO_3_PRE_DELAY_MS = 100;
 
-// ── Air Stall — aerial attacks suspend the player so a 3-hit combo lands. ──
-// Applied during state==='attack' && !grounded. comboIndex 0/1 (1타/2타) get
-// "slow descent"; comboIndex 2 (3타) gets "near-halt" to anchor the finisher.
-/** Gravity multiplier during 1타/2타 aerial swings — 0 = full halt. */
+// ?�?� Air Stall ??aerial attacks suspend the player so a 3-hit combo lands. ?�?�
+// Applied during state==='attack' && !grounded. comboIndex 0/1 (1?�/2?�) get
+// "slow descent"; comboIndex 2 (3?�) gets "near-halt" to anchor the finisher.
+/** Gravity multiplier during 1?�/2?� aerial swings ??0 = full halt. */
 const AIR_STALL_GRAVITY_MUL_12 = 0;
-/** Gravity multiplier during 3타 aerial swing — 0 = full halt for the finisher. */
+/** Gravity multiplier during 3?� aerial swing ??0 = full halt for the finisher. */
 const AIR_STALL_GRAVITY_MUL_3 = 0;
-/** Max downward speed cap during 1타/2타 aerial swings (px/s) — 0 = no drift. */
+/** Max downward speed cap during 1?�/2?� aerial swings (px/s) ??0 = no drift. */
 const AIR_STALL_MAX_FALL_12 = 0;
-/** Max downward speed cap during 3타 aerial swing (px/s) — 0 = no drift. */
+/** Max downward speed cap during 3?� aerial swing (px/s) ??0 = no drift. */
 const AIR_STALL_MAX_FALL_3 = 0;
-/** Per-16ms damp on upward velocity during aerial attack — kills jump residue
+/** Per-16ms damp on upward velocity during aerial attack ??kills jump residue
  *  so the player "hovers" rather than continuing to rise mid-swing. */
 const AIR_STALL_RISE_DAMP_PER_16MS = 0.82;
 const WEAPON_ICON_BASE_ROTATION = -45 * Math.PI / 180;
@@ -117,6 +117,8 @@ const ERDA_ATTACK_AIR_START = 26;
 const ERDA_AIM_START = 30;
 const ERDA_AIM_JUMP_FRAME = 34;
 const ERDA_LIFT_START = 35;
+const ERDA_WAKE_UP_START = 39;
+const ERDA_WAKE_UP_FRAME_COUNT = 10;
 const ERDA_ATTACK_FRAME_COUNT = 4;
 const COMBO3_SLASH_SCALE_X = 1.35;
 
@@ -133,74 +135,77 @@ export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | '
 export class Player extends Entity implements CombatEntity {
   private game: Game;
   /**
-   * Placeholder green rect — 에셋 로딩 중/실패 시 fallback.
-   * erdaSprite 가 붙으면 invisible 처리.
+   * Placeholder green rect ???�셋 로딩 �??�패 ??fallback.
+   * erdaSprite 가 붙으�?invisible 처리.
    */
   private sprite: Graphics;
   /**
-   * Erda 캐릭터 스프라이트. 32×32 RGBA (assets/characters/erda_atlas.png).
-   * 8프레임 가로 아틀라스 — idle(0–3), jump(4–7).
-   * 히트박스(14×24)보다 크므로 anchor=(0.5, 1) 로 "발 중앙" 정렬.
-   * 로딩이 비동기이므로 로드 전엔 null, 로드 완료 시 컨테이너에 부착.
+   * Erda 캐릭???�프?�이?? 32×32 RGBA (assets/characters/erda_atlas.png).
+   * 8?�레??가�??��??�스 ??idle(0??), jump(4??).
+   * ?�트박스(14×24)보다 ?��?�?anchor=(0.5, 1) �?"�?중앙" ?�렬.
+   * 로딩??비동기이므�?로드 ?�엔 null, 로드 ?�료 ??컨테?�너??부�?
    */
   private erdaSprite: Sprite | null = null;
   private weaponSprite: Sprite | null = null;
   private weaponSpriteDefId: string | null = null;
   private attackWeaponPoses: AttackWeaponPose[] = ATTACK_WEAPON_POSES.map(p => ({ ...p }));
-  /** 아틀라스에서 잘라낸 8개 프레임 텍스처 (idle 0–3, jump 4–7). */
+  /** ?��??�스?�서 ?�라??8�??�레???�스�?(idle 0??, jump 4??). */
   private erdaFrames: Texture[] = [];
+  private wakeUpOverrideTimer = 0;
+  private wakeUpOverrideDuration = 0;
+  private wakeUpHoldPose = false;
   /**
-   * 애니메이션 서브 스테이트:
-   *   - idle   : 프레임 0..3 루프 (400ms/frame)
-   *   - run    : 프레임 8..15 루프 (100ms/frame)
-   *   - takeoff: 프레임 4, 짧은 이륙 squash (160ms)
-   *   - air    : 프레임 5, 공중 지속
-   *   - land   : 프레임 6 → 7, 짧은 착지 복구 (각 150ms)
-   *   - dash   : 프레임 16 → 17 (startup 30ms + linger 120ms)
-   *   - attack : 프레임 18..21, 진행률 기반 스크럽 (step.totalFrames*FRAME_MS 에 맞춰 4프레임 분할)
+   * ?�니메이???�브 ?�테?�트:
+   *   - idle   : ?�레??0..3 루프 (400ms/frame)
+   *   - run    : ?�레??8..15 루프 (100ms/frame)
+   *   - takeoff: ?�레??4, 짧�? ?�륙 squash (160ms)
+   *   - air    : ?�레??5, 공중 지??
+   *   - land   : ?�레??6 ??7, 짧�? 착�? 복구 (�?150ms)
+   *   - dash   : ?�레??16 ??17 (startup 30ms + linger 120ms)
+   *   - attack : ?�레??18..21, 진행�?기반 ?�크??(step.totalFrames*FRAME_MS ??맞춰 4?�레??분할)
    * idle/run switches on grounded locomotion intent or actual velocity.
-   * 공중 진입/착지는 grounded 엣지로 트리거.
-   * dash / attack 은 FSM state 감지로 진입/이탈.
+   * 공중 진입/착�???grounded ?��?�??�리�?
+   * dash / attack ?� FSM state 감�?�?진입/?�탈.
    */
   private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' | 'aim' | 'lift' = 'idle';
   /**
-   * Charging Cast — set by scene each frame while V (CAST) is held. Drives
+   * Charging Cast ??set by scene each frame while V (CAST) is held. Drives
    * the dedicated "aim" Erda animation override. Cleared on release.
    */
   isAiming = false;
   /**
-   * Holding a ThrowableContainer — set by scene each frame while the
+   * Holding a ThrowableContainer ??set by scene each frame while the
    * player carries something. Drives the "lift" animation + halves move
    * speed (heavy carry).
    */
   isLifting = false;
-  /** idle/run/land 용 서브 프레임 인덱스 (0 기준). takeoff/air 는 사용 안 함. */
+  /** idle/run/land ???�브 ?�레???�덱??(0 기�?). takeoff/air ???�용 ???? */
   private erdaAnimFrame = 0;
-  /** 프레임 누적 타이머 (ms). */
+  /** ?�레???�적 ?�?�머 (ms). */
   private erdaAnimTimer = 0;
-  /** 이전 프레임의 grounded. 이륙/착지 엣지 감지용. */
+  /** ?�전 ?�레?�의 grounded. ?�륙/착�? ?��? 감�??? */
   private erdaPrevGrounded = true;
   /**
-   * 공중 진입이 점프(jump 입력)인지 단순 낙하(ledge walk-off)인지.
-   * 낙하 시 air(5) / land 초반(6) 프레임을 스킵해 간결한 낙하-착지만 재생.
+   * 공중 진입???�프(jump ?�력)?��? ?�순 ?�하(ledge walk-off)?��?.
+   * ?�하 ??air(5) / land 초반(6) ?�레?�을 ?�킵??간결???�하-착�?�??�생.
    */
   private erdaJumpedOff = false;
-  private static readonly ANIM_IDLE_FRAME_MS = 400;  // 원본 100ms × 4 느리게
-  private static readonly ANIM_RUN_FRAME_MS = 67;     // running — 원본 100ms 의 1.5× 속도
-  private static readonly ANIM_TAKEOFF_MS = 160;      // 프레임 4 — 짧은 이륙 squash (2배 튜닝)
-  private static readonly ANIM_LAND_FRAME_MS = 150;   // 프레임 6, 7 각각 — 속도 2/3 로 감속 (100→150ms)
-  private static readonly ANIM_DASH_STARTUP_MS = 30;  // 프레임 16 — 날카로운 시동 (짧게)
-  private static readonly ANIM_DASH_LINGER_MS = 120;  // 프레임 17 — 잔상 여운 (길게). 합계 150ms = DASH_DURATION
-  /** Slash FX — atlas 프레임 ms. FX 스펙(sprite/scale/offset/color) 은 CSV(COMBO_STEPS) SSoT. */
+  private static readonly ANIM_IDLE_FRAME_MS = 400;  // ?�본 100ms × 4 ?�리�?
+  private static readonly ANIM_RUN_FRAME_MS = 67;     // running ???�본 100ms ??1.5× ?�도
+  private static readonly ANIM_TAKEOFF_MS = 160;      // ?�레??4 ??짧�? ?�륙 squash (2�??�닝)
+  private static readonly ANIM_LAND_FRAME_MS = 150;   // ?�레??6, 7 각각 ???�도 2/3 �?감속 (100??50ms)
+  private static readonly ANIM_DASH_STARTUP_MS = 30;  // ?�레??16 ???�카로운 ?�동 (짧게)
+  private static readonly ANIM_DASH_LINGER_MS = 120;  // ?�레??17 ???�상 ?�운 (길게). ?�계 150ms = DASH_DURATION
+  /** Slash FX ??atlas ?�레??ms. FX ?�펙(sprite/scale/offset/color) ?� CSV(COMBO_STEPS) SSoT. */
   private static readonly ANIM_SLASH_FRAME_MS = 40;
   private slashFrames: Texture[] = [];
   private slashSprite: Sprite | null = null;
-  private slashTimer = 0;          // 슬래시 애니메이션 타이머 (ms)
-  private slashFrameIdx = 0;       // 현재 재생 중인 atlas 프레임 인덱스
-  private slashFromIdx = 0;        // 재생 구간 시작
-  private slashToIdx = -1;         // 재생 구간 끝 (비활성 시 -1)
-  private slashHitboxW = 0;        // 이번 슬래시가 참조하는 히트박스 가로 — 위치 계산용
-  private slashOffsetX = 0;        // CSV FxOffsetX 캐시 (공격 중 comboIndex 가 바뀌어도 현재 FX 유지)
+  private slashTimer = 0;          // ?�래???�니메이???�?�머 (ms)
+  private slashFrameIdx = 0;       // ?�재 ?�생 중인 atlas ?�레???�덱??
+  private slashFromIdx = 0;        // ?�생 구간 ?�작
+  private slashToIdx = -1;         // ?�생 구간 ??(비활????-1)
+  private slashHitboxW = 0;        // ?�번 ?�래?��? 참조?�는 ?�트박스 가�????�치 계산??
+  private slashOffsetX = 0;        // CSV FxOffsetX 캐시 (공격 �?comboIndex 가 바뀌어???�재 FX ?��?)
   private slashOffsetY = 0;        // CSV FxOffsetY 캐시
   private attackSprite: Graphics;
   fsm: StateMachine<PlayerState>;
@@ -208,34 +213,34 @@ export class Player extends Entity implements CombatEntity {
   // Stats
   hp = PlayerConst.BaseHp;
   maxHp = PlayerConst.BaseHp;
-  // 2026-05-24: 맨손 상태 제거. BARE_HAND_ATK 가산 폐기. 무기 미장착 시 ATK 0.
-  // updatePlayerAtk() 가 매 프레임 atk 를 재계산하므로 초기값은 placeholder.
+  // 2026-05-24: 맨손 ?�태 ?�거. BARE_HAND_ATK 가???�기. 무기 미장�???ATK 0.
+  // updatePlayerAtk() 가 �??�레??atk �??�계?�하므�?초기값�? placeholder.
   atk = 0;
   def = PlayerConst.BaseDef;
   facingRight = true;
 
   // ============================================================
   // Tile hazard status (TileHazards.ts duck-typed fields)
-  // magma 접촉 → Burn 3s · charged 체류 → 0.5s tick · acid 체류 → 연속 DOT
+  // magma ?�촉 ??Burn 3s · charged 체류 ??0.5s tick · acid 체류 ???�속 DOT
   // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
   // ============================================================
-  /** Burn 상태 잔여 ms (0 = 정상). magma/fire 접촉 시 설정·갱신. */
+  /** Burn ?�태 ?�여 ms (0 = ?�상). magma/fire ?�촉 ???�정·갱신. */
   burnRemainingMs = 0;
-  /** Burn 1초 tick 누적자 (HazardTarget 호환). */
+  /** Burn 1�?tick ?�적??(HazardTarget ?�환). */
   burnTickAccum = 0;
-  /** Charged 0.5초 tick 누적자 (필드 진입 중에만 증가). */
+  /** Charged 0.5�?tick ?�적??(?�드 진입 중에�?증�?). */
   chargedTickAccum = 0;
-  /** Acid 0.1초 tick 누적자 (필드 진입 중에만 증가). */
+  /** Acid 0.1�?tick ?�적??(?�드 진입 중에�?증�?). */
   acidTickAccum = 0;
   chargedStateMs = 0;
   cyroTickAccum = 0;
   cyroSlowRemainingMs = 0;
-  /** 이전 프레임 electric 오버레이 안이었는지 (thunder per-pulse 데미지 트래킹). */
+  /** ?�전 ?�레??electric ?�버?�이 ?�이?�는지 (thunder per-pulse ?��?지 ?�래??. */
   prevInElectric = false;
   /**
-   * Oil slip debuff 잔여 ms. oil 셀에서 빠져나오면 OIL_SLIP_DURATION_MS 로
-   * refresh. > 0 인 동안 ice 와 동일한 미끄러짐 (frictionMul = 0.1).
-   * Scene 의 hazard tick 에서 매 프레임 감소.
+   * Oil slip debuff ?�여 ms. oil ?�?�서 빠져?�오�?OIL_SLIP_DURATION_MS �?
+   * refresh. > 0 ???�안 ice ?� ?�일??미끄?�짐 (frictionMul = 0.1).
+   * Scene ??hazard tick ?�서 �??�레??감소.
    */
   oilSlipRemainingMs = 0;
   /**
@@ -243,17 +248,17 @@ export class Player extends Entity implements CombatEntity {
    * can refresh slipperiness without recursively spawning more oil blots.
    */
   oilResidueRemainingMs = 0;
-  /** 이전 프레임 oil 셀 안에 있었는지 — 진입·이탈 전환 감지에 사용. */
+  /** ?�전 ?�레??oil ?� ?�에 ?�었?��? ??진입·?�탈 ?�환 감�????�용. */
   prevInOil = false;
-  /** Acid residue trail 잔여 시간 — 발이 acid 에 젖어있어 잔존 흔적 spawn. */
+  /** Acid residue trail ?�여 ?�간 ??발이 acid ???�어?�어 ?�존 ?�적 spawn. */
   acidResidueRemainingMs = 0;
   prevInAcid = false;
-  /** Magma residue trail 잔여 시간 — 발이 magma 에 그을려 잔존 흔적 spawn. */
+  /** Magma residue trail ?�여 ?�간 ??발이 magma ??그을???�존 ?�적 spawn. */
   magmaResidueRemainingMs = 0;
   prevInMagma = false;
-  /** Water residue trail 잔여 시간 — 발 젖음 puddle 흔적 (2026-05-18). */
+  /** Water residue trail ?�여 ?�간 ??�??�음 puddle ?�적 (2026-05-18). */
   waterResidueRemainingMs = 0;
-  /** Cyro residue trail 잔여 시간 — 발자국에 ice 결정 잔존 (2026-05-18). */
+  /** Cyro residue trail ?�여 ?�간 ??발자�?�� ice 결정 ?�존 (2026-05-18). */
   cyroResidueRemainingMs = 0;
   prevInCyro = false;
 
@@ -268,12 +273,38 @@ export class Player extends Entity implements CombatEntity {
     return this.erdaFrames.length >= 16 ? this.erdaFrames.slice(8, 16) : [];
   }
 
+  holdWakeUpPose(): void {
+    this.wakeUpHoldPose = true;
+    this.wakeUpOverrideTimer = 0;
+    this.erdaAnim = 'idle';
+    this.erdaAnimFrame = 0;
+    this.erdaAnimTimer = 0;
+    this.applyWakeUpFrame(0);
+  }
+
+  playWakeUpOverride(durationMs = 900): void {
+    this.wakeUpHoldPose = false;
+    this.wakeUpOverrideDuration = Math.max(1, durationMs);
+    this.wakeUpOverrideTimer = this.wakeUpOverrideDuration;
+    this.erdaAnim = 'idle';
+    this.erdaAnimFrame = 0;
+    this.erdaAnimTimer = 0;
+  }
+  tickWakeUpOverrideAnimation(dt: number): void {
+    this.savePrevPosition();
+    this.vx = 0;
+    this.vy = 0;
+    this.updateErdaAnimation(dt);
+    this.vx = 0;
+    this.vy = 0;
+  }
+
   // ============================================================
-  // Ego Shard — Hades-style cast ammo
+  // Ego Shard ??Hades-style cast ammo
   // ============================================================
   /** Currently available shards (consumed by Cast, refilled by retrieval or cooldown). */
   egoShardCount = EGO_SHARD_MAX;
-  /** Currently selected enchant — drives Shard impact effect + Attack tint. */
+  /** Currently selected enchant ??drives Shard impact effect + Attack tint. */
   activeEnchant: 'fire' | 'ice' | 'thunder' = 'fire';
   /** Brief anti-spam gap between casts (ms). Recovery handled by cooldown queue below. */
   egoCastCooldownMs = 0;
@@ -293,8 +324,8 @@ export class Player extends Entity implements CombatEntity {
   heldItem: { kind: string; gfx?: unknown } | null = null;
 
   /**
-   * DEBUG: when true, hp is clamped to ≥1 each frame and isDead/drowned are
-   * cleared. Used for hazard testing — take damage but never die. Scene
+   * DEBUG: when true, hp is clamped to ?? each frame and isDead/drowned are
+   * cleared. Used for hazard testing ??take damage but never die. Scene
    * handler toggles it as part of the unified Shift+O cheat bundle.
    * URL-gated via ?debug.
    */
@@ -302,7 +333,7 @@ export class Player extends Entity implements CombatEntity {
 
   /**
    * DEBUG: when true, the unified Shift+O cheat bundle is currently active
-   * (all relic abilities granted, maxHp/atk inflated, hp locked at ≥ 1).
+   * (all relic abilities granted, maxHp/atk inflated, hp locked at ??1).
    * Toggling Shift+O again restores the pre-cheat values from cheatBackup.
    */
   debugCheatActive = false;
@@ -314,7 +345,7 @@ export class Player extends Entity implements CombatEntity {
   } | null = null;
 
   /**
-   * Currently equipped weapon type — set by the scene whenever inventory
+   * Currently equipped weapon type ??set by the scene whenever inventory
    * equip state changes. `null` = bare hand (falls back to Combo.csv FX).
    * Consumed by triggerSlash() to pick per-type FX from Content_FX_WeaponType.
    */
@@ -330,7 +361,7 @@ export class Player extends Entity implements CombatEntity {
   attackInputEnabled = true;
 
   /**
-   * Currently equipped weapon rarity — used for rarity-tinted slash FX.
+   * Currently equipped weapon rarity ??used for rarity-tinted slash FX.
    * `null` = bare hand.
    */
   equippedRarity: Rarity | null = null;
@@ -362,7 +393,7 @@ export class Player extends Entity implements CombatEntity {
   private static readonly OXYGEN_MAX = PlayerConst.OxygenMaxMs;
   /** Current oxygen remaining (ms). Scene reads this for HUD. */
   oxygen = Player.OXYGEN_MAX;
-  /** True when oxygen has run out → scene triggers death. */
+  /** True when oxygen has run out ??scene triggers death. */
   drowned = false;
 
   // Drop-through one-way platforms (down + jump)
@@ -384,7 +415,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Abilities (unlocked by relic pickups)
   abilities = {
-    dash: false,          // 렐릭 획득 전까지 비활성 (나중에 획득)
+    dash: false,          // ?�릭 ?�득 ?�까지 비활??(?�중???�득)
     diveAttack: false,
     surge: false,
     waterBreathing: false,
@@ -400,12 +431,12 @@ export class Player extends Entity implements CombatEntity {
   private surgeChargeTimer = 0;
   private surgeFlyTimer = 0;
   private surgeDirX = 0; // 0 = straight up, ±1 = diagonal off wall
-  /** True during surge flight — scene can check for contact damage. */
+  /** True during surge flight ??scene can check for contact damage. */
   surgeActive = false;
 
   // Dive attack
   private diveStartY = 0;
-  /** True on the frame dive attack lands — scene checks this for effects. */
+  /** True on the frame dive attack lands ??scene checks this for effects. */
   diveLanded = false;
   /** Fall distance of the last dive landing (px). */
   diveFallDistance = 0;
@@ -413,10 +444,10 @@ export class Player extends Entity implements CombatEntity {
   // Last safe ground position (for spike hazard respawn)
   lastSafeX = 0;
   lastSafeY = 0;
-  /** True 면 현재 grounded 상태가 carrier(GiantBuilder 등 이동 표면) 위에 서 있음을
-   *  의미한다. 이 경우 lastSafeX/Y 를 갱신하지 않아 spike teleport 시
-   *  carrier 가 떠나버린 위치로 복귀하지 않게 한다. Scene 이 매 프레임
-   *  playerOnBuilder 결과로 갱신한다. */
+  /** True �??�재 grounded ?�태가 carrier(GiantBuilder ???�동 ?�면) ?�에 ???�음??
+   *  ?��??�다. ??경우 lastSafeX/Y �?갱신?��? ?�아 spike teleport ??
+   *  carrier 가 ?�나버린 ?�치�?복�??��? ?�게 ?�다. Scene ??�??�레??
+   *  playerOnBuilder 결과�?갱신?�다. */
   onCarrier = false;
   /** Vertical velocity inherited from the moving carrier underfoot. The scene
    * sets this before update; grounded jumps add it to their takeoff velocity. */
@@ -432,12 +463,12 @@ export class Player extends Entity implements CombatEntity {
 
   // Physics
   private grounded = false;
-  /** Debug (Shift+I): 이번 프레임 접지 지지 소스. 'grid'|'slope'|'none' 또는
-   *  씬이 forceGrounded 로 넘긴 라벨('container'|'builder'|'locked-door'|'void-fade' 등). */
+  /** Debug (Shift+I): ?�번 ?�레???��? 지지 ?�스. 'grid'|'slope'|'none' ?�는
+   *  ?�이 forceGrounded �??�긴 ?�벨('container'|'builder'|'locked-door'|'void-fade' ??. */
   groundSource = 'none';
-  /** Debug: groundSource==='grid' 일 때 발밑 셀 좌표=타일id 목록. */
+  /** Debug: groundSource==='grid' ????발밑 ?� 좌표=?�?�id 목록. */
   groundSourceDetail = '';
-  /** 씬 forceGrounded 가 넘긴 라벨 (extraGroundedSticky 가 true 일 때 groundSource 로 노출). */
+  /** ??forceGrounded 가 ?�긴 ?�벨 (extraGroundedSticky 가 true ????groundSource �??�출). */
   private extraGroundedLabel = 'scene';
   private moveRemainderX = 0;
   private moveRemainderY = 0;
@@ -464,7 +495,7 @@ export class Player extends Entity implements CombatEntity {
   private _justWallJumped = false;
   /** Wall side at the moment of the wall jump (-1=left wall kicked right, +1=right wall kicked left). */
   private _wallJumpDir = 0;
-  /** Set on the frame a grounded (or coyote) jump fired — for takeoff puff. */
+  /** Set on the frame a grounded (or coyote) jump fired ??for takeoff puff. */
   private _justJumpedGround = false;
   /** Set on the frame the drop-through one-way move was triggered. */
   private _justDroppedThrough = false;
@@ -479,13 +510,13 @@ export class Player extends Entity implements CombatEntity {
   private airDashAvailable = true;
   private groundDashAvailable = true;
   private groundDashDelayTimer = 0;
-  /** true 면 이번 대시가 지상에서 시작됐음. dash 종료 시 쿨타임/소진 판정 기준. */
+  /** true �??�번 ?�?��? 지?�에???�작?�음. dash 종료 ??쿨�????�진 ?�정 기�?. */
   private dashStartedGrounded = false;
-  /** 대시 선딜 동결 타이머 (ms). >0 이면 vx/vy=0, 방향만 샘플링. */
+  /** ?�???�딜 ?�결 ?�?�머 (ms). >0 ?�면 vx/vy=0, 방향�??�플�? */
   private dashFreezeTimer = 0;
 
   // Variable jump height
-  /** 점프 후 JUMP 떼면 상승속도를 절반 컷 할 수 있는 유효 시간 (ms). */
+  /** ?�프 ??JUMP ?�면 ?�승?�도�??�반 �??????�는 ?�효 ?�간 (ms). */
   private varJumpTimer = 0;
 
   // Death
@@ -500,19 +531,19 @@ export class Player extends Entity implements CombatEntity {
   invincible = false;
 
   // Attack / combo
-  comboIndex = 0;          // 0=1타, 1=2타, 2=3타
+  comboIndex = 0;          // 0=1?�, 1=2?�, 2=3?�
   attackTimer = 0;          // current attack frame timer (ms)
   comboWindowTimer = 0;     // time left to input next combo (ms)
-  endLagTimer = 0;          // 3타 end lag (ms)
+  endLagTimer = 0;          // 3?� end lag (ms)
   attackQueued = false;     // next attack input buffered
   hitList = new Set<CombatEntity>();
   private attackActive = false;
   private attackHasActivated = false;
-  /** Captured at startAttack — ATTACK_TIME_SCALE divided by the equipped
+  /** Captured at startAttack ??ATTACK_TIME_SCALE divided by the equipped
    *  weapon's CSV atkSpeed. Locks the swing's pace so a mid-swing weapon
    *  swap doesn't visually rubber-band. CSV atkSpeed > 1 = faster, < 1 = slower. */
   private currentAttackTimeScale = ATTACK_TIME_SCALE;
-  /** ms remaining in the 2→3타 pause. >0 holds the player in 'attack' state
+  /** ms remaining in the 2???� pause. >0 holds the player in 'attack' state
    *  with no active hitbox / no timer tick until it elapses. */
   private preAttackDelay = 0;
 
@@ -531,13 +562,13 @@ export class Player extends Entity implements CombatEntity {
     this.height = 24;
 
     // Collision width: 70% (tighter feel in tile-based levels).
-    // Collision height: 1.5 cell (24px @ TILE_SIZE=16) — 사용자 결정 (2026-05-03):
-    //   기존 1 cell (16px) 은 1셀 높이 틈을 player 가 통과 가능 (= 메트로베니아
-    //   능력 게이트로 막아야 할 좁은 통로가 무력화). 1.5 cell 로 키워 차단.
+    // Collision height: 1.5 cell (24px @ TILE_SIZE=16) ???�용??결정 (2026-05-03):
+    //   기존 1 cell (16px) ?� 1?� ?�이 ?�을 player 가 ?�과 가??(= 메트로베?�아
+    //   ?�력 게이?�로 막아????좁�? ?�로가 무력??. 1.5 cell �??�워 차단.
     this.collisionW = Math.floor(this.width * 0.7);   // 9px
-    this.collisionH = 24;                             // 1.5 cell — 1셀 틈 통과 방지
+    this.collisionH = 24;                             // 1.5 cell ??1?� ???�과 방�?
 
-    // Placeholder sprite — erdaSprite 로딩 전까지만 보임.
+    // Placeholder sprite ??erdaSprite 로딩 ?�까지�?보임.
     this.sprite = new Graphics();
     this.sprite.rect(0, 0, this.width, this.height).fill(0x2ecc71);
     this.container.addChild(this.sprite);
@@ -547,7 +578,7 @@ export class Player extends Entity implements CombatEntity {
     this.attackSprite.visible = false;
     this.container.addChild(this.attackSprite);
 
-    // 비동기 로드: 완료 시 Graphics 를 숨기고 Sprite 로 교체.
+    // 비동�?로드: ?�료 ??Graphics �??�기�?Sprite �?교체.
     this.loadErdaSprite();
     this.loadAttackWeaponPoseData();
     this.loadWeaponSprite();
@@ -584,10 +615,10 @@ export class Player extends Entity implements CombatEntity {
       enter: () => this.startDash(),
       update: (dt) => this.stateDash(dt),
       exit: () => {
-        // 지상 대시는 종료 경로와 무관하게 쿨타임이 시작되어야 한다.
-        // 정상 종료(stateDash 의 dashTimer<=0) + 중단(onHit/onDeath 등 FSM 전이)
-        // 양쪽 모두 여기서 커버. stateDash 에서 set 하면 중단 경로를 놓쳐
-        // 피격 직후 즉시 재대시 가능한 버그 발생 (Codex review P2).
+        // 지???�?�는 종료 경로?� 무�??�게 쿨�??�이 ?�작?�어???�다.
+        // ?�상 종료(stateDash ??dashTimer<=0) + 중단(onHit/onDeath ??FSM ?�이)
+        // ?�쪽 모두 ?�기??커버. stateDash ?�서 set ?�면 중단 경로�??�쳐
+        // ?�격 직후 즉시 ?��???가?�한 버그 발생 (Codex review P2).
         if (this.dashStartedGrounded) {
           this.groundDashDelayTimer = DASH_GROUND_DELAY;
         }
@@ -632,10 +663,10 @@ export class Player extends Entity implements CombatEntity {
   }
 
   update(dt: number): void {
-    // DEBUG: Shift+O HP lock — clamp hp ≥ 1 and clear death markers each frame.
+    // DEBUG: Shift+O HP lock ??clamp hp ??1 and clear death markers each frame.
     // Lets the player walk through hazards taking continuous damage without dying.
     // Big hits (thunder 50%, spike 20%) trigger onDeath() before this clamp,
-    // landing the FSM in 'death' state — we have to eject out of it explicitly
+    // landing the FSM in 'death' state ??we have to eject out of it explicitly
     // or the player ends up alive (hp=1) but frozen in death animation.
     if (this.debugLockHpAtOne) {
       if (this.hp < 1) this.hp = 1;
@@ -650,7 +681,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     this.savePrevPosition();
-    this.diveLanded = false; // reset each frame — scene reads this flag
+    this.diveLanded = false; // reset each frame ??scene reads this flag
     this.updateInvincibility(dt);
     const dtSec = dt / 1000;
 
@@ -670,7 +701,7 @@ export class Player extends Entity implements CombatEntity {
     if (this.grounded && !this.wasGrounded) {
       this.airDashAvailable = true;
       this.doubleJumpAvailable = true;
-      // VFX: landing event — fall speed = whichever is larger (current vy or the
+      // VFX: landing event ??fall speed = whichever is larger (current vy or the
       // peak observed while airborne, in case resolveY clamped vy to 0 already).
       const landedSpeed = Math.max(this.vy, this.peakFallSpeed, 0);
       this._justLanded = true;
@@ -681,9 +712,9 @@ export class Player extends Entity implements CombatEntity {
     if (!this.grounded && this.vy > this.peakFallSpeed) {
       this.peakFallSpeed = this.vy;
     }
-    // Carrier(GiantBuilder) 위 grounding 은 safe ground 로 기록하지 않는다.
-    // 빌더가 이동/소실된 후 spike teleport 가 빈 공간을 가리키면 안 됨.
-    // 또한 좁은 틈(좌우 벽 압착 또는 머리 위 막힘) 안에 있으면 기록하지 않는다.
+    // Carrier(GiantBuilder) ??grounding ?� safe ground �?기록?��? ?�는??
+    // 빌더가 ?�동/?�실????spike teleport 가 �?공간??가리키�?????
+    // ?�한 좁�? ??좌우 �??�착 ?�는 머리 ??막힘) ?�에 ?�으�?기록?��? ?�는??
     if (this.grounded && this.hp > 0 && !this.onCarrier) {
       const T = 16;
       const cOffX = (this.width - this.collisionW) / 2;
@@ -716,18 +747,18 @@ export class Player extends Entity implements CombatEntity {
         this.y += 2;
         this.grounded = false;
         this.coyoteTimer = 0;       // prevent coyote jump after drop
-        this.jumpBufferTimer = 0;   // consume the input — don't also jump
+        this.jumpBufferTimer = 0;   // consume the input ??don't also jump
         this._justDroppedThrough = true; // VFX: drop-through dust
         return;                     // skip all other jump/attack processing this frame
       }
-      // 2026-05-17: drop-through 연타 시 "착지 직후 자동 점프" 방지.
-      //  - DOWN 이 눌린 상태의 JUMP 는 buffer 하지 않는다 (의도=드랍, not jump).
-      //  - drop-through 직후 short window (dropThroughTimer 활성 중) 의 JUMP 도 무시.
-      // 둘 다 적용해 (a) DOWN 유지 mash 와 (b) DOWN 떼고 JUMP 연타 모두 차단.
+      // 2026-05-17: drop-through ?��? ??"착�? 직후 ?�동 ?�프" 방�?.
+      //  - DOWN ???�린 ?�태??JUMP ??buffer ?��? ?�는??(?�도=?�랍, not jump).
+      //  - drop-through 직후 short window (dropThroughTimer ?�성 �? ??JUMP ??무시.
+      // ?????�용??(a) DOWN ?��? mash ?� (b) DOWN ?�고 JUMP ?��? 모두 차단.
       if (this.game.input.isDown(GameAction.LOOK_DOWN) || this.dropThroughTimer > 0) {
         return;
       }
-      // Wall Jump: touching wall + jump → kick off opposite direction
+      // Wall Jump: touching wall + jump ??kick off opposite direction
       else if (!this.isLifting && this.wallSliding && this.touchingWallDir !== 0) {
         const kickDir = -this.touchingWallDir; // +1 = kicked to right, -1 = kicked to left
         this.startWallJumpMotion(kickDir);
@@ -752,7 +783,7 @@ export class Player extends Entity implements CombatEntity {
 
     const state = this.fsm.currentState;
 
-    // Surge input — ↑ + C on ground or wall
+    // Surge input ????+ C on ground or wall
     if (!this.isLifting && this.abilities.surge && this.game.input.isJustPressed(GameAction.DASH) &&
         this.game.input.isDown(GameAction.LOOK_UP) &&
         (this.grounded || this.wallSliding) &&
@@ -761,7 +792,7 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
 
-    // Dash input (requires dash ability, available from most states, cancels 3타 end lag)
+    // Dash input (requires dash ability, available from most states, cancels 3?� end lag)
     if (!this.isLifting && this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
         state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
@@ -772,7 +803,7 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    // Dive attack input — air + ↓ + C
+    // Dive attack input ??air + ??+ C
     if (!this.isLifting && this.abilities.diveAttack && !this.grounded &&
         this.attackInputEnabled && this.game.input.isDown(GameAction.LOOK_DOWN) &&
         this.game.input.isJustPressed(GameAction.ATTACK) &&
@@ -782,13 +813,13 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Attack input
-    // Dash (ground or air) can be cancelled into attack — chaining
-    // dash → attack tightens the combat rhythm and matches what muscle
+    // Dash (ground or air) can be cancelled into attack ??chaining
+    // dash ??attack tightens the combat rhythm and matches what muscle
     // memory expects from action games.
-    // No weapon equipped → attack disabled entirely, except when cheat is on
+    // No weapon equipped ??attack disabled entirely, except when cheat is on
     // (cheat already grants +99999 ATK so C should always swing for testing).
     // Suppress the swing when an interaction prompt is up (or a dialogue is
-    // open) — the same key press is claimed by the interaction. Not consumed
+    // open) ??the same key press is claimed by the interaction. Not consumed
     // here, so the interaction runtime (which runs later) still receives it.
     const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK)
       && this.attackInputEnabled
@@ -797,7 +828,7 @@ export class Player extends Entity implements CombatEntity {
       !this.isLifting && state !== 'dive' && state !== 'hit' && state !== 'death';
     if (attackPressedThisFrame && attackStateAllowed &&
         this.equippedWeaponType === null && !this.abilities.cheat) {
-      // Bare-hand swing attempt → surface toast via scene, no state change.
+      // Bare-hand swing attempt ??surface toast via scene, no state change.
       this.attackBlockedNoWeaponPulse = true;
     }
     if (attackPressedThisFrame &&
@@ -820,12 +851,12 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    // Combo window expired → reset combo
+    // Combo window expired ??reset combo
     if (state !== 'attack' && this.comboWindowTimer <= 0 && this.endLagTimer <= 0) {
       this.comboIndex = 0;
     }
 
-    // End lag finished → return to normal state
+    // End lag finished ??return to normal state
     if (state !== 'attack' && state !== 'hit' && state !== 'death' && state !== 'dash' && state !== 'dive' && this.endLagTimer > 0) {
       // Still in end lag, don't transition
     }
@@ -834,12 +865,12 @@ export class Player extends Entity implements CombatEntity {
     if (this.flaskCasting) {
       this.flaskCastTimer -= dt;
       this.vx = 0; // movement locked during cast
-      // Trembling during cast — continuous small vibration
+      // Trembling during cast ??continuous small vibration
       if (this.vibrateFrames <= 0) {
         this.startVibrate(1.5, 4, true);
       }
       if (this.flaskCastTimer <= 0) {
-        // Cast complete → heal + consume + white flash
+        // Cast complete ??heal + consume + white flash
         this.flaskCasting = false;
         this.flaskCharges--;
         const healAmt = Math.max(1, Math.floor(this.maxHp * Player.FLASK_HEAL_PERCENT));
@@ -868,7 +899,7 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    // Run FSM (skip if flask casting — player is locked)
+    // Run FSM (skip if flask casting ??player is locked)
     if (!this.flaskCasting) {
       this.fsm.update(dt);
     }
@@ -880,9 +911,9 @@ export class Player extends Entity implements CombatEntity {
     if (this.inWater && !this.prevInWater) this._waterTransition = 1;
     else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
     this.prevInWater = this.inWater;
-    // 2026-05-17: 부력 / 유체 저항을 모든 fluid (water/oil/magma/acid/cyro) 에
-    // 일관 적용. `waterMult` 가 gravity + 수평 이동 + max fall 을 동시에 댐핑한다.
-    // 변수명은 legacy "water" 유지 (참조 부담 ↓). 별도 inAnyFluid 플래그로 split.
+    // 2026-05-17: 부??/ ?�체 ?�??�� 모든 fluid (water/oil/magma/acid/cyro) ??
+    // ?��? ?�용. `waterMult` 가 gravity + ?�평 ?�동 + max fall ???�시???�핑?�다.
+    // 변?�명?� legacy "water" ?��? (참조 부????. 별도 inAnyFluid ?�래그로 split.
     const inAnyFluid = this.inWater
       || isInOil(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 11
       || isInMagma(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 6
@@ -890,7 +921,7 @@ export class Player extends Entity implements CombatEntity {
       || isInCyro(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 20;
     const waterMult = inAnyFluid ? PlayerConst.WaterMoveMult : 1.0; // slow everything in fluid
 
-    // Submersion check — head (top of sprite) is in water OR oil = 2+
+    // Submersion check ??head (top of sprite) is in water OR oil = 2+
     // tiles deep. Oil submersion drains oxygen the same way water does so
     // the dive gauge mechanic generalizes across drowning fluids.
     const headRow = Math.floor(this.y / 16);
@@ -902,7 +933,7 @@ export class Player extends Entity implements CombatEntity {
     const inOil = isInOil(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 11;
     this.submerged = (this.inWater && headInWater) || (inOil && headInOil);
 
-    // Oxygen timer — drains while submerged in water or oil. Water breathing
+    // Oxygen timer ??drains while submerged in water or oil. Water breathing
     // ability bypasses both (treats every drowning fluid the same).
     this.drowned = false;
     if (this.submerged && !this.abilities.waterBreathing) {
@@ -916,11 +947,11 @@ export class Player extends Entity implements CombatEntity {
       this.oxygen = Math.min(Player.OXYGEN_MAX, this.oxygen + dt * PlayerConst.WaterOxygenRecoverMult);
     }
 
-    // Apply gravity (except during dash/dive/surge) — reduced in water.
-    // 정점 근처(|vy| < APEX_THRESHOLD)에서 중력 절반 → 체공감 상승.
-    // Aerial attack → "Air Stall": gravity dramatically reduced + max fall
-    // capped so 1/2/3타 콤보 전체를 공중에서 이어 맞출 수 있다. 3타는
-    // 거의 멈춰서 마무리 강타를 안정적으로 꽂게 한다.
+    // Apply gravity (except during dash/dive/surge) ??reduced in water.
+    // ?�점 근처(|vy| < APEX_THRESHOLD)?�서 중력 ?�반 ??체공�??�승.
+    // Aerial attack ??"Air Stall": gravity dramatically reduced + max fall
+    // capped so 1/2/3?� 콤보 ?�체�?공중?�서 ?�어 맞출 ???�다. 3?�??
+    // 거의 멈춰??마무�?강�?�??�정?�으�?꽂게 ?�다.
     if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
       const apexMult = Math.abs(this.vy) < APEX_THRESHOLD ? APEX_GRAVITY_MULT : 1.0;
       const aerialAttack = state === 'attack' && !this.grounded;
@@ -930,12 +961,12 @@ export class Player extends Entity implements CombatEntity {
 
       this.vy += GRAVITY * waterMult * apexMult * stallMult * dtSec;
 
-      // Damp residual upward velocity from a jump → "hover" feel during stall.
+      // Damp residual upward velocity from a jump ??"hover" feel during stall.
       if (aerialAttack && this.vy < 0) {
         this.vy *= Math.pow(AIR_STALL_RISE_DAMP_PER_16MS, dt / 16.67);
       }
 
-      // inAnyFluid 면 fluid drag 로 max fall 도 동일 캡 (2026-05-17 — 부력 통일).
+      // inAnyFluid �?fluid drag �?max fall ???�일 �?(2026-05-17 ??부???�일).
       const baseMaxFall = inAnyFluid ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
       const maxFall = aerialAttack
         ? (this.comboIndex === 2 ? AIR_STALL_MAX_FALL_3 : AIR_STALL_MAX_FALL_12)
@@ -943,15 +974,15 @@ export class Player extends Entity implements CombatEntity {
       if (this.vy > maxFall) this.vy = maxFall;
     }
 
-    // Variable jump height — JUMP 버튼을 타이머 내에 떼면 상승속도 절반 컷.
-    // tap = short hop, hold = full height. dash/surge 중엔 비활성 (varJumpTimer=0 유지).
+    // Variable jump height ??JUMP 버튼???�?�머 ?�에 ?�면 ?�승?�도 ?�반 �?
+    // tap = short hop, hold = full height. dash/surge 중엔 비활??(varJumpTimer=0 ?��?).
     if (this.varJumpTimer > 0) {
       this.varJumpTimer -= dt;
       if (this.vy < 0 && this.game.input.isJustReleased(GameAction.JUMP)) {
         this.vy *= VAR_JUMP_CUT_MULT;
         this.varJumpTimer = 0;
       } else if (this.vy >= 0) {
-        // 이미 낙하 중이면 타이머 의미 없음.
+        // ?��? ?�하 중이�??�?�머 ?��? ?�음.
         this.varJumpTimer = 0;
       }
     }
@@ -1009,7 +1040,7 @@ export class Player extends Entity implements CombatEntity {
     this.y = rx.y - colOffY;
     if (rx.collided) this.vx = 0;
 
-    // 상승 중 천장 코너에 살짝 걸리면 8px 이내에서 수평으로 밀어 통과.
+    // ?�승 �?천장 코너???�짝 걸리�?8px ?�내?�서 ?�평?�로 밀???�과.
     if (moveY < 0) {
       const cornerX = tryCornerCorrectUp(
         this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
@@ -1036,8 +1067,8 @@ export class Player extends Entity implements CombatEntity {
     // resolve; we read it here so animation + jump checks behave as if
     // the player is on solid ground.
     this.grounded = ry.grounded || rx.onSlope || this.extraGroundedSticky;
-    // Debug (Shift+I): 발밑을 떠받치는 충돌 소스의 정체를 기록. 우선순위는
-    // grounded 평가 순서(grid > slope > scene flag)와 동일.
+    // Debug (Shift+I): 발밑???�받치는 충돌 ?�스???�체�?기록. ?�선?�위??
+    // grounded ?��? ?�서(grid > slope > scene flag)?� ?�일.
     if (ry.grounded) {
       this.groundSource = 'grid';
       this.groundSourceDetail = this.sampleFloorTiles(colOffX, colOffY);
@@ -1056,7 +1087,7 @@ export class Player extends Entity implements CombatEntity {
       if (this.vy < 0) this.vy = 0;
     }
 
-    // Wall detection (for wall slide/jump) — check tiles adjacent to player sides
+    // Wall detection (for wall slide/jump) ??check tiles adjacent to player sides
     this.touchingWallDir = 0;
     this.wallSliding = false;
     if (this.wallJumpCooldown > 0) this.wallJumpCooldown -= dt;
@@ -1078,7 +1109,7 @@ export class Player extends Entity implements CombatEntity {
       if (this.touchingWallDir !== 0 && this.vy > 0) {
         this.vy = WALL_SLIDE_SPEED;
         if (!this.wallSliding) {
-          // Just started wall slide — reset double jump and air dash
+          // Just started wall slide ??reset double jump and air dash
           this.doubleJumpAvailable = true;
           this.airDashAvailable = true;
         }
@@ -1107,9 +1138,9 @@ export class Player extends Entity implements CombatEntity {
     // Update camera facing
     this.game.camera.facingDirection = this.facingRight ? 1 : -1;
 
-    // Erda atlas 프레임 애니메이션 — grounded 여부로 idle/jump 전환.
+    // Erda atlas ?�레???�니메이????grounded ?��?�?idle/jump ?�환.
     this.updateErdaAnimation(dt);
-    // Slash FX — 재생 중일 때만 프레임 갱신, 완료 시 자동 숨김.
+    // Slash FX ???�생 중일 ?�만 ?�레??갱신, ?�료 ???�동 ?��?.
     this.updateSlashFX(dt);
     // Consume the scene-supplied "standing on container" flag. The scene
     // re-sets it AFTER player.update each frame; reads here next frame.
@@ -1187,12 +1218,12 @@ export class Player extends Entity implements CombatEntity {
     //
     // Oil slip debuff: after touching oil, the player's feet stay slick for
     // OIL_SLIP_DURATION_MS. While `oilSlipRemainingMs > 0`, friction drops the
-    // same as on ice — even on dry ground. The debuff expires naturally on
+    // same as on ice ??even on dry ground. The debuff expires naturally on
     // the timer; touching oil again refreshes it to full duration.
     const onIce = this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
     const oilSlipping = this.grounded && this.oilSlipRemainingMs > 0;
     const frictionMul = (onIce || oilSlipping) ? 0.1 : 1.0;
-    // 공중에서는 가속/감속을 약간 줄여 도약감·조작감을 무겁게.
+    // 공중?�서??가??감속???�간 줄여 ?�약감·조?�감??무겁�?
     const airMul = this.grounded ? 1.0 : AIR_ACCEL_MULT;
     const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60) * frictionMul * airMul;
 
@@ -1270,15 +1301,15 @@ export class Player extends Entity implements CombatEntity {
         this.jumpBufferTimer = 0;
         this.startDoubleJumpMotion();
         this._justDoubleJumped = true;
-        // 더블 점프 — speed 약간 빠르게 (피치 ↑) 로 차별화.
+        // ?�블 ?�프 ??speed ?�간 빠르�?(?�치 ?? �?차별??
         SFX.play('jump', 0, { speed: 1.1 });
         return true;
       }
       this.jumpBufferTimer = 0;
       this.coyoteTimer = 0;
-      // VFX: ground takeoff event (only fires for grounded jump — coyote counts)
+      // VFX: ground takeoff event (only fires for grounded jump ??coyote counts)
       this._justJumpedGround = true;
-      // 지면 점프 — speed 0.95~1.05 무작위 (단조로움 감소).
+      // 지�??�프 ??speed 0.95~1.05 무작??(?�조로�? 감소).
       SFX.play('jump', 0, { speed: 0.95 + Math.random() * 0.1 });
       this.startGroundJumpMotion();
       return true;
@@ -1311,17 +1342,17 @@ export class Player extends Entity implements CombatEntity {
     this.dashStartedGrounded = this.grounded;
     if (this.grounded) {
       this.groundDashAvailable = false;
-      // 쿨타임은 dash 종료 시점에 시작 — FSM dash.exit 에서 통합 처리.
+      // 쿨�??��? dash 종료 ?�점???�작 ??FSM dash.exit ?�서 ?�합 처리.
     } else {
       this.airDashAvailable = false;
     }
-    // 대시 sound — speed 0.95~1.05 무작위 (반복감 ↓).
+    // ?�??sound ??speed 0.95~1.05 무작??(반복�???.
     SFX.play('dash', 0, { speed: 0.95 + Math.random() * 0.1 });
     rumbleGamepad(45, 0.15, 0.35);
     this.dashTimer = DASH_DURATION;
-    // 대시 선딜 3프레임(50ms) 동결 — stateDash 에서 풀릴 때 방향 확정 후 dashSpeed 커밋.
+    // ?�???�딜 3?�레??50ms) ?�결 ??stateDash ?�서 ?��???방향 ?�정 ??dashSpeed 커밋.
     this.dashFreezeTimer = DASH_FREEZE_MS;
-    // Variable jump 타이머는 대시로 덮어쓰인 점프 상승과 무관 — 즉시 종료.
+    // Variable jump ?�?�머???�?�로 ??��?�인 ?�프 ?�승�?무�? ??즉시 종료.
     this.varJumpTimer = 0;
 
     const input = this.game.input;
@@ -1329,7 +1360,7 @@ export class Player extends Entity implements CombatEntity {
     else if (input.isDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
     else this.dashDirX = this.facingRight ? 1 : -1;
 
-    // 동결 구간 동안은 정지. 방향은 freeze 해제 순간 재샘플.
+    // ?�결 구간 ?�안?� ?��?. 방향?� freeze ?�제 ?�간 ?�샘??
     this.vx = 0;
     this.vy = 0;
 
@@ -1339,21 +1370,21 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateDash(dt: number): void {
-    // Freeze 구간 — 방향만 실시간 재샘플, 이동은 멈춤.
+    // Freeze 구간 ??방향�??�시�??�샘?? ?�동?� 멈춤.
     if (this.dashFreezeTimer > 0) {
       this.dashFreezeTimer -= dt;
       const input = this.game.input;
       if (input.isDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
       else if (input.isDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
-      // 입력 없으면 기존 dashDirX 유지 (startDash 에서 facing 기반 설정).
+      // ?�력 ?�으�?기존 dashDirX ?��? (startDash ?�서 facing 기반 ?�정).
       this.vx = 0;
       this.vy = 0;
       if (this.dashFreezeTimer <= 0) {
-        // Freeze 해제 — 실제 대시 속도 커밋.
+        // Freeze ?�제 ???�제 ?�???�도 커밋.
         const dashSpeed = (DASH_DISTANCE / (DASH_DURATION / 1000)) * this.getCyroMoveMultiplier();
         this.vx = this.dashDirX * dashSpeed;
         this.vy = 0;
-        this._dashDir = this.dashDirX; // VFX 재확정 (방향 변경됐을 수 있음)
+        this._dashDir = this.dashDirX; // VFX ?�확??(방향 변경됐?????�음)
       }
       return;
     }
@@ -1361,11 +1392,11 @@ export class Player extends Entity implements CombatEntity {
     this.dashTimer -= dt;
     if (this.dashTimer <= 0) {
       this.vx = this.dashDirX * MOVE_SPEED * 0.5 * this.getCyroMoveMultiplier();
-      // groundDashDelayTimer 는 FSM dash.exit 에서 통합 처리 (중단 경로 커버).
+      // groundDashDelayTimer ??FSM dash.exit ?�서 ?�합 처리 (중단 경로 커버).
       if (this.grounded) {
         this.fsm.transition(this.getGroundMovementState());
       } else {
-        // 지상 대시가 공중에서 끝났다면 공중 대시도 소진 — ledge-drop 연쇄 방지.
+        // 지???�?��? 공중?�서 ?�났?�면 공중 ?�?�도 ?�진 ??ledge-drop ?�쇄 방�?.
         if (this.dashStartedGrounded) {
           this.airDashAvailable = false;
         }
@@ -1407,7 +1438,7 @@ export class Player extends Entity implements CombatEntity {
     this.vx = 0;
     this.vy = 0;
 
-    // Determine launch direction — wall bounce or straight up
+    // Determine launch direction ??wall bounce or straight up
     if (this.wallSliding && this.touchingWallDir !== 0) {
       this.surgeDirX = -this.touchingWallDir; // diagonal away from wall
     } else {
@@ -1420,15 +1451,15 @@ export class Player extends Entity implements CombatEntity {
     this.vx = 0;
     this.vy = 0;
 
-    // Charging vibration — intensifies as charge completes
+    // Charging vibration ??intensifies as charge completes
     const progress = 1 - this.surgeChargeTimer / Player.SURGE_CHARGE_MS;
     this.startVibrate(progress * 3, 2, true);
 
-    // Camera rumble — escalating shake
+    // Camera rumble ??escalating shake
     this.game.camera.shake(progress * 2);
 
-    // Red tint — flash faster as charge progresses
-    const flashSpeed = 200 - progress * 150; // 200ms → 50ms
+    // Red tint ??flash faster as charge progresses
+    const flashSpeed = 200 - progress * 150; // 200ms ??50ms
     const flashOn = Math.sin(Date.now() / flashSpeed) > 0;
     this.sprite.tint = flashOn ? 0xff4444 : 0xffffff;
 
@@ -1449,7 +1480,7 @@ export class Player extends Entity implements CombatEntity {
       this.facingRight = this.surgeDirX > 0;
     }
 
-    // Launch impact — camera shake + hitstop + flash
+    // Launch impact ??camera shake + hitstop + flash
     this.game.camera.shakeDirectional(5, 0, 1); // upward bias
     this.game.hitstopFrames = 3;
     this.triggerFlash();
@@ -1458,7 +1489,7 @@ export class Player extends Entity implements CombatEntity {
   private stateSurgeFly(dt: number): void {
     this.surgeFlyTimer -= dt;
 
-    // Maintain upward velocity (constant — resist gravity entirely)
+    // Maintain upward velocity (constant ??resist gravity entirely)
     this.vy = -Player.SURGE_SPEED;
 
     if (this.surgeFlyTimer <= 0) {
@@ -1467,7 +1498,7 @@ export class Player extends Entity implements CombatEntity {
       this.fsm.transition('fall');
     }
 
-    // Hit ceiling → end early
+    // Hit ceiling ??end early
     if (this.vy <= 0 && this.y <= 0) {
       this.surgeActive = false;
       this.attackActive = false;
@@ -1481,7 +1512,7 @@ export class Player extends Entity implements CombatEntity {
   private startAttack(): void {
     const step = COMBO_STEPS[this.comboIndex];
     // Capture per-swing time scale = global slow-down × (1 / weapon atkSpeed)
-    // × per-combo-step multiplier ("슉슉-슝": 3타 drawn out).
+    // × per-combo-step multiplier ("?�슉-??: 3?� drawn out).
     const def = this.getEquippedWeaponDef();
     const wSpeed = def.atkSpeed > 0 ? def.atkSpeed : 1.0;
     const stepMul = COMBO_STEP_TIME_MUL[this.comboIndex] ?? 1.0;
@@ -1493,28 +1524,28 @@ export class Player extends Entity implements CombatEntity {
     this.hitList.clear();
     this.comboWindowTimer = 0;
 
-    // Swing whoosh — every attack swing (hit 또는 miss 무관).
-    // comboIndex 0/1/2 → whoosh_01/02/03 자산 (Sfx.ASSET_BACKED_CUES 배열 인덱스).
+    // Swing whoosh ??every attack swing (hit ?�는 miss 무�?).
+    // comboIndex 0/1/2 ??whoosh_01/02/03 ?�산 (Sfx.ASSET_BACKED_CUES 배열 ?�덱??.
     SFX.play('attack_swing', this.comboIndex);
 
     // Show attack hitbox visual
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
-    // Slash FX — comboIndex 별 태그/스케일.
+    // Slash FX ??comboIndex �??�그/?��???
   }
 
   private stateAttack(dt: number): void {
-    // Aerial swings near-fully lock horizontal input — air stall already
+    // Aerial swings near-fully lock horizontal input ??air stall already
     // pins vy, so the player feels anchored mid-combo instead of skating.
     const moveMul = this.grounded ? ATTACK_MOVE_MULT : AERIAL_ATTACK_MOVE_MULT;
     this.applyHorizontalInput(dt, moveMul);
 
-    // Gravity already applied in update() before state dispatch — no double gravity
+    // Gravity already applied in update() before state dispatch ??no double gravity
 
-    // 2→3타 pause — hold the player in 'attack' state (air stall stays active
+    // 2???� pause ??hold the player in 'attack' state (air stall stays active
     // because comboIndex is already 2) without ticking attack/hitbox logic.
-    // When the countdown elapses, fire startAttack() to begin 3타.
+    // When the countdown elapses, fire startAttack() to begin 3?�.
     if (this.preAttackDelay > 0) {
       this.preAttackDelay -= dt;
       if (this.preAttackDelay <= 0) {
@@ -1555,7 +1586,7 @@ export class Player extends Entity implements CombatEntity {
         this.comboIndex++;
         this.attackQueued = false;
         if (this.comboIndex === 2) {
-          // 2타 → 3타: insert "슉슉(쉼)슉" pause. stateAttack will fire
+          // 2?� ??3?�: insert "?�슉(???? pause. stateAttack will fire
           // startAttack() once the delay countdown reaches 0.
           this.preAttackDelay = COMBO_3_PRE_DELAY_MS;
         } else {
@@ -1564,13 +1595,13 @@ export class Player extends Entity implements CombatEntity {
         return;
       }
 
-      // Attack done — set combo window or end lag
+      // Attack done ??set combo window or end lag
       if (this.comboIndex >= 2) {
-        // 3타 finished → end lag
+        // 3?� finished ??end lag
         this.endLagTimer = COMBO3_END_LAG;
         this.comboIndex = 0;
       } else {
-        // 1타 or 2타 → combo window
+        // 1?� or 2?� ??combo window
         this.comboIndex++;
         this.comboWindowTimer = COMBO_WINDOW;
       }
@@ -1590,7 +1621,7 @@ export class Player extends Entity implements CombatEntity {
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
-    // Clear any pending 2→3 pause so an interrupted swing doesn't carry it over.
+    // Clear any pending 2?? pause so an interrupted swing doesn't carry it over.
     this.preAttackDelay = 0;
   }
 
@@ -1635,7 +1666,7 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * Returns a static Container that mirrors the player's current visual state —
+   * Returns a static Container that mirrors the player's current visual state ??
    * same sprite textures, transforms, and positions.  Caller positions the
    * container in world space (set x/y to player.container.x / .y).
    * Returned container shares textures (no deep clone) but owns its Sprites.
@@ -1694,8 +1725,8 @@ export class Player extends Entity implements CombatEntity {
 
   /**
    * Returns the wall-jump kick direction sign if a wall jump was performed this frame.
-   *   -1 → pushed off right wall (moving left)
-   *   +1 → pushed off left wall (moving right)
+   *   -1 ??pushed off right wall (moving left)
+   *   +1 ??pushed off left wall (moving right)
    * Returns null if no wall jump this frame.
    */
   consumeWallJumpEvent(): number | null {
@@ -1734,8 +1765,8 @@ export class Player extends Entity implements CombatEntity {
   wallContactDir(): number { return this.touchingWallDir; }
 
   /**
-   * Debug: 발밑(feetRow) 셀들을 그리드에서 샘플해 "col,row=tileId" 목록으로 반환.
-   * groundSource==='grid' 일 때 어떤 타일이 떠받치는지 식별용.
+   * Debug: 발밑(feetRow) ?�?�을 그리?�에???�플??"col,row=tileId" 목록?�로 반환.
+   * groundSource==='grid' ?????�떤 ?�?�이 ?�받치는지 ?�별??
    */
   private sampleFloorTiles(colOffX: number, colOffY: number): string {
     const T = 16;
@@ -1759,14 +1790,14 @@ export class Player extends Entity implements CombatEntity {
     return Math.min(1, this.surgeChargeTimer / Player.SURGE_CHARGE_MS);
   }
 
-  /** Current vx — for footstep puff movement check. */
+  /** Current vx ??for footstep puff movement check. */
   getVx(): number { return this.vx; }
-  /** Current vy — for dive landing severity / jumpland intensity. */
+  /** Current vy ??for dive landing severity / jumpland intensity. */
   getVy(): number { return this.vy; }
   /** Grounded accessor (scene-side VFX polling). */
   isGrounded(): boolean { return this.grounded; }
   /**
-   * Sticky external grounding — set TRUE when standing on a non-grid solid
+   * Sticky external grounding ??set TRUE when standing on a non-grid solid
    * (e.g., a ThrowableContainer top). Player physics OR's it into `grounded`
    * at the end of each update, AFTER the grid check has already overwritten
    * `grounded` to false. Reset to false at the end of update so the scene
@@ -1792,7 +1823,7 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * DEBUG: Grant the full cheat bundle — every relic ability, inflated
+   * DEBUG: Grant the full cheat bundle ??every relic ability, inflated
    * maxHp/atk, and HP-lock-at-1 (immortality clamp). Snapshots the prior
    * values into `cheatBackup` so a second Shift+O press cleanly restores
    * them. No-op if already active.
@@ -1819,7 +1850,7 @@ export class Player extends Entity implements CombatEntity {
     this.debugCheatActive = true;
   }
 
-  /** Reverse of `enableCheatBundle()` — restores pre-cheat snapshot. */
+  /** Reverse of `enableCheatBundle()` ??restores pre-cheat snapshot. */
   disableCheatBundle(): void {
     if (!this.debugCheatActive || !this.cheatBackup) return;
     this.abilities = { ...this.cheatBackup.abilities };
@@ -1834,7 +1865,7 @@ export class Player extends Entity implements CombatEntity {
   isStandingOnIce(): boolean {
     return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
   }
-  /** One-way (drop-through) platform accessor — for drop-through tutorial gating. */
+  /** One-way (drop-through) platform accessor ??for drop-through tutorial gating. */
   isOnOneWayPlatform(): boolean {
     return this.grounded && isOnOneWay(this.x, this.y, this.width, this.height, this.roomData);
   }
@@ -1870,7 +1901,7 @@ export class Player extends Entity implements CombatEntity {
     }
     this.attackSprite.scale.x = 1;
     this.attackSprite.y = offsetY;
-    // 히트박스 디버그 박스는 Debug.visible 이 true 일 때만 표시.
+    // ?�트박스 ?�버�?박스??Debug.visible ??true ???�만 ?�시.
     this.attackSprite.visible = Debug.visible;
   }
 
@@ -1906,14 +1937,14 @@ export class Player extends Entity implements CombatEntity {
   private flashOverlay: Graphics | null = null;
 
   /**
-   * Erda 스프라이트 비동기 로드.
-   * 에셋 부재/네트워크 실패 시 fallback 은 기존 녹색 placeholder 유지.
+   * Erda ?�프?�이??비동�?로드.
+   * ?�셋 부???�트?�크 ?�패 ??fallback ?� 기존 ?�색 placeholder ?��?.
    */
   private loadErdaSprite(): void {
     const path = assetPath('assets/characters/erda_atlas.png');
     Assets.load(path).then((tex: Texture) => {
       if (this.container.destroyed) return;
-      // pixel-perfect — 주변 업스케일 파이프라인(worldRT nearest)과 일치.
+      // pixel-perfect ??주�? ?�스케???�이?�라??worldRT nearest)�??�치.
       tex.source.scaleMode = 'nearest';
 
       // 32×32 frame atlas. attack2 adds four frames after attack1:
@@ -1931,18 +1962,18 @@ export class Player extends Entity implements CombatEntity {
       }
 
       const s = new Sprite(this.erdaFrames[0]);
-      // 발 중앙 기준: 히트박스(14×24) 의 하단 중앙에 스프라이트 앵커를 건다.
-      // 32×32 스프라이트가 박스보다 가로 18px, 세로 8px 커서 바깥으로 삐져나옴 (의도).
+      // �?중앙 기�?: ?�트박스(14×24) ???�단 중앙???�프?�이???�커�?건다.
+      // 32×32 ?�프?�이?��? 박스보다 가�?18px, ?�로 8px 커서 바깥?�로 ?�져?�옴 (?�도).
       s.anchor.set(0.5, 1);
       s.x = this.width / 2;
       s.y = this.height;
-      // attackSprite / flashOverlay 보다 아래에 놓아 히트박스 디버그 오버레이를 가리지 않도록.
+      // attackSprite / flashOverlay 보다 ?�래???�아 ?�트박스 ?�버�??�버?�이�?가리�? ?�도�?
       const weaponIdx = this.weaponSprite ? this.container.getChildIndex(this.weaponSprite) : -1;
       this.container.addChildAt(s, weaponIdx >= 0 ? weaponIdx + 1 : 0);
       this.erdaSprite = s;
       this.sprite.visible = false; // placeholder off.
     }).catch(() => {
-      // 로드 실패 → placeholder 유지.
+      // 로드 ?�패 ??placeholder ?��?.
     });
   }
 
@@ -2019,6 +2050,17 @@ export class Player extends Entity implements CombatEntity {
       });
   }
 
+  private applyWakeUpFrame(frame: number): void {
+    if (!this.erdaSprite) return;
+    const frameCount = Math.min(ERDA_WAKE_UP_FRAME_COUNT, Math.max(0, this.erdaFrames.length - ERDA_WAKE_UP_START));
+    if (frameCount > 0) {
+      const idx = Math.max(0, Math.min(frameCount - 1, frame));
+      this.erdaSprite.texture = this.erdaFrames[ERDA_WAKE_UP_START + idx];
+    } else if (this.erdaFrames.length > 0) {
+      this.erdaSprite.texture = this.erdaFrames[0];
+    }
+  }
+
   private hideAttackWeapon(): void {
     if (this.weaponSprite) this.weaponSprite.visible = false;
   }
@@ -2049,8 +2091,8 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * Slash FX 아틀라스 비동기 로드. 6 프레임(32×32), 단일 source 공유.
-   * 재생은 startAttack() 에서 triggerSlash(comboIndex) 로 시작, updateSlashFX() 가 프레임 진행.
+   * Slash FX ?��??�스 비동�?로드. 6 ?�레??32×32), ?�일 source 공유.
+   * ?�생?� startAttack() ?�서 triggerSlash(comboIndex) �??�작, updateSlashFX() 가 ?�레??진행.
    */
   private loadSlashSprite(): void {
     const path = assetPath('assets/sprites/fx_slash_02_atlas.png');
@@ -2064,14 +2106,14 @@ export class Player extends Entity implements CombatEntity {
         );
       }
       const s = new Sprite(this.slashFrames[0]);
-      // 앵커: 가로 중앙(0.5) + 세로 중앙(0.5) — 플레이어 높이 중앙에 맞춰 배치.
+      // ?�커: 가�?중앙(0.5) + ?�로 중앙(0.5) ???�레?�어 ?�이 중앙??맞춰 배치.
       s.anchor.set(0, 0);
       s.visible = false;
-      // attackSprite 위(디버그 박스 위)에 오도록 그냥 추가.
+      // attackSprite ???�버�?박스 ?????�도�?그냥 추�?.
       this.container.addChild(s);
       this.slashSprite = s;
     }).catch(() => {
-      // 실패 시 FX 만 생략. 전투 자체엔 영향 없음.
+      // ?�패 ??FX �??�략. ?�투 ?�체???�향 ?�음.
     });
   }
 
@@ -2087,13 +2129,13 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * 콤보 스텝별 slash FX 트리거. 스펙 SSoT:
-   *   - 공격 판정:  COMBO_STEPS[step] × attackHitboxMul
-   *   - 시각 FX:    resolveComboFx(equippedWeaponType, equippedRarity, step)
-   *     ├─ L1 sprite/scale/offset/color: Content_FX_WeaponType.csv
-   *     └─ L2 tint:                     Content_Rarity.csv FxTint
+   * 콤보 ?�텝�?slash FX ?�리�? ?�펙 SSoT:
+   *   - 공격 ?�정:  COMBO_STEPS[step] × attackHitboxMul
+   *   - ?�각 FX:    resolveComboFx(equippedWeaponType, equippedRarity, step)
+   *     ?��? L1 sprite/scale/offset/color: Content_FX_WeaponType.csv
+   *     ?��? L2 tint:                     Content_Rarity.csv FxTint
    *
-   * FxScaleX/Y 는 무기 hitbox 배율과 연동: FX 크기도 공격 범위에 비례.
+   * FxScaleX/Y ??무기 hitbox 배율�??�동: FX ?�기??공격 범위??비�?.
    */
   private triggerSlash(comboIndex: number): void {
     if (!this.slashSprite || this.slashFrames.length === 0) return;
@@ -2105,7 +2147,7 @@ export class Player extends Entity implements CombatEntity {
     const fx = resolveComboFx(this.equippedWeaponType, this.equippedRarity, comboIndex);
     if (!fx) return;
     const range = FX_SLASH_FRAMES[fx.sprite];
-    if (!range) return; // 알 수 없는 태그 — FX 생략.
+    if (!range) return; // ?????�는 ?�그 ??FX ?�략.
     const [from, to] = range;
     if (from < 0 || to < from || to >= this.slashFrames.length) return;
 
@@ -2117,7 +2159,7 @@ export class Player extends Entity implements CombatEntity {
     this.slashOffsetX = fx.offsetX;
     this.slashOffsetY = fx.offsetY;
 
-    // FX 시각 크기도 공격 범위에 비례.
+    // FX ?�각 ?�기??공격 범위??비�?.
     const mul = this.attackHitboxMul;
     const fxScaleY = this.comboIndex === 1 ? -fx.scaleY : fx.scaleY;
     const comboScaleX = this.comboIndex === 2 ? COMBO3_SLASH_SCALE_X : 1;
@@ -2133,14 +2175,14 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * 매 프레임 slash FX 위치/프레임 갱신. stateAttack 중에만 의미 있음.
-   * slashToIdx === -1 이면 비활성.
+   * �??�레??slash FX ?�치/?�레??갱신. stateAttack 중에�??��? ?�음.
+   * slashToIdx === -1 ?�면 비활??
    */
   private updateSlashFX(dt: number): void {
     if (!this.slashSprite || this.slashToIdx < 0) return;
     const s = this.slashSprite;
 
-    // 중심 = 히트박스 중심 + FxOffsetX(좌향 시 부호 반전). Y = 플레이어 높이 중앙 + FxOffsetY.
+    // 중심 = ?�트박스 중심 + FxOffsetX(좌향 ??부??반전). Y = ?�레?�어 ?�이 중앙 + FxOffsetY.
     const erdaTopLeftX = this.width / 2 - 16;
     const erdaTopLeftY = this.height - 32;
     s.x = this.facingRight
@@ -2150,7 +2192,7 @@ export class Player extends Entity implements CombatEntity {
     if (s.scale.y < 0) {
       s.y += SLASH_FX_FRAME_H * Math.abs(s.scale.y);
     }
-    // 방향 유지 (공격 중 facing 이 바뀌진 않지만 보수적 갱신).
+    // 방향 ?��? (공격 �?facing ??바뀌진 ?��?�?보수??갱신).
     const sx = Math.abs(s.scale.x);
     s.scale.x = this.facingRight ? sx : -sx;
 
@@ -2160,7 +2202,7 @@ export class Player extends Entity implements CombatEntity {
       this.slashTimer -= slashFrameMs;
       this.slashFrameIdx++;
       if (this.slashFrameIdx > this.slashToIdx) {
-        // 재생 완료 → 숨김.
+        // ?�생 ?�료 ???��?.
         s.visible = false;
         this.slashToIdx = -1;
         return;
@@ -2170,16 +2212,39 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * 애니메이션 갱신:
-   *   grounded 엣지 감지 → takeoff(이륙) / land(착지) 트리거.
-   *   각 서브 스테이트가 자체 타이머로 다음 스테이트로 진행.
-   *     idle (loop) ─leave─> takeoff ─80ms─> air ─land edge─> land(6,50ms) ─> land(7,50ms) ─> idle
+   * ?�니메이??갱신:
+   *   grounded ?��? 감�? ??takeoff(?�륙) / land(착�?) ?�리�?
+   *   �??�브 ?�테?�트가 ?�체 ?�?�머�??�음 ?�테?�트�?진행.
+   *     idle (loop) ?�leave?�> takeoff ?�80ms?�> air ?�land edge?�> land(6,50ms) ?�> land(7,50ms) ?�> idle
    */
   private updateErdaAnimation(dt: number): void {
     if (!this.erdaSprite || this.erdaFrames.length === 0) return;
 
-    // Dash 우선 — FSM state === 'dash' 진입 엣지에 애니메이션 리셋.
-    // dash 중엔 grounded 엣지(takeoff/land) 전이를 건너뛰어 16→17 시퀀스를 보장.
+    if (this.wakeUpHoldPose) {
+      this.hideAttackWeapon();
+      this.applyWakeUpFrame(0);
+      this.erdaPrevGrounded = this.grounded;
+      return;
+    }
+
+    if (this.wakeUpOverrideTimer > 0) {
+      this.hideAttackWeapon();
+      const elapsed = Math.max(0, this.wakeUpOverrideDuration - this.wakeUpOverrideTimer);
+      const frameCount = Math.min(ERDA_WAKE_UP_FRAME_COUNT, Math.max(0, this.erdaFrames.length - ERDA_WAKE_UP_START));
+      if (frameCount > 0) {
+        const frameMs = this.wakeUpOverrideDuration / frameCount;
+        const frame = Math.min(frameCount - 1, Math.floor(elapsed / frameMs));
+        this.applyWakeUpFrame(frame);
+      } else {
+        this.erdaSprite.texture = this.erdaFrames[0];
+      }
+      this.wakeUpOverrideTimer = Math.max(0, this.wakeUpOverrideTimer - dt);
+      this.erdaPrevGrounded = this.grounded;
+      return;
+    }
+
+    // Dash ?�선 ??FSM state === 'dash' 진입 ?��????�니메이??리셋.
+    // dash 중엔 grounded ?��?(takeoff/land) ?�이�?건너?�어 16??7 ?�퀀?��? 보장.
     const fsmState = this.fsm.currentState;
     if (fsmState === 'dash') {
       this.hideAttackWeapon();
@@ -2190,7 +2255,7 @@ export class Player extends Entity implements CombatEntity {
       }
       this.erdaPrevGrounded = this.grounded;
       this.erdaAnimTimer += dt;
-      // 프레임 16 (startup, 30ms) → 17 (linger, 120ms). 잔상은 dash 종료 엣지까지 유지.
+      // ?�레??16 (startup, 30ms) ??17 (linger, 120ms). ?�상?� dash 종료 ?��?까�? ?��?.
       if (this.erdaAnimFrame === 0 && this.erdaAnimTimer >= Player.ANIM_DASH_STARTUP_MS) {
         this.erdaAnimFrame = 1;
         this.erdaAnimTimer = 0;
@@ -2199,15 +2264,15 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
     if (this.erdaAnim === 'dash') {
-      // dash 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
+      // dash 종료 ??지�?공중???�라 idle/run/air �?복�?.
       this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
 
-    // Aim/lift release → restore idle/run/air just like dash exit. Without
+    // Aim/lift release ??restore idle/run/air just like dash exit. Without
     // this, erdaAnim stays 'aim'/'lift' after release and the subsequent
-    // idle/run animation branch never fires — visually frozen on the last
+    // idle/run animation branch never fires ??visually frozen on the last
     // aim/lift frame.
     if (!this.isAiming && this.erdaAnim === 'aim') {
       this.erdaAnim = this.getGroundOrAirAnimationState();
@@ -2220,7 +2285,7 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnimTimer = 0;
     }
 
-    // Lift override — while carrying a throwable container. 4-frame lift
+    // Lift override ??while carrying a throwable container. 4-frame lift
     // animation at indices 35~38 (Aseprite tag `lift`, shifted +4).
     // Walk cycle when ground locomotion is active; hold frame 35 when stationary.
     // Takes precedence over aim because hands are full.
@@ -2248,7 +2313,7 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
 
-    // Aim override — while charging an Ego Shard. 4-frame aim animation
+    // Aim override ??while charging an Ego Shard. 4-frame aim animation
     // at indices 30~33. When ground locomotion is active, cycle the 4 frames
     // as a walk-aim shuffle. When stationary, hold frame 30 (steady aim).
     // Higher priority than idle/run/jump but below dash.
@@ -2259,7 +2324,7 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      // Mid-air aim — dedicated `aim_jump` frame. Falls back to the steady
+      // Mid-air aim ??dedicated `aim_jump` frame. Falls back to the steady
       // aim pose when the atlas hasn't been updated.
       if (!this.grounded) {
         const airIdx = this.erdaFrames.length > ERDA_AIM_JUMP_FRAME
@@ -2272,7 +2337,7 @@ export class Player extends Entity implements CombatEntity {
       const moving = this.isGroundLocomotionActive();
       if (moving) {
         this.erdaAnimTimer += dt;
-        const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ≈ 440ms cycle
+        const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ??440ms cycle
         while (this.erdaAnimTimer >= AIM_WALK_FRAME_MS) {
           this.erdaAnimTimer -= AIM_WALK_FRAME_MS;
           this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
@@ -2286,12 +2351,12 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
 
-    // Attack — each combo step scrubs a 4-frame attack strip from progress.
-    // Grounded 1타/2타 use attack1, grounded 3타 uses attack2.
+    // Attack ??each combo step scrubs a 4-frame attack strip from progress.
+    // Grounded 1?�/2?� use attack1, grounded 3?� uses attack2.
     // Airborne attacks always use attack_air so the finisher does not pop to a ground pose.
     if (fsmState === 'attack') {
-      // 2→3 pause(preAttackDelay) 동안 직전 frame + weapon pose hold.
-      // attackTimer 가 0 이라 아래 progress 계산이 0.9999 로 튀어 frame jump 발생 — 가드로 차단.
+      // 2?? pause(preAttackDelay) ?�안 직전 frame + weapon pose hold.
+      // attackTimer 가 0 ?�라 ?�래 progress 계산??0.9999 �??�??frame jump 발생 ??가?�로 차단.
       if (this.preAttackDelay > 0) {
         this.updateAttackWeaponPose(this.erdaAnimFrame);
         this.erdaPrevGrounded = this.grounded;
@@ -2319,10 +2384,10 @@ export class Player extends Entity implements CombatEntity {
       this.updateAttackWeaponPose(idx);
       return;
     }
-    // 콤보 hold — attack 종료 직후 콤보 윈도우(또는 3타 endLag) 동안 마지막 attack
-    // frame 을 hold 해 칼 든 자세 + weapon pose 유지. 다음 콤보 입력 시 자연스럽게
-    // 다음 swing 으로 연결, 윈도우 만료/점프/대시 등으로 캔슬되면 idle 로 복귀.
-    // 점프·대시·공중은 hold 깨고 자연 전이 (fsmState 가드).
+    // 콤보 hold ??attack 종료 직후 콤보 ?�도???�는 3?� endLag) ?�안 마�?�?attack
+    // frame ??hold ??�????�세 + weapon pose ?��?. ?�음 콤보 ?�력 ???�연?�럽�?
+    // ?�음 swing ?�로 ?�결, ?�도??만료/?�프/?�???�으�?캔슬?�면 idle �?복�?.
+    // ?�프·?�?�·공중�? hold 깨고 ?�연 ?�이 (fsmState 가??.
     if (this.erdaAnim === 'attack'
         && (this.comboWindowTimer > 0 || this.endLagTimer > 0)
         && this.grounded
@@ -2332,17 +2397,17 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
     if (this.erdaAnim === 'attack') {
-      // attack 종료 — 지면/공중에 따라 idle/run/air 로 복귀.
+      // attack 종료 ??지�?공중???�라 idle/run/air �?복�?.
       this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
     this.hideAttackWeapon();
 
-    // 엣지 감지 — grounded 변화 순간에만 서브 스테이트 전이.
+    // ?��? 감�? ??grounded 변???�간?�만 ?�브 ?�테?�트 ?�이.
     if (this.erdaPrevGrounded && !this.grounded) {
-      // 이륙. vy < 0 = 점프 입력 → takeoff(4) 시퀀스.
-      // vy ≥ 0 = 벼랑 낙하 → 서브 스테이트 그대로(idle) 유지, 프레임 얼려 공중에서 idle 포즈 정지.
+      // ?�륙. vy < 0 = ?�프 ?�력 ??takeoff(4) ?�퀀??
+      // vy ??0 = 벼랑 ?�하 ???�브 ?�테?�트 그�?�?idle) ?��?, ?�레???�려 공중?�서 idle ?�즈 ?��?.
       this.erdaJumpedOff = this.vy < 0;
       if (this.erdaJumpedOff) {
         this.erdaAnim = 'takeoff';
@@ -2350,7 +2415,7 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
       }
     } else if (!this.erdaPrevGrounded && this.grounded) {
-      // 착지. 점프였으면 6→7, 낙하였으면 7만 재생.
+      // 착�?. ?�프?�?�면 6??, ?�하?�?�면 7�??�생.
       this.erdaAnim = 'land';
       this.erdaAnimTimer = 0;
       this.erdaAnimFrame = this.erdaJumpedOff ? 0 : 1;
@@ -2384,8 +2449,8 @@ export class Player extends Entity implements CombatEntity {
         break;
       }
       case 'land': {
-        // 반응성 우선: 좌우 이동이 걸리면 land 를 끊고 run 으로 점프컷.
-        // 재점프는 다음 프레임 grounded 엣지가 takeoff 로 자동 전이시킴.
+        // 반응???�선: 좌우 ?�동??걸리�?land �??�고 run ?�로 ?�프�?
+        // ?�점?�는 ?�음 ?�레??grounded ?��?가 takeoff �??�동 ?�이?�킴.
         if (this.isGroundLocomotionActive()) {
           this.erdaAnim = 'run';
           this.erdaAnimFrame = 0;
@@ -2393,14 +2458,14 @@ export class Player extends Entity implements CombatEntity {
           textureIdx = 8;
           break;
         }
-        // sub 0 → 프레임 6, sub 1 → 프레임 7.
+        // sub 0 ???�레??6, sub 1 ???�레??7.
         textureIdx = 6 + this.erdaAnimFrame;
         if (this.erdaAnimTimer >= Player.ANIM_LAND_FRAME_MS) {
           this.erdaAnimTimer = 0;
           if (this.erdaAnimFrame === 0) {
             this.erdaAnimFrame = 1;
           } else {
-            // 착지 복구 종료 → idle 루프 진입.
+            // 착�? 복구 종료 ??idle 루프 진입.
             this.erdaAnim = 'idle';
             this.erdaAnimFrame = 0;
           }
@@ -2408,7 +2473,7 @@ export class Player extends Entity implements CombatEntity {
         break;
       }
       case 'run': {
-        // 지상일 때만 프레임 진행 — 벼랑 낙하 중엔 마지막 run 프레임을 공중에서 유지.
+        // 지?�일 ?�만 ?�레??진행 ??벼랑 ?�하 중엔 마�?�?run ?�레?�을 공중?�서 ?��?.
         if (this.grounded) {
           while (this.erdaAnimTimer >= Player.ANIM_RUN_FRAME_MS) {
             this.erdaAnimTimer -= Player.ANIM_RUN_FRAME_MS;
@@ -2420,7 +2485,7 @@ export class Player extends Entity implements CombatEntity {
       }
       case 'idle':
       default: {
-        // 지상일 때만 프레임 진행 — 벼랑 낙하 중에는 마지막 idle 프레임을 공중에서 유지.
+        // 지?�일 ?�만 ?�레??진행 ??벼랑 ?�하 중에??마�?�?idle ?�레?�을 공중?�서 ?��?.
         if (this.grounded) {
           while (this.erdaAnimTimer >= Player.ANIM_IDLE_FRAME_MS) {
             this.erdaAnimTimer -= Player.ANIM_IDLE_FRAME_MS;
@@ -2438,7 +2503,7 @@ export class Player extends Entity implements CombatEntity {
   render(alpha: number): void {
     super.render(alpha);
 
-    // 활성 시각(Graphics placeholder 또는 Sprite) 참조 — 깜박임/플립을 동일 대상에 적용.
+    // ?�성 ?�각(Graphics placeholder ?�는 Sprite) 참조 ??깜박???�립???�일 ?�?�에 ?�용.
     const activeVisual = this.erdaSprite ?? this.sprite;
 
     // Flash when invincible (blink)
@@ -2460,19 +2525,19 @@ export class Player extends Entity implements CombatEntity {
 
     // Flip visual based on facing.
     if (this.erdaSprite) {
-      // Sprite 는 anchor(0.5, 1) 기준이므로 scale.x 만 뒤집으면 중심 축 회전.
+      // Sprite ??anchor(0.5, 1) 기�??��?�?scale.x �??�집?�면 중심 �??�전.
       this.erdaSprite.scale.x = this.facingRight ? 1 : -1;
       if (this.weaponSprite?.visible && this.erdaAnim === 'attack') {
         this.updateAttackWeaponPose(this.erdaAnimFrame);
         this.weaponSprite.alpha = this.erdaSprite.alpha;
       }
     } else {
-      // Placeholder Graphics 는 top-left 기준 → x 보정 필요 (기존 로직 유지).
+      // Placeholder Graphics ??top-left 기�? ??x 보정 ?�요 (기존 로직 ?��?).
       this.sprite.scale.x = this.facingRight ? 1 : -1;
       this.sprite.x = this.facingRight ? 0 : this.width;
     }
 
-    // Update attack visual position on flip. Debug 토글이 중간에 꺼지면 즉시 숨김.
+    // Update attack visual position on flip. Debug ?��???중간??꺼�?�?즉시 ?��?.
     this.attackSprite.visible = this.attackActive && Debug.visible;
     if (this.attackSprite.visible) {
       const step = this.getAttackStep(this.comboIndex) ?? COMBO_STEPS[this.comboIndex];

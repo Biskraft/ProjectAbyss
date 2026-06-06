@@ -208,7 +208,7 @@ const STRATUM_BOSS = ['Item General', 'Item King', 'Item God', 'Item Great God']
 
 ### Task 11: 무기 종류 아이콘 (Level 1 중앙)
 
-- 픽셀아트 아이콘 16×16 (검/도끼/곤봉/창/단검/완드/샷건 등) 에셋 제작 필요
+- 픽셀아트 아이콘 16×16 (Blade/Cleaver/Shiv/Harpoon/Chain/Railbow/Emitter 7무기) 에셋 제작 필요
 - `Task_Art_ItemIcons_B1_Swords.md` 와 병합 고려
 - 현재는 레어리티 솔리드 필만 유지
 

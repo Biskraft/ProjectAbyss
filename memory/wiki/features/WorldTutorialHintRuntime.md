@@ -15,3 +15,9 @@
 
 - 2026-06-05: The jump hint is no longer gated by authored spawn-room climb coordinates. In the current start level, the first horizontal movement input starts a 1000ms runtime delay, then `hint_jump` is shown through the shared `TutorialHint`; keep this state inside `WorldTutorialHintRuntime`.
 
+
+## 2026-06-05 - Jump hint moved out of WorldTutorialHintRuntime
+
+- `hint_jump` no longer belongs to `game/src/scenes/world/WorldTutorialHintRuntime.ts`; world spawn movement no longer triggers jump tutorial timing.
+- `WorldTutorialHintRuntime` remains responsible for drop-through and attack tutorial hint flow.
+- `game/src/scenes/ItemWorldScene.ts` now starts a 1000ms jump tutorial timer after first Item World ground contact.

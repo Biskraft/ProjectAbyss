@@ -9,15 +9,16 @@
 | Game Dev (Vite) | 3000 | `npx vite dev --port 3000` | `game/` |
 | ASE Watcher | — | `npm run ase:watch` | `game/` |
 | Marketing Kanban | 4321 | `node Documents/Plan/marketing/server.js` | 프로젝트 루트 |
+| Spec Canvas | 4331 | `node tools/spec-canvas/server.mjs` | `game/` |
 
 ## 프로세스
 
 ### 1. 포트 점유 확인
 
-3000, 4321 포트가 이미 사용 중인지 확인한다. 점유 중이면 해당 서버는 스킵.
+3000, 4321, 4331 포트가 이미 사용 중인지 확인한다. 점유 중이면 해당 서버는 스킵.
 
 ```powershell
-Get-NetTCPConnection -LocalPort 3000,4321 -ErrorAction SilentlyContinue |
+Get-NetTCPConnection -LocalPort 3000,4321,4331 -ErrorAction SilentlyContinue |
   ForEach-Object { [PSCustomObject]@{ Port=$_.LocalPort; PID=$_.OwningProcess;
     Process=(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).ProcessName } }
 ```
@@ -38,14 +39,20 @@ Get-NetTCPConnection -LocalPort 3000,4321 -ErrorAction SilentlyContinue |
    - 프로젝트 루트에서 `node Documents/Plan/marketing/server.js` 백그라운드 실행
    - 접속 URL: `http://localhost:4321`
 
+4. **Spec Canvas** (포트 4331 미점유 시):
+   - `game/` 디렉토리에서 `node tools/spec-canvas/server.mjs` 백그라운드 실행
+   - 스펙 로드맵 SSoT(`hierarchy.json`) 방사형 마인드맵 + 실시간 정합성/자동 sync
+   - 접속 URL: `http://localhost:4331`
+
 ### 3. 기동 완료 보고
 
-3개 서버 모두 실행 후 아래 형식으로 보고:
+4개 서버 모두 실행 후 아래 형식으로 보고:
 
 ```
-게임 서버    http://localhost:3000   ✓ 시작 / ⚡ 이미 실행 중
-ASE Watcher  —                       ✓ 시작
-마케팅 보드  http://localhost:4321   ✓ 시작 / ⚡ 이미 실행 중
+게임 서버      http://localhost:3000   ✓ 시작 / ⚡ 이미 실행 중
+ASE Watcher    —                       ✓ 시작
+마케팅 보드    http://localhost:4321   ✓ 시작 / ⚡ 이미 실행 중
+Spec Canvas    http://localhost:4331   ✓ 시작 / ⚡ 이미 실행 중
 ```
 
 ## 주의사항

@@ -128,16 +128,16 @@
 
 ### 1.3 Disgaea / SRPG (3개)
 
-#### Disgaea Series (1~7)
+#### Disgaea Series (1-7)
 
 | 항목 | 내용 |
 |:---|:---|
 | 표시 방식 | Full-Screen Detail View -- 아이템 선택 후 전체화면 상세 |
-| 표시 정보 | 이름, Rank, Rarity(0~100), 8개 스탯(HP/SP/ATK/DEF/INT/SPD/HIT/RES), Specialist(Memory Shard) 목록 + 상태(Wild/Subdued), MV/JMP, Item Level, Resident 수/최대 |
+| 표시 정보 | 이름, Rank, Rarity(0-100), 8개 스탯(HP/SP/ATK/DEF/INT/SPD/HIT/RES), Specialist(Memory Shard) 목록 + 상태(Wild/Subdued), MV/JMP, Item Level, Resident 수/최대 |
 | 스탯 비교 | 장착 전후 스탯 변화를 캐릭터 스테이터스에서 확인 |
 | 인터랙션 | 메뉴 선택 + 확인 버튼 |
 | 화면 비율 | 100% (전체화면) |
-| **시사점** | **ECHORIS의 직접적 레퍼런스.** Specialist(=Memory Shard) 표시: 아이콘 + 이름 + 레벨 + 상태(Wild=빨간 얼굴 / Subdued=노란 얼굴). Rarity 0~100 수치 표시. Item World 진입을 위한 별도 NPC(Item World Guide) |
+| **시사점** | **ECHORIS의 직접적 레퍼런스.** Specialist(=Memory Shard) 표시: 아이콘 + 이름 + 레벨 + 상태(Wild=빨간 얼굴 / Subdued=노란 얼굴). Rarity 0-100 수치 표시. Item World 진입을 위한 별도 NPC(Item World Guide) |
 
 #### Fire Emblem (Engage 기준)
 
@@ -311,7 +311,7 @@
 | 아이템 이름 | 레어리티 색상 텍스트 | Diablo, PoE, MapleStory, Grim Dawn |
 | 핵심 스탯 (ATK/DEF) | 숫자 | 거의 모든 게임 |
 | 레어리티 등급명 | 텍스트 (Rare, Legendary 등) | Diablo, Hades |
-| 간략 효과 설명 | 1~2줄 텍스트 | Dead Cells, Enter the Gungeon, Risk of Rain 2 |
+| 간략 효과 설명 | 1-2줄 텍스트 | Dead Cells, Enter the Gungeon, Risk of Rain 2 |
 | 장착 비교 | 초록/빨강 수치 또는 화살표 | Diablo 3/4, FFT |
 
 ### Level 3: 상세 보기 (On Click/Detail View)

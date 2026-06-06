@@ -9,8 +9,8 @@ import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHel
 export class Projectile {
   x: number;
   y: number;
-  readonly width = 8;
-  readonly height = 8;
+  width = 8;
+  height = 8;
   vx: number;
   vy: number;
   container: Container;

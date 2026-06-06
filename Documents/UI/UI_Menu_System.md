@@ -471,7 +471,7 @@ y=270 └───────────────────────�
 | 비어있는 부분 색상 | #333333 |
 | 테두리 | #555555, 1px |
 | 값 표시 | 슬라이더 오른쪽 4px, fontSize 7, #FFFFFF |
-| 범위 | 0 ~ 100 (정수) |
+| 범위 | 0-100 (정수) |
 | Arrow Left/Right 조정 단위 | 10 |
 | 채널 기본값 | master 100 / bgm 55 / ambient 23 / sfx 80 / voice 70 (`AudioBus.DEFAULT_CHANNEL_STATE` SSoT) |
 | 저장 위치 | localStorage (카탈로그 §4 통합 스키마 `echoris_settings.audio` 권장) |

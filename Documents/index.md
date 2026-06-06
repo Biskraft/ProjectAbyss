@@ -4,7 +4,7 @@ A structured collection of game design documents, system specifications, and res
 
 ## Document Structure
 
-### [Terms](Terms/Project_Vision_Abyss.md)
+### [Terms](Terms/Project_Vision_ECHORIS.md)
 Project vision, glossary, writing standards, and document conventions.
 
 ### [Design](Design/Design_Architecture_2Space.md)

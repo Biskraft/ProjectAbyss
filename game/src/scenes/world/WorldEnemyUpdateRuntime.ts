@@ -1,16 +1,16 @@
 import type { Enemy } from '@entities/Enemy';
+import type { Container } from 'pixi.js';
+import { updateEnemies } from '@scenes/shared/EnemyRegistryHelpers';
 
 interface WorldEnemyUpdateRuntimeDeps {
   getEnemies: () => Enemy<string>[];
+  getEntityLayer: () => Container;
 }
 
 export class WorldEnemyUpdateRuntime {
   constructor(private readonly deps: WorldEnemyUpdateRuntimeDeps) {}
 
   update(dt: number): void {
-    const enemies = this.deps.getEnemies();
-    for (let i = enemies.length - 1; i >= 0; i--) {
-      enemies[i].update(dt);
-    }
+    updateEnemies(this.deps.getEnemies(), dt, this.deps.getEntityLayer());
   }
 }

@@ -152,7 +152,7 @@
 **판매(SELLS):**
 - **Sly** (종합): Gathering Swarm 300 / Stalwart Shell 200 / Lumafly Lantern 1800 / Simple Key 950 / Rancid Egg 60 / Mask Shard 150·500·(800·1500*) / Vessel Fragment 550·(900*) / Sprintmaster 400 / Heavy Blow 350 / Elegant Key 800*. (* = Shopkeeper's Key 이후)
 - **Salubra** (부적·노치): Lifeblood Heart 250 / Longnail 300 / Steady Body 120 / Shaman Stone 220 / Quick Focus 800 / Notch 120(5)·500(10)·900(18)·1400(25) / Salubra's Blessing 800(부적 40종 완주).
-- **Iselda** (맵·핀): 지역 맵 13종 40~200 / Wayward Compass 220 / Quill 120 / 핀·마커 100~180.
+- **Iselda** (맵·핀): 지역 맵 13종 40-200 / Wayward Compass 220 / Quill 120 / 핀·마커 100-180.
 - **Leg Eater** (Fragile 부적): Fragile Heart 350 / Greed 250 / Strength 600 + 수리(200·150·350), Defender's Crest 시 −20%.
 
 **서비스:** Nailsmith 못 업글 250+0 / 800+1 / 2000+2 / **Pure 4000+3 Pale Ore** · Little Fool 시련 100·450·800 · The Last Stag 이동 **무료** · Tuk Rancid Egg(가격 미표기, 80개 cap).
@@ -170,7 +170,7 @@
 **액세서리:** Medal 3000(+1 ATT/DEF) / Circlet 4000 / Ring of Pales 4000 / Gauntlet 8000(+5 ATT) / Silver Crown 12000(+12 INT) / Harper 12000.
 **특수:** **Jewel of Open 500**(블루 도어) / **Library Card 500**(상점 워프) / Magic Scroll 500 / Map of Castle 103 / Hammer 200 / **Duplicator 500,000**(아이템 복제).
 **매입(Sell Gem):** Zircon 150 / Aquamarine 800 / Turquoise 1500 / Onyx 3000 / Garnet 5000 / Opal 8000 / Diamond 20000.
-**서비스:** Boss Strategies(보스 공략 열람) 200~10000, 20종.
+**서비스:** Boss Strategies(보스 공략 열람) 200-10000, 20종.
 
 ## A-3. Bloodstained: RotN — Dominique(구매) + Johannes(제작) 분리
 
@@ -181,7 +181,7 @@
 - 재료(crafting): Alkahest 120 / Soda Water 100 / Steel 250 / Bronze 50 / Iron 100 / Flour 200 / Rice 160 / Egg 100 / Dragon Egg 500 / 조미료류 100 / Milk 280 / Beef 1129 / Cheese 150 등.
 - 무기: Knife·Rapier·Short Sword 300 / Long Sword 500 / Nodachi 1080 / Epee 2320 / **Bunny Boots(특수) 20000**.
 - 탄약: SP 20 / HP 30 / Flame·Ice·Thunder Round 50.
-- 방어구·액세서리: Hairband 120 / 방어구 100~500 / Ring 80 / Thick Glasses 1980 / Moon Belt 1600 / 스카프 100~1280.
+- 방어구·액세서리: Hairband 120 / 방어구 100-500 / Ring 80 / Thick Glasses 1980 / Moon Belt 1600 / 스카프 100-1280.
 - 매각: 가능(비율 미표기 — 통상 ~1/10).
 
 **Johannes(별도 NPC, 상점 아님):** Craft(제작) / Prepare(요리 → 최초 1회 영구 스탯) / Enhance Shard(능력 강화, 재료) / Dismantle(분해 → 재료).

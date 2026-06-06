@@ -8,7 +8,7 @@
 - Grounded jumps inherit only upward carrier velocity from moving platforms. Descending platforms must not reduce jump height.
 - Early jump release uses `Player.Jump.VarJumpCutMult` from `Sheets/Content_Player.csv`; as of 2026-05-28 it is `0.55` for a clearer tap short-hop.
 - Down+Jump drop-through must require `Player.isOnOneWayPlatform()`. Do not trigger drop-through from generic `grounded`, or solid floors can be treated like one-way platforms by nudging the player down.
-- `Player.attackInputEnabled` gates player attack and dive-attack input at the entity level. LDtk world starts with it disabled; Item World sets it enabled when cloning the source player so combat becomes available after entering Item World.
+- `Player.attackInputEnabled` gates player attack and dive-attack input at the entity level. LDtk world starts with it disabled for the opening tutorial. Creating an Item World scene enables it on both the source world player and Item World clone so world return keeps combat available; debug warp and void teleport also enable it on arrival.
 
 ## Ground Locomotion Animation
 

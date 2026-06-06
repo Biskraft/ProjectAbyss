@@ -509,6 +509,6 @@ ECHORIS 새 시나리오 비트 / 결말 / 무기 narrative / 카피 작성 시:
 - `Reference/Victor Life Log/Daily Life Log Picks fd026378ba2b4fabb02bee916e8eabca.md` (50 큐레이션 인덱스)
 - `Documents/Content/Content_Direction.md` (CNT-DIR-001) — 본 문서의 *공개 변환 output 의 SSoT*
 - `Documents/Content/Content_Direction_SeedAnalysis.md` (CNT-DIR-002) — Violet + 4 시드 분석
-- `Documents/Terms/Project_Vision_Abyss.md` §1 위령 (DEC-047)
+- `Documents/Terms/Project_Vision_ECHORIS.md` §1 위령 (DEC-047)
 - `memory/wiki/decisions/DEC-033 / 036 / 042 / 043 / 046 / 047`
 - `memory/project_core_purpose_requiem.md` / `project_meta_purpose_consolation.md` / `project_hjh_archetype_locked.md` / `project_solo_developer.md` / `project_no_damascus_terminology.md`

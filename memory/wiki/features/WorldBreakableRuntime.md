@@ -20,3 +20,13 @@ Boundaries:
 - Do not move `Breakable.break()` or `WorldBreakableRegistry.removeAt()` into shared helpers; shared code should stay limited to leaf feedback/drop effects.
 
 Verification: 2026-06-03 `npx tsc --noEmit` passed. Broader build/smoke verification followed in the same session.
+
+- 2026-06-05: Sprite names ending in `_atlas` are handled by `Breakable` as Aseprite atlas JSON/PNG pairs under `assets/sprites/`. Frames loop in authored JSON order using each frame's `duration`.
+
+
+## 2026-06-06 - CommonSprite visual-only LDtk entity
+- LDtk world levels now render CommonSprite/commonSprite entities through game/src/scenes/world/WorldCommonSpriteRuntime.ts.
+- The runtime supports either an authored LDtk tile override or a Sprite/sprite string field resolved under ssets/sprites/. Sprite names ending in _atlas load the paired JSON and loop frames in authored duration order, matching the Breakable atlas convention.
+- CommonSprite visuals are non-interactive and are attached to the world entity layer during LdtkWorldScene.loadLevel().
+
+- 2026-06-06 update: CommonSprite visuals attach to LdtkRenderer.interiorLayer, not entityLayer, so they render with object/interior visuals behind characters.

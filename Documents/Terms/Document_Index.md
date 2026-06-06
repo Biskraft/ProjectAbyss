@@ -10,7 +10,7 @@
 
 ## 0. 필수 참고 자료 (Mandatory References)
 
-- Project Vision: `Documents/Terms/Project_Vision_Abyss.md`
+- Project Vision: `Documents/Terms/Project_Vision_ECHORIS.md`
 - Writing Standards: `Documents/Terms/GDD_Writing_Rules.md`
 - Glossary: `Documents/Terms/Glossary.md`
 - Game Overview: `Reference/게임 기획 개요.md`
@@ -274,6 +274,7 @@ graph TD
 | SYS-MON-01 | Enemy AI Behavior | `System/System_Enemy_AI.md` | ✅ 완료 | World+IW | 탐험 |
 | SYS-MON-02 | Boss Design | `System/System_Enemy_BossDesign.md` | ✅ 완료 | World+IW | 탐험+야리코미 |
 | SYS-MON-03 | Monster Spawning | `System/System_Enemy_Spawning.md` | ✅ 완료 | World+IW | 전체 |
+| SYS-MON-04 | Boss Archetype System | `System/System_Enemy_BossArchetype.md` | ✅ 활성 | World+IW | 탐험+야리코미 |
 
 ### 3.12 멀티플레이 시스템 (Multiplayer)
 
@@ -472,6 +473,8 @@ graph TD
 | RES-KPI-01 | ECHORIS KPI Critical Analysis | `Research/ECHORIS_KPI_CriticalAnalysis.md` | ECHORIS KPI 비판적 분석 |
 | RES-RT-01 | Room Transition Readability | `Research/RoomTransition_Readability_Research.md` | 방 전환부 가독성 (출구 오인 문제 해결) |
 | ~~RES-MN-01~~ | ~~Metroidvania × Deep Narrative Compatibility~~ | `Research/_archive/NarrativeWorldReset_2026-05-28/Research_Metroidvania_DeepNarrative_Compatibility.md` | 📦 archived 2026-05-28 (NarrativeWorldReset 2차 — 2026-05-28 Established 동일자 즉시 분리) |
+| RES-BSS-02 | Boss Archetype & Pattern Full Survey | `Research/BossArchetype_Pattern_FullSurvey_Research.md` | 2D 메트로베니아 보스 아키타입·패턴 전수 조사 |
+| RES-BSS-03 | Procedural Boss Reverse-GDD | `Research/ProceduralBoss_ReverseGDD_Research.md` | 절차적 보스 생성 역기획 — 외형·약점·획득 루프 |
 
 ---
 
@@ -503,6 +506,28 @@ graph TD
 | PLN-15 | Roadmap GDD MasterPlan | `Plan/Roadmap_GDD_MasterPlan.md` | 🔄 진행 중 |
 | PLN-16 | Marketing Plan | `Plan/Marketing_Plan.md` | 🔄 진행 중 |
 | PLN-17 | Workflow GAN Development | `Plan/Workflow_GAN_Development.md` | 🔄 진행 중 |
+| PLN-18 | Plan Ch.0 Prologue Implementation | `Plan/Plan_Ch0_Prologue_Implementation.md` | 🔄 진행 중 |
+| PLN-19 | Task Log 2026-05 | `Plan/Task_2026-05.md` | 🔄 진행 중 |
+| PLN-20 | Task Log 2026-06 | `Plan/Task_2026-06.md` | 🔄 진행 중 |
+| PLN-21 | Refactor Full Change List (2026-06-03) | `Plan/Task_2026-06-03_Refactor_FullChangeList.md` | 🔄 진행 중 |
+| PLN-22 | Task Enemy A-03b Bombardier | `Plan/Task_Enemy_A03b_Bombardier.md` | 🔄 진행 중 |
+| PLN-23 | Task Enemy A-04 Shielder | `Plan/Task_Enemy_A04_Shielder.md` | 🔄 진행 중 |
+| PLN-24 | Task Enemy A-05 Flier | `Plan/Task_Enemy_A05_Flier.md` | 🔄 진행 중 |
+| PLN-25 | Task Enemy A-06 Swarmer | `Plan/Task_Enemy_A06_Swarmer.md` | 🔄 진행 중 |
+| PLN-26 | Task Enemy A-07 Ambusher | `Plan/Task_Enemy_A07_Ambusher.md` | 🔄 진행 중 |
+| PLN-27 | Task Enemy A-08 Summoner | `Plan/Task_Enemy_A08_Summoner.md` | 🔄 진행 중 |
+| PLN-28 | Task Enemy A-10 Sentinel | `Plan/Task_Enemy_A10_Sentinel.md` | 🔄 진행 중 |
+| PLN-29 | Task Enemy Flying Charger | `Plan/Task_Enemy_FlyingCharger.md` | 🔄 진행 중 |
+| PLN-30 | Task Hazard Falling Hazard | `Plan/Task_Hazard_FallingHazard.md` | 🔄 진행 중 |
+| PLN-31 | Task Scene Prologue Cutscene | `Plan/Task_Scene_PrologueCutscene.md` | 🔄 진행 중 |
+
+---
+
+## 9. Idea (아이디어 / 미정착 메모)
+
+| ID | 문서명 | 경로 | 상태 |
+| :--- | :--- | :--- | :--- |
+| IDEA-01 | Worldbuilding — 복종 교단 (The Bonded) | `Idea/Idea_WorldBuilding.md` | 🔄 진행 중 |
 
 ---
 

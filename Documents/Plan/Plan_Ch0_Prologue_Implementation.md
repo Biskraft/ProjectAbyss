@@ -123,8 +123,8 @@ F(사운드·카메라) ── 전 페이즈 횡단
 
 ## 5. 마일스톤 (검증 게이트)
 
-- **M1 (Phase A):** 랩 → Anvil 다이브 → ItemStratum_Prologue_01~04 끊김 없이 도달.
-- **M2 (Phase B):** 1~3지층 전투 튜토리얼 플레이 가능, 4지층 단방향.
+- **M1 (Phase A):** 랩 → Anvil 다이브 → ItemStratum_Prologue_01-04 끊김 없이 도달.
+- **M2 (Phase B):** 1-3지층 전투 튜토리얼 플레이 가능, 4지층 단방향.
 - **M3 (Phase C):** 04 도달 → 말소자 비교전 등장 → 위상 찢김 연출 → 조작 불능 진입.
 - **M4 (Phase D):** 컷신 재생 → 암전 → replace → Start_Room_01 로드.
 - **M5 (Phase E):** 기상(누움→일어섬) + "백업 복원 완료" + Ch.1 연결. **= 프롤로그 5분 플레이 완주.**
@@ -137,7 +137,7 @@ F(사운드·카메라) ── 전 페이즈 횡단
 - **씬 기반 스폰** — `Player.Scene` 필드(`prologue`/`chapter_01`) → `sacredSave.getScene()`로 스폰 선택. 신규게임=prologue→`Prologue_01`, chapter_01→`Start_Room_01`. (`WorldPlayerSpawnRuntime`, `WorldTransitionController.findPlayerSpawnLevel`, `PlayerSave.scene`)
 - **A2 다이브 와이어링** — scene='prologue'에서 Anvil 다이브 → `ItemStratum_Prologue_01`(고정). 아이템 비변형. (`SCENE_FIXED_STRATUM`)
 - **프롤로그-종료 spine(P2.1~P6 placeholder)** — `WorldPrologueEndRuntime`: scene=prologue로 `ItemStratum_Prologue_04` 진입 시 → (진입딜레이) → 위협 암전 → 페이드 → `setScene('chapter_01')` + `loadLevel('Start_Room_01')` + "백업 복원 완료" 토스트. `endingRuntime` 블로킹 패턴(`if(update())return`)으로 조작 잠금. LDtk 트리거 엔티티 불필요(레벨 진입이 트리거).
-- **연결 진단** — 4지층 충돌 729~899셀(정상 오서링), 연결 모서리 개방 → **순방향 01→04 통행 가능 확인**.
+- **연결 진단** — 4지층 충돌 729-899셀(정상 오서링), 연결 모서리 개방 → **순방향 01→04 통행 가능 확인**.
 
 **연결된 프롤로그 스파인(코드):**
 `신규게임→Prologue_01(랩) → Anvil 다이브 → ItemStratum_Prologue_01 → edge 01→02→03→04 → 04 진입=종료 시퀀스 → Start_Room_01(chapter_01 기상) → "백업 복원 완료"`

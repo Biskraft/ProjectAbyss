@@ -119,6 +119,31 @@
   /* JointJS link styling polish */
   .joint-link .connection-wrap { stroke-width: 14; }
 
+  /* ---- Real-time integrity ---- */
+  .integ-pill {
+    display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px;
+    padding: 0 11px; height: 30px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--panel); cursor: pointer; color: var(--text-dim); white-space: nowrap;
+  }
+  .integ-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st-done); }
+  .integ-pill.warn { color: var(--st-prog); border-color: rgba(232,177,58,.4); }
+  .integ-pill.warn .dot { background: var(--st-prog); }
+  .integ-pill.error { color: var(--st-block); border-color: rgba(239,93,108,.5); }
+  .integ-pill.error .dot { background: var(--st-block); animation: pulse 1.1s infinite; }
+  #integPanel {
+    position: absolute; top: 62px; right: 16px; width: 312px; max-height: 56vh; overflow: auto;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--border-2);
+    border-radius: 9px; box-shadow: var(--shadow); z-index: 18; padding: 8px; display: none;
+  }
+  #integPanel.show { display: block; }
+  #integPanel .ihead { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); padding: 4px 6px 8px; }
+  .iss { display: flex; gap: 8px; padding: 7px 6px; border-top: 1px solid var(--border); cursor: pointer; align-items: flex-start; }
+  .iss:hover { background: rgba(255,255,255,.03); }
+  .iss .sev { width: 5px; align-self: stretch; border-radius: 3px; flex: 0 0 5px; }
+  .iss.error .sev { background: var(--st-block); }
+  .iss.warn .sev { background: var(--st-prog); }
+  .iss .msg { color: var(--text); font-size: 12px; line-height: 1.35; }
+
   /* ---- Semantic zoom (LOD): hide detail as you zoom out ---- */
   #canvas.lod-mid .sc-id, #canvas.lod-mid .sc-img { display: none; }
   #canvas.lod-far .sc-id, #canvas.lod-far .sc-img,
@@ -252,23 +277,20 @@
     <div class="tdiv"></div>
 
     <div class="group">
-      <button class="btn" data-add="rect" title="사각 노드 추가">
-        <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/></svg>사각
+      <button class="btn" id="tbAddChild" title="선택 노드에 자식 추가 (Insert)">
+        <svg class="ico" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>자식 추가
       </button>
-      <button class="btn" data-add="rounded" title="둥근 노드 추가">
-        <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="3.5"/></svg>둥근
-      </button>
-      <button class="btn" data-add="ellipse" title="타원 노드 추가">
-        <svg class="ico" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="6" ry="4.5"/></svg>타원
+      <button class="btn danger" id="tbDelete" title="선택 노드 삭제 (Del)">
+        <svg class="ico" viewBox="0 0 16 16"><path d="M3.5 5h9M6 5V3.2h4V5M5 5l.7 8.5h4.6L11 5"/></svg>삭제
       </button>
     </div>
     <div class="tdiv"></div>
 
     <div class="group">
-      <button class="btn toggle" id="linkBtn" title="연결 모드: 두 노드를 차례로 클릭">
-        <svg class="ico" viewBox="0 0 16 16"><path d="M6 10 10 6"/><path d="M9 3.5a2.5 2.5 0 0 1 3.5 3.5L11 8.5"/><path d="M7 12.5a2.5 2.5 0 0 1-3.5-3.5L5 7.5"/></svg>연결
+      <button class="btn toggle" id="linkBtn" title="부모 변경: 옮길 노드 → 새 부모 순서로 클릭">
+        <svg class="ico" viewBox="0 0 16 16"><path d="M6 10 10 6"/><path d="M9 3.5a2.5 2.5 0 0 1 3.5 3.5L11 8.5"/><path d="M7 12.5a2.5 2.5 0 0 1-3.5-3.5L5 7.5"/></svg>이동
       </button>
-      <button class="btn" id="imgBtn" title="선택한 노드에 이미지 채우기">
+      <button class="btn" id="imgBtn" style="display:none" title="이미지(자유 노드 전용)">
         <svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/><circle cx="5.5" cy="6.5" r="1"/><path d="M3 11l3-2.5 3 2 2-1.5 2 2"/></svg>이미지
       </button>
       <button class="btn toggle" id="gridBtn" title="그리드 스냅 (기본 off)">
@@ -277,6 +299,7 @@
     </div>
 
     <div class="spacer"></div>
+    <div class="integ-pill" id="integPill" title="실시간 정합성 — 클릭하면 문제 목록"><span class="dot"></span><span id="integTxt">정합성 ✓</span></div>
     <div class="save-pill" id="savePill"><span class="dot"></span><span id="saveTxt">저장됨</span></div>
   </header>
 
@@ -284,6 +307,7 @@
   <div class="stage">
     <div id="canvas"></div>
     <div id="catLabels"></div>
+    <div id="integPanel"></div>
 
     <!-- Inspector -->
     <aside class="inspector" id="inspector">
@@ -297,18 +321,20 @@
         <div class="st-btn" data-s="blocked"><span class="sw"></span>막힘</div>
         <div class="st-btn" data-s="done"><span class="sw"></span>완료</div>
       </div>
+      <div id="inspRO" style="display:none;font-size:11px;color:var(--st-prog);margin-top:10px">CSV에서 sync됨 — 읽기 전용</div>
       <div class="insp-actions">
+        <button class="btn" id="inspAddChild" style="flex:1;justify-content:center">＋ 자식</button>
         <button class="btn" id="inspImg" style="flex:1;justify-content:center">이미지</button>
         <button class="btn danger" id="inspDel" style="flex:1;justify-content:center">삭제</button>
       </div>
     </aside>
 
     <div class="hint">
-      <span><b>드래그</b> 이동</span>
-      <span><b>우하단 핸들</b> 크기</span>
+      <span><b>클릭</b> 선택·편집</span>
       <span><b>더블클릭</b> 접기/펼치기</span>
-      <span><b>휠</b> 줌 (멀어지면 카테고리)</span>
-      <span><kbd>Del</kbd> 삭제</span>
+      <span><b>이동</b> 모드: 노드→새 부모</span>
+      <span><kbd>Insert</kbd> 자식 · <kbd>Del</kbd> 삭제</span>
+      <span><b>휠</b> 줌</span>
     </div>
 
     <div class="zoom-pill">
@@ -451,9 +477,11 @@
     joint.highlighters.stroke.add(view, "body", "sel", {
       padding: 4, rx: 8, ry: 8, attrs: { stroke: T.sel, "stroke-width": 2 }
     });
-    view.addTools(new joint.dia.ToolsView({
-      tools: [ new ResizeHandle({ selector: "body" }), new joint.elementTools.Remove({ x: "100%", y: 0, offset: { x: 6, y: -6 } }) ]
-    }));
+    if (!(view.model.get && view.model.get("nodeId"))) {   // free nodes only: resize/remove tools
+      view.addTools(new joint.dia.ToolsView({
+        tools: [ new ResizeHandle({ selector: "body" }), new joint.elementTools.Remove({ x: "100%", y: 0, offset: { x: 6, y: -6 } }) ]
+      }));
+    }
     showInspector(view.model);
   }
 
@@ -498,11 +526,33 @@
     }).addTo(graph);
   }
 
+  // Reparent: move a tree node under a new parent (hierarchy edit). Validates against cycles/synced/root.
+  function reparentNode(childId, newParentId) {
+    if (childId === newParentId) return;
+    var child = findNode(H, childId), np = findNode(H, newParentId);
+    if (!child || !np) return;
+    if (isSynced(child)) { flashSave("CSV sync 노드 — 이동 불가"); return; }
+    var bad = false; (function w(x) { if (x.id === newParentId) bad = true; (x.children || []).forEach(w); })(child);
+    if (bad) { flashSave("자기 하위로는 이동 불가"); return; }
+    var oldP = findParent(H, childId); if (!oldP) { flashSave("루트는 이동 불가"); return; }
+    oldP.children = oldP.children.filter(function (c) { return c.id !== childId; });
+    np.children = np.children || []; np.children.push(child);
+    collapsed[newParentId] = false;
+    saveHierarchy(); buildTree(); scheduleLOD();
+    flashSave("이동: " + child.name + " → " + np.name);
+    var el = nodeEls[childId], v = el && el.findView(paper); if (v) selectElement(v);
+  }
+
   /* ============ Paper events ============ */
   paper.on("element:pointerclick", function (view) {
     if (linkMode) {
       if (!linkSrc) { linkSrc = view.model; markPending(view); }
-      else if (linkSrc.id !== view.model.id) { createLink(linkSrc.id, view.model.id); clearPending(); linkSrc = null; }
+      else if (linkSrc.id !== view.model.id) {
+        var sId = linkSrc.get && linkSrc.get("nodeId"), tId = view.model.get && view.model.get("nodeId");
+        if (sId && tId) reparentNode(sId, tId);          // tree: reparent
+        else createLink(linkSrc.id, view.model.id);       // free nodes: link
+        clearPending(); linkSrc = null;
+      }
       return;
     }
     selectElement(view);
@@ -692,30 +742,69 @@
     reader.readAsDataURL(f);
   });
 
-  /* ============ Inspector ============ */
+  /* ============ Inspector — tree structure editing (policy A: synced leaves read-only) ============ */
   var inspector = document.getElementById("inspector");
   var inspName = document.getElementById("inspName");
+  function findParent(root, id) { var p = null; (function w(x) { (x.children || []).forEach(function (c) { if (c.id === id) p = x; w(c); }); })(root); return p; }
+  function isSynced(node) { return !!node && node.kind === "unit" && (node.id.indexOf("gear.weapon.") === 0 || node.id.indexOf("char.monster.") === 0); }
+  function childKind(k) { return k === "game" ? "pillar" : k === "pillar" ? "category" : k === "category" ? "group" : "unit"; }
+  function selectedTreeNode() { if (!selected || !selected.model || !selected.model.get) return null; var id = selected.model.get("nodeId"); return id ? findNode(H, id) : null; }
+  var hierSaveTimer = null;
+  function saveHierarchy() {
+    clearTimeout(hierSaveTimer);
+    hierSaveTimer = setTimeout(function () {
+      fetch("/hierarchy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(H) })
+        .then(function (r) { return r.json(); }).then(function (o) { flashSave(o && o.ok ? "구조 저장됨" : "저장 실패"); }).catch(function () { flashSave("저장 실패"); });
+    }, 400);
+  }
   function showInspector(model) {
     inspector.classList.add("show");
-    document.getElementById("inspId").textContent = model.attr("idText/text") || "—";
-    inspName.value = model.attr("label/text") || "";
-    var st = model.get("status") || "todo";
+    var nid = model.get && model.get("nodeId");
+    var node = nid ? findNode(H, nid) : null, synced = isSynced(node);
+    document.getElementById("inspId").textContent = node ? node.id : (model.attr("idText/text") || "—");
+    inspName.value = node ? node.name : (model.attr("label/text") || "");
+    inspName.readOnly = !!synced;
+    document.getElementById("inspRO").style.display = synced ? "block" : "none";
+    document.getElementById("inspAddChild").style.display = (node && !synced) ? "" : "none";
+    document.getElementById("inspImg").style.display = node ? "none" : "";
+    var st = (node && node.status) || model.get("status") || "todo";
     document.querySelectorAll(".st-btn").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-s") === st); });
   }
   inspName.addEventListener("input", function () {
-    if (selected && selected.model && selected.model.isElement()) selected.model.attr("label/text", inspName.value);
+    if (!selected || !selected.model) return;
+    var node = selectedTreeNode();
+    if (node) { if (isSynced(node)) return; node.name = inspName.value; selected.model.attr("label/text", inspName.value); saveHierarchy(); }
+    else if (selected.model.isElement()) selected.model.attr("label/text", inspName.value);
   });
   document.querySelectorAll(".st-btn").forEach(function (b) {
     b.addEventListener("click", function () {
-      if (!selected || !selected.model.isElement()) return;
-      var st = b.getAttribute("data-s");
-      selected.model.set("status", st);
-      selected.model.attr("statusDot/fill", T.status[st]);
+      if (!selected || !selected.model) return;
+      var st = b.getAttribute("data-s"), node = selectedTreeNode();
+      if (node) { node.status = st; selected.model.attr("statusDot/fill", T.status[st]); saveHierarchy(); }
+      else if (selected.model.isElement()) { selected.model.set("status", st); selected.model.attr("statusDot/fill", T.status[st]); }
       document.querySelectorAll(".st-btn").forEach(function (x) { x.classList.toggle("on", x === b); });
     });
   });
-  document.getElementById("inspImg").addEventListener("click", function () { if (selected && selected.model.isElement()) pickImageFor(selected.model); });
-  document.getElementById("inspDel").addEventListener("click", function () { if (selected) { pushUndo(); selected.model.remove(); clearSelection(); } });
+  document.getElementById("inspImg").addEventListener("click", function () { if (selected && selected.model.isElement() && !selectedTreeNode()) pickImageFor(selected.model); });
+  document.getElementById("inspAddChild").addEventListener("click", function () {
+    var node = selectedTreeNode(); if (!node || isSynced(node)) return;
+    var nk = childKind(node.kind);
+    var child = { id: node.id + ".n" + Math.floor(Math.random() * 1e9).toString(36), name: "새 " + (nk === "unit" ? "항목" : nk), kind: nk, status: "todo" };
+    node.children = node.children || []; node.children.push(child);
+    collapsed[node.id] = false;
+    saveHierarchy(); buildTree(); scheduleLOD();
+    var el = nodeEls[child.id], v = el && el.findView(paper); if (v) selectElement(v);
+  });
+  document.getElementById("inspDel").addEventListener("click", function () {
+    if (!selected) return;
+    var node = selectedTreeNode();
+    if (node) {
+      if (isSynced(node)) { flashSave("CSV sync 노드 — 삭제 불가"); return; }
+      var p = findParent(H, node.id); if (!p) { flashSave("루트 삭제 불가"); return; }
+      p.children = (p.children || []).filter(function (c) { return c.id !== node.id; });
+      clearSelection(); saveHierarchy(); buildTree(); scheduleLOD();
+    } else { pushUndo(); selected.model.remove(); clearSelection(); }
+  });
 
   /* ============ Inline label editor ============ */
   var editorEl = document.getElementById("editor");
@@ -742,12 +831,17 @@
     if (e.key === "Escape") { editing = false; editTarget = null; editorEl.style.display = "none"; }
   });
 
-  /* ---- Delete key ---- */
+  /* ---- Tree edit shortcuts: Del = delete, Insert = add child ---- */
+  document.getElementById("tbAddChild").addEventListener("click", function () { if (selectedTreeNode()) document.getElementById("inspAddChild").click(); else flashSave("노드를 먼저 선택"); });
+  document.getElementById("tbDelete").addEventListener("click", function () { if (selectedTreeNode()) document.getElementById("inspDel").click(); else if (selected) document.getElementById("inspDel").click(); else flashSave("노드를 먼저 선택"); });
   document.addEventListener("keydown", function (e) {
-    if (editing) return;
+    if (editing || document.activeElement === inspName) return;
     if ((e.key === "Delete" || e.key === "Backspace") && selected) {
-      if (document.activeElement === inspName) return;
-      e.preventDefault(); pushUndo(); selected.model.remove(); clearSelection();
+      e.preventDefault();
+      if (selectedTreeNode()) document.getElementById("inspDel").click();
+      else { pushUndo(); selected.model.remove(); clearSelection(); }
+    } else if (e.key === "Insert" && selectedTreeNode()) {
+      e.preventDefault(); document.getElementById("inspAddChild").click();
     }
   });
 
@@ -765,7 +859,7 @@
   }
   function doSave() {
     var col = Object.keys(collapsed).filter(function (k) { return collapsed[k]; });
-    fetch("/patch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collapsed: col }) })
+    fetch("/patch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collapsed: col, positions: positions }) })
       .then(function (r) { return r.json(); })
       .then(function () { savePill.classList.remove("saving"); saveTxt.textContent = "저장됨"; })
       .catch(function () { savePill.classList.remove("saving"); saveTxt.textContent = "저장 실패"; });
@@ -775,6 +869,7 @@
   /* ============ Hierarchy tree model ============ */
   var H = null;            // hierarchy root
   var collapsed = {};      // nodeId -> true (subtree hidden)
+  var positions = {};      // nodeId -> {x,y} manual drag override (radial = initial layout)
   var nodeEls = {};        // nodeId -> element
 
   var PILLAR_COLOR = {
@@ -854,6 +949,9 @@
     createEl(H);
     H.children.forEach(function (p) { (function cr(n) { createEl(n); if (n.children && !collapsed[n.id]) n.children.forEach(cr); })(p); });
 
+    // manual drag overrides on top of the radial (initial) layout
+    Object.keys(positions).forEach(function (id) { if (nodeEls[id]) nodeEls[id].position(positions[id].x, positions[id].y); });
+
     function linkPair(parent, child) {
       if (!nodeEls[parent.id] || !nodeEls[child.id]) return;
       new joint.shapes.standard.Link({
@@ -870,6 +968,8 @@
       if (nodeEls[H.id] && nodeEls[p.id]) nodeEls[H.id].embed(nodeEls[p.id]);
       (function emb(n) { if (collapsed[n.id] || !n.children) return; n.children.forEach(function (ch) { if (nodeEls[n.id] && nodeEls[ch.id]) nodeEls[n.id].embed(nodeEls[ch.id]); emb(ch); }); })(p);
     });
+
+    if (lastIntegrity) applyIntegrity(lastIntegrity);  // re-flag after rebuild
   }
 
   function toggleCollapse(id) {
@@ -891,7 +991,7 @@
       if (!H || !H.id) { loading = false; return; }
       collapsed = {};
       if (board && Array.isArray(board.collapsed)) board.collapsed.forEach(function (id) { collapsed[id] = true; });
-      // default: fully expanded
+      positions = (board && board.positions && typeof board.positions === "object") ? board.positions : {};
       buildTree();
       loading = false;
       fitContent();
@@ -904,12 +1004,13 @@
 
   /* ============ Undo / Redo ============ */
   var undoStack = [], redoStack = [], MAXUNDO = 50, restoring = false, dragMoved = false, preDrag = null;
-  function snapshot() { return { collapsed: JSON.parse(JSON.stringify(collapsed)), graph: graph.toJSON() }; }
+  function snapshot() { return { collapsed: JSON.parse(JSON.stringify(collapsed)), positions: JSON.parse(JSON.stringify(positions)), graph: graph.toJSON() }; }
   function commitUndo(s) { undoStack.push(s); if (undoStack.length > MAXUNDO) undoStack.shift(); redoStack = []; updateUndoBtns(); }
   function pushUndo() { if (restoring) return; commitUndo(snapshot()); }
   function restoreState(s) {
     restoring = true;
     collapsed = JSON.parse(JSON.stringify(s.collapsed));
+    positions = JSON.parse(JSON.stringify(s.positions || {}));
     try { graph.fromJSON(s.graph); } catch (e) { console.warn("undo restore:", e); }
     graph.getElements().forEach(applyEllipseClip);
     currentMaxDepth = -99; restoring = false;
@@ -923,7 +1024,15 @@
   }
   paper.on("element:pointerdown", function () { if (!linkMode) { preDrag = snapshot(); dragMoved = false; } });
   paper.on("element:pointermove", function () { dragMoved = true; });
-  paper.on("element:pointerup", function () { if (!linkMode && dragMoved && preDrag) commitUndo(preDrag); dragMoved = false; preDrag = null; });
+  paper.on("element:pointerup", function (view) {
+    if (!linkMode && dragMoved && preDrag) commitUndo(preDrag);
+    if (!linkMode && dragMoved && view) {
+      var moved = [view.model].concat(view.model.getEmbeddedCells({ deep: true }));
+      moved.forEach(function (m) { var id = m.get && m.get("nodeId"); if (id && m.isElement && m.isElement()) { var p = m.position(); positions[id] = { x: Math.round(p.x), y: Math.round(p.y) }; } });
+      scheduleSave();
+    }
+    dragMoved = false; preDrag = null;
+  });
   document.getElementById("undoBtn").addEventListener("click", doUndo);
   document.getElementById("redoBtn").addEventListener("click", doRedo);
   document.addEventListener("keydown", function (e) {
@@ -934,7 +1043,53 @@
     else if ((z && e.shiftKey) || e.key === "y" || e.key === "Y") { e.preventDefault(); doRedo(); }
   });
 
+  /* ============ Real-time integrity (SSE) ============ */
+  var lastIntegrity = null, integES = null;
+  function escapeHtml(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function applyIntegrity(rep) {
+    if (!rep) return;
+    var txt = document.getElementById("integTxt"), pill = document.getElementById("integPill");
+    var s = rep.summary || { error: 0, warn: 0 };
+    pill.classList.remove("warn", "error");
+    if (s.error > 0) { pill.classList.add("error"); txt.textContent = "정합성 " + s.error + " 오류" + (s.warn ? " · " + s.warn + " 경고" : ""); }
+    else if (s.warn > 0) { pill.classList.add("warn"); txt.textContent = "정합성 " + s.warn + " 경고"; }
+    else { txt.textContent = "정합성 ✓"; }
+    graph.getElements().forEach(function (el) { var v = el.findView(paper); if (v) joint.highlighters.stroke.remove(v, "integ"); });
+    (rep.issues || []).forEach(function (iss) {
+      if (!iss.nodeId) return;
+      var el = nodeEls[iss.nodeId]; if (!el) return; var v = el.findView(paper); if (!v) return;
+      joint.highlighters.stroke.add(v, "body", "integ", { padding: 6, attrs: { stroke: iss.severity === "error" ? "#ef5d6c" : "#e8b13a", "stroke-width": 3, "stroke-dasharray": "5,3" } });
+    });
+    var panel = document.getElementById("integPanel");
+    panel.innerHTML = '<div class="ihead">정합성 — ' + (s.error || 0) + ' 오류 · ' + (s.warn || 0) + ' 경고</div>' +
+      ((rep.issues && rep.issues.length)
+        ? rep.issues.map(function (i) { return '<div class="iss ' + i.severity + '" data-node="' + (i.nodeId || "") + '"><div class="sev"></div><div class="msg">' + escapeHtml(i.message) + '</div></div>'; }).join("")
+        : '<div style="color:var(--text-dim);padding:10px 6px">문제 없음 ✓</div>');
+    panel.querySelectorAll(".iss").forEach(function (row) { row.addEventListener("click", function () { focusNode(row.getAttribute("data-node")); }); });
+  }
+  function focusNode(id) {
+    var el = nodeEls[id]; if (!el) return;
+    var c = el.getBBox().center(), sc = paper.scale().sx;
+    paper.translate(canvasEl.clientWidth / 2 - c.x * sc, canvasEl.clientHeight / 2 - c.y * sc);
+    scheduleLOD();
+  }
+  document.getElementById("integPill").addEventListener("click", function () { document.getElementById("integPanel").classList.toggle("show"); });
+  function reloadHierarchy() {
+    fetch("/hierarchy").then(function (r) { return r.json(); }).then(function (nh) {
+      if (nh && nh.id) { H = nh; buildTree(); scheduleLOD(); flashSave("스펙 변경 반영됨"); }
+    }).catch(function () { /* ignore */ });
+  }
+  function setupIntegrity() {
+    if (typeof EventSource === "undefined") return;
+    try {
+      integES = new EventSource("/events");
+      integES.onmessage = function (e) { try { lastIntegrity = JSON.parse(e.data); applyIntegrity(lastIntegrity); } catch (err) {} };
+      integES.addEventListener("reload", function () { reloadHierarchy(); });
+    } catch (e) { /* ignore */ }
+  }
+
   load();
+  setupIntegrity();
 })();
 </script>
 </body>

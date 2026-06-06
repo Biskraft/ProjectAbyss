@@ -1,24 +1,29 @@
 /**
- * enemyStats.ts — Enemy stats loaded from CSV at build time.
+ * enemyStats.ts - Enemy stats and behavior loaded from CSV at build time.
  *
- * SSoT: Sheets/Content_Stats_Enemy.csv
- * CSV 수정 시 코드 변경 불필요. 빌드만 다시 하면 반영됨.
+ * SSoT:
+ * - Sheets/Content_Stats_Enemy.csv: simple numeric rewards/stats only.
+ * - Sheets/Content_Enemy.csv: behavior/movement/attribute tuning.
  */
 
-import csvText from '../../../Sheets/Content_Stats_Enemy.csv?raw';
+import statCsvText from '../../../Sheets/Content_Stats_Enemy.csv?raw';
+import behaviorCsvText from '../../../Sheets/Content_Enemy.csv?raw';
 import { resolveGenericFluidType } from './ItemWorldFluidMapping';
 
 export type MovementType = 'ground' | 'flying';
 
 /**
- * 몬스터 속성(Attribute) — fluid 물질 1종.
- * SSoT 원칙(System_Enemy_MonsterArchetype.md §1.1 명제 2): 모든 몬스터는 속성을 가진다.
- * 무속성("none") 금지. CSV `Attribute` 가 비면 지층 테마(temperament)가 자동 바인딩한다.
+ * Enemy elemental attribute. Empty CSV Attribute means the Item World
+ * temperament resolves the final attribute through resolveEnemyAttribute().
  */
 export type EnemyAttribute = 'water' | 'magma' | 'oil' | 'acid' | 'charged' | 'cyro';
 
 const VALID_ATTRIBUTES: ReadonlySet<EnemyAttribute> = new Set<EnemyAttribute>([
   'water', 'magma', 'oil', 'acid', 'charged', 'cyro',
+]);
+
+const VALID_MOVEMENT_TYPES: ReadonlySet<MovementType> = new Set<MovementType>([
+  'ground', 'flying',
 ]);
 
 export interface EnemyStatEntry {
@@ -34,66 +39,182 @@ export interface EnemyStatEntry {
   jumpTiles: number;
   exp: number;
   movementType: MovementType;
-  /** 명시 속성 override. undefined 면 스폰 시 테마 폴백(resolveEnemyAttribute). */
+  /** Explicit attribute override. Undefined means spawn-theme fallback. */
   attribute?: EnemyAttribute;
 }
 
-/** All enemy stats indexed by "Type:Level" key. */
-const ENEMY_STATS = new Map<string, EnemyStatEntry>();
-
-// Parse CSV at module load
-const lines = csvText.trim().split('\n');
-for (let i = 1; i < lines.length; i++) {  // skip header
-  const cols = lines[i].split(',');
-  if (cols.length < 10) continue;
-
-  const entry: EnemyStatEntry = {
-    type: cols[0].trim(),
-    level: parseInt(cols[1]),
-    hp: parseInt(cols[2]),
-    atk: parseInt(cols[3]),
-    def: parseInt(cols[4]),
-    detectRange: parseInt(cols[5]),
-    attackRange: parseInt(cols[6]),
-    moveSpeed: parseInt(cols[7]),
-    attackCooldown: parseInt(cols[8]),
-    jumpTiles: parseInt(cols[9]),
-    exp: cols.length >= 11 ? parseInt(cols[10]) : 0,
-    movementType: (cols.length >= 12 ? cols[11].trim().toLowerCase() : 'ground') as MovementType,
-    attribute: parseAttribute(cols.length >= 13 ? cols[12] : ''),
-  };
-
-  ENEMY_STATS.set(`${entry.type}:${entry.level}`, entry);
+interface EnemyStatRow {
+  type: string;
+  level: number;
+  hp: number;
+  atk: number;
+  def: number;
+  exp: number;
 }
 
-/** CSV Attribute 셀 → EnemyAttribute | undefined (빈 값/무효 = undefined → 테마 폴백). */
+interface EnemyBehaviorEntry {
+  type: string;
+  detectRange: number;
+  attackRange: number;
+  moveSpeed: number;
+  attackCooldown: number;
+  jumpTiles: number;
+  movementType: MovementType;
+  attribute?: EnemyAttribute;
+  archetype: string;
+}
+
+const DEFAULT_BEHAVIOR: Omit<EnemyBehaviorEntry, 'type' | 'level'> = {
+  detectRange: 160,
+  attackRange: 18,
+  moveSpeed: 60,
+  attackCooldown: 1200,
+  jumpTiles: 0,
+  movementType: 'ground',
+  attribute: undefined,
+  archetype: '',
+};
+
+const DEFAULT_STAT: Omit<EnemyStatRow, 'type' | 'level'> = {
+  hp: 50,
+  atk: 10,
+  def: 1,
+  exp: 0,
+};
+
+const ENEMY_STAT_ROWS = new Map<string, EnemyStatRow>();
+const ENEMY_BEHAVIORS = new Map<string, EnemyBehaviorEntry>();
+
+for (const row of parseCsvRows(statCsvText)) {
+  const entry: EnemyStatRow = {
+    type: value(row, 'Type'),
+    level: intValue(row, 'Level', 1),
+    hp: intValue(row, 'HP', DEFAULT_STAT.hp),
+    atk: intValue(row, 'ATK', DEFAULT_STAT.atk),
+    def: intValue(row, 'DEF', DEFAULT_STAT.def),
+    exp: intValue(row, 'Exp', DEFAULT_STAT.exp),
+  };
+  if (!entry.type) continue;
+  ENEMY_STAT_ROWS.set(key(entry.type, entry.level), entry);
+}
+
+for (const row of parseCsvRows(behaviorCsvText)) {
+  const movementType = movementValue(row, 'MovementType', DEFAULT_BEHAVIOR.movementType);
+  const entry: EnemyBehaviorEntry = {
+    type: value(row, 'Type'),
+    detectRange: intValue(row, 'DetectRange', DEFAULT_BEHAVIOR.detectRange),
+    attackRange: intValue(row, 'AttackRange', DEFAULT_BEHAVIOR.attackRange),
+    moveSpeed: intValue(row, 'MoveSpeed', DEFAULT_BEHAVIOR.moveSpeed),
+    attackCooldown: intValue(row, 'AttackCooldown', DEFAULT_BEHAVIOR.attackCooldown),
+    jumpTiles: intValue(row, 'JumpTiles', DEFAULT_BEHAVIOR.jumpTiles),
+    movementType,
+    attribute: parseAttribute(value(row, 'Attribute')),
+    archetype: value(row, 'Archetype'),
+  };
+  if (!entry.type) continue;
+  ENEMY_BEHAVIORS.set(entry.type, entry);
+}
+
+function key(type: string, level: number): string {
+  return `${type}:${level}`;
+}
+
+function parseCsvRows(text: string): Array<Record<string, string>> {
+  const lines = text.trim().split(/\r?\n/).filter(line => line.trim().length > 0);
+  if (lines.length <= 1) return [];
+  const headers = splitCsvLine(lines[0]).map(header => header.trim());
+  const rows: Array<Record<string, string>> = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvLine(lines[i]);
+    const row: Record<string, string> = {};
+    for (let c = 0; c < headers.length; c++) {
+      row[headers[c]] = (cols[c] ?? '').trim();
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function splitCsvLine(line: string): string[] {
+  const cols: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (ch === ',' && !quoted) {
+      cols.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function value(row: Record<string, string>, field: string): string {
+  return (row[field] ?? '').trim();
+}
+
+function intValue(row: Record<string, string>, field: string, fallback: number): number {
+  const parsed = Number.parseInt(value(row, field), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function movementValue(
+  row: Record<string, string>,
+  field: string,
+  fallback: MovementType,
+): MovementType {
+  const raw = value(row, field).toLowerCase();
+  return VALID_MOVEMENT_TYPES.has(raw as MovementType) ? raw as MovementType : fallback;
+}
+
+/** CSV Attribute to EnemyAttribute | undefined. Empty/invalid means theme fallback. */
 function parseAttribute(raw: string | undefined): EnemyAttribute | undefined {
   const v = (raw ?? '').trim().toLowerCase();
   return VALID_ATTRIBUTES.has(v as EnemyAttribute) ? (v as EnemyAttribute) : undefined;
 }
 
 /**
- * 몬스터의 최종 속성을 해석한다. 명시 속성(CSV Attribute)이 있으면 그대로,
- * 없으면 지층 테마(temperament)의 primary fluid 로 폴백한다.
- *
- * **무속성 폴백 없음** — 항상 6 fluid 중 하나를 반환한다 (§1.1 명제 2 강제).
- * temperament 가 null/미정이면 ItemWorldFluidMapping 의 DEFAULT_TEMPERAMENT(forge→magma).
- *
- * @param explicit  EnemyStatEntry.attribute (명시 override) 또는 undefined
- * @param temperament  현 다이브 무기 기질 ('forge'|'iron'|'rust'|'spark'|'shadow') 또는 null
+ * Resolve the final enemy attribute. Explicit CSV Attribute wins; otherwise the
+ * Item World temperament primary fluid is used. This preserves the invariant
+ * that every spawned monster has one fluid attribute at runtime.
  */
 export function resolveEnemyAttribute(
   explicit: EnemyAttribute | undefined,
   temperament: string | null | undefined,
 ): EnemyAttribute {
   if (explicit && VALID_ATTRIBUTES.has(explicit)) return explicit;
-  // generic_a = 해당 temperament 의 primary fluid (slotA). 항상 fluid invariant.
   return resolveGenericFluidType('generic_a', temperament);
 }
 
-/** Get enemy stats for a given type and level. Falls back to level 1. */
+/** Get enemy stats and behavior for a given type/level. Falls back to level 1. */
 export function getEnemyStats(type: string, level: number): EnemyStatEntry {
-  return ENEMY_STATS.get(`${type}:${level}`)
-    ?? ENEMY_STATS.get(`${type}:1`)
-    ?? { type, level: 1, hp: 50, atk: 10, def: 1, detectRange: 160, attackRange: 18, moveSpeed: 60, attackCooldown: 1200, jumpTiles: 0, exp: 0, movementType: 'ground' as MovementType };
+  const stats = ENEMY_STAT_ROWS.get(key(type, level))
+    ?? ENEMY_STAT_ROWS.get(key(type, 1));
+  const behavior = ENEMY_BEHAVIORS.get(type);
+
+  return {
+    type,
+    level: stats?.level ?? 1,
+    hp: stats?.hp ?? DEFAULT_STAT.hp,
+    atk: stats?.atk ?? DEFAULT_STAT.atk,
+    def: stats?.def ?? DEFAULT_STAT.def,
+    exp: stats?.exp ?? DEFAULT_STAT.exp,
+    detectRange: behavior?.detectRange ?? DEFAULT_BEHAVIOR.detectRange,
+    attackRange: behavior?.attackRange ?? DEFAULT_BEHAVIOR.attackRange,
+    moveSpeed: behavior?.moveSpeed ?? DEFAULT_BEHAVIOR.moveSpeed,
+    attackCooldown: behavior?.attackCooldown ?? DEFAULT_BEHAVIOR.attackCooldown,
+    jumpTiles: behavior?.jumpTiles ?? DEFAULT_BEHAVIOR.jumpTiles,
+    movementType: behavior?.movementType ?? DEFAULT_BEHAVIOR.movementType,
+    attribute: behavior?.attribute,
+  };
 }

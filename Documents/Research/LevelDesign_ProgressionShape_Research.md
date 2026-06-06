@@ -240,7 +240,7 @@
 
 **절차적 생성 매핑:**
 - 아이템계의 각 지층 시작점을 미니 허브로 설계 가능
-- 허브에서 2~3개의 분기 경로가 뻗어나가고, 각 끝에 보스/보상 배치
+- 허브에서 2-3개의 분기 경로가 뻗어나가고, 각 끝에 보스/보상 배치
 - Concept Graph에서 허브 노드를 중앙에 놓고 방사형 서브그래프 연결
 
 ```
@@ -282,7 +282,7 @@ Hub ─────┼─ Spoke B (탐험)
 
 ### B-07. `parallel` — 병렬 경로 (Parallel Paths)
 
-**공간 형태:** 같은 방향으로 나란히 달리는 2~3개의 경로. 상층/하층 또는 좌측/우측으로 분리. 중간중간 연결 지점 존재.
+**공간 형태:** 같은 방향으로 나란히 달리는 2-3개의 경로. 상층/하층 또는 좌측/우측으로 분리. 중간중간 연결 지점 존재.
 
 **페이싱 효과:**
 - 플레이어에게 선택권 부여 — "안전하지만 느린 길 vs 위험하지만 빠른 길"
@@ -290,12 +290,12 @@ Hub ─────┼─ Spoke B (탐험)
 - 능력 게이트를 레인별로 다르게 적용하면 백트래킹 시 새로운 경로 발견 가능
 
 **대표 사례:**
-- Dead Cells: 같은 진행도에서 2~3개 바이옴 선택
+- Dead Cells: 같은 진행도에서 2-3개 바이옴 선택
 - Celeste: 메인 경로 + 하드 경로 병렬
 - Spelunky 2: Front Layer + Back Layer 물리적 병렬
 
 **절차적 생성 매핑:**
-- Concept Graph에서 같은 깊이(depth)의 노드를 2~3개 병렬 배치
+- Concept Graph에서 같은 깊이(depth)의 노드를 2-3개 병렬 배치
 - Spelunky 2의 Dual Layer가 가장 직접적인 구현
 
 ```
@@ -336,7 +336,7 @@ A ←───────── C
 
 ### B-09. `network` — 그물망 (Network / Interconnected Web)
 
-**공간 형태:** 여러 방이 다방향으로 연결되어 그물처럼 엮인 구조. 복수의 유효한 경로가 존재. 각 방에서 2~4개 방향 이동 가능.
+**공간 형태:** 여러 방이 다방향으로 연결되어 그물처럼 엮인 구조. 복수의 유효한 경로가 존재. 각 방에서 2-4개 방향 이동 가능.
 
 **페이싱 효과:**
 - 최대 자유도와 비선형성
@@ -381,7 +381,7 @@ G ── H ── I
 - Ori: 탈출 시퀀스 직전 넓은 전투 공간
 
 **절차적 생성 매핑:**
-- 일반 Room보다 2~3배 큰 특수 Template
+- 일반 Room보다 2-3배 큰 특수 Template
 - Dead Cells Concept Graph에서 "보스 노드" 또는 "엘리트 노드"로 지정
 - 아이템계에서 각 지층의 보스 방(아이템 장군/왕/신)을 아레나 Template으로 고정 배치
 
@@ -450,7 +450,7 @@ G ── H ── I
 **절차적 생성 매핑:**
 - 전투 노드 N개마다 1개의 Safe Zone 노드 삽입 규칙
 - Dead Cells: 바이옴 전환 구간이 자동 Safe Zone
-- 아이템계: 5~10층마다 "아이템 신사(Item Shrine)" 같은 안식처 절차적 배치
+- 아이템계: 5-10층마다 "아이템 신사(Item Shrine)" 같은 안식처 절차적 배치
 
 ```
 ┌───────┐
@@ -508,7 +508,7 @@ G ── H ── I
 - Ori: Ginso Tree 외부 개방 구간
 
 **절차적 생성 매핑:**
-- 표준 Room보다 2~4배 큰 특수 Template
+- 표준 Room보다 2-4배 큰 특수 Template
 - 내부에 여러 Chunk를 산발적으로 배치하여 미니 랜드마크 생성
 - 아이템계: "보물 방" 또는 "기억 단편 서식지"로 활용
 
@@ -574,7 +574,7 @@ G ── H ── I
 **절차적 생성 매핑:**
 - Spelunky 비경로(Type 0) Room 중 일부를 "비밀 방"으로 지정
 - Room Template에 파괴 가능한 벽 타일을 포함, 뒤에 보상 배치
-- 아이템계: 일정 확률(10~15%)로 숨겨진 방 추가 생성
+- 아이템계: 일정 확률(10-15%)로 숨겨진 방 추가 생성
 
 ```
 ┌──────────┐
@@ -641,16 +641,16 @@ type ProgressionShapeTag =
 | `shaft` | 0.5 | vertical | medium | T+B |
 | `switchback` | 0.4 | both | medium | varies |
 | `spiral` | 0.6 | both | large | T+B |
-| `hub` | 0.2 | both | large | 3~4방향 |
+| `hub` | 0.2 | both | large | 3-4방향 |
 | `branch` | 0.4 | horizontal | medium | L+R+(분기) |
-| `parallel` | 0.3 | horizontal | large | L+R(×2~3) |
+| `parallel` | 0.3 | horizontal | large | L+R(×2-3) |
 | `loop` | 0.3 | both | large | 2+(지름길) |
-| `network` | 0.3 | both | large | 3~4방향 |
+| `network` | 0.3 | both | large | 3-4방향 |
 | `arena` | 0.9 | both | large | 1(봉쇄) |
 | `funnel` | 0.7 | horizontal | medium→small | L+R |
-| `safe` | 0.0 | both | small | 1~2 |
+| `safe` | 0.0 | both | small | 1-2 |
 | `oneway` | 0.8 | vertical | small | 위→아래(단방향) |
-| `open` | 0.2 | both | large | 2~4 |
+| `open` | 0.2 | both | large | 2-4 |
 | `foreshadow` | 0.3 | both | medium | 1+(게이트) |
 | `secret` | 0.1 | both | small | 1(숨김) |
 
@@ -698,7 +698,7 @@ Intensity
 절차적 생성 시 다음 규칙으로 패턴을 시퀀싱한다:
 
 **규칙 1: 안식처 삽입 간격**
-- 전투 Room 3~5개마다 `safe` 1개 삽입
+- 전투 Room 3-5개마다 `safe` 1개 삽입
 - `arena` 직전에는 반드시 `safe` 배치
 
 **규칙 2: 강도 점프 제한**
@@ -710,11 +710,11 @@ Intensity
 - 리스크를 감수한 결정 직후 즉각적 안도감 제공
 
 **규칙 4: 전조 공간 비율**
-- 전체 Room의 10~20%에 `foreshadow` 태그 부여
+- 전체 Room의 10-20%에 `foreshadow` 태그 부여
 - 메트로베니아 월드에서 비율 높음, 아이템계에서 비율 낮음
 
 **규칙 5: 비밀 방 확률**
-- 전체 Room의 10~15%에 `secret` 태그 부여
+- 전체 Room의 10-15%에 `secret` 태그 부여
 - 레어리티가 높을수록 비밀 방 확률 증가
 
 ---

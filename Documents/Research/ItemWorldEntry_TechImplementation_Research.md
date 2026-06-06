@@ -269,10 +269,10 @@ scene.container.filters = [colorFilter];
 | 게임 | 전환 방식 | 핵심 기술 | 전환 시간 |
 |:-----|:---------|:---------|:---------|
 | Dead Cells | 페이드 + 환경 극변 | ColorMatrix + 타일셋 교체 | 0.2초 |
-| Hollow Knight | Ripple + 색상 전환 | UV 변위 셰이더 | 0.5~0.8초 |
+| Hollow Knight | Ripple + 색상 전환 | UV 변위 셰이더 | 0.5-0.8초 |
 | Hades | 암전 + 착지 연출 | 단순 Alpha Fade + VFX | 0.3초 암전 |
 
-세 게임 모두 전환 자체는 **0.2~0.8초로 짧게** 유지하고, 임팩트는 **도착 후 연출**에 집중한다.
+세 게임 모두 전환 자체는 **0.2-0.8초로 짧게** 유지하고, 임팩트는 **도착 후 연출**에 집중한다.
 
 ---
 
@@ -368,7 +368,7 @@ void main() {
 }
 ```
 
-**용도:** `FloorCollapse`의 impact 페이즈(0~100ms)에 동시 적용.
+**용도:** `FloorCollapse`의 impact 페이즈(0-100ms)에 동시 적용.
 `uTime`을 경과 시간(초)으로 업데이트, `uDecay=3.0`으로 0.5초 내 자연 감쇠.
 
 ---
@@ -1150,7 +1150,7 @@ filterPool.release('iris_wipe', this.entryFilter);
 
 **개선 방향 (디자이너 제안, 구현자 판단 필요):**
 - `Graphics` 대신 사전 생성된 `Sprite` 풀 사용
-- 동일한 1~2개의 `Graphics` 객체를 재사용하며 위치만 변경하는 방식도 고려 가능
+- 동일한 1-2개의 `Graphics` 객체를 재사용하며 위치만 변경하는 방식도 고려 가능
 
 ---
 

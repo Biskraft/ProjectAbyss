@@ -133,7 +133,7 @@ Player C(ATTACK) on Anvil
 ### S3. CameraPullBack (700 ms)
 
 - **수행:**
-  - `camera.zoomTo(target, 0.06)`. target 은 builder 전체 + 우측 wallGate 영역이 viewport 에 들어가는 값. 임시 0.55 ~ 0.65 (실측 필요).
+  - `camera.zoomTo(target, 0.06)`. target 은 builder 전체 + 우측 wallGate 영역이 viewport 에 들어가는 값. 임시 0.55-0.65 (실측 필요).
   - 카메라 follow 대상은 잠시 builder.container 의 중심으로 이동 (player follow 해제). 신규: `camera.setTarget(staticPos)`.
 - **종료 조건:** elapsed 2200 ms.
 

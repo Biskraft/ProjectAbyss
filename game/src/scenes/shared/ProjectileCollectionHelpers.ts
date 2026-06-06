@@ -1,6 +1,5 @@
 import type { Container } from 'pixi.js';
 import type { Enemy } from '@entities/Enemy';
-import { Ghost } from '@entities/Ghost';
 import type { Projectile } from '@entities/Projectile';
 
 interface AddProjectileOptions {
@@ -27,6 +26,15 @@ export function removeProjectileAt(projectiles: Projectile[], index: number): vo
   const projectile = projectiles[index];
   projectile.destroy();
   projectiles.splice(index, 1);
+}
+
+type ProjectileEmitterEnemy = Enemy<string> & {
+  pendingProjectiles: Projectile[];
+};
+
+function hasPendingProjectiles(enemy: Enemy<string>): enemy is ProjectileEmitterEnemy {
+  const candidate = enemy as Enemy<string> & { pendingProjectiles?: unknown };
+  return Array.isArray(candidate.pendingProjectiles);
 }
 
 interface UpdateProjectileCollectionInput {
@@ -65,7 +73,7 @@ export function collectPendingGhostProjectiles(
   options: AddProjectileOptions = {},
 ): void {
   for (const enemy of enemies) {
-    if (!(enemy instanceof Ghost) || !enemy.alive) continue;
+    if (!enemy.alive || !hasPendingProjectiles(enemy)) continue;
     for (const projectile of enemy.pendingProjectiles) {
       addProjectileToLayer(projectiles, projectile, entityLayer, options);
     }

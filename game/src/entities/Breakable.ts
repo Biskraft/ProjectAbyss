@@ -1,35 +1,32 @@
-/**
- * Breakable.ts — *수동 배치* 가능한 파괴 가능 오브젝트.
- *
- * BreakableProp 와 파괴 동작은 동일 (1-hit, shatter, gold/flask drop) 하지만:
- *   - 절차 생성 X — LDtk Editor 에서 Entity 'Breakable' 직접 배치
- *   - 사용자가 `Sprite` String 필드에 스프라이트 파일명(.png 제외)을 입력
- *   - Pivot 은 *바닥 중앙* — 도로 표지·이정표·검 꽂힘 등 "땅에 박힌" 오브젝트 톤
- *
- * LDtk Entity 정의 (Editor 측 설정 필요):
- *   - Identifier: Breakable
- *   - Pivot: 0.5, 1 (bottom-center)
- *   - Field: Sprite (String) — assets/sprites/ 의 파일명(.png 제외). 예: signboard_save_01
- *
- * 신규 sprite 추가 절차:
- *   1) public/assets/sprites/{name}.png 추가
- *   2) LDtk Editor 의 Breakable.Sprite 에 같은 {name} 입력
- */
-
-import { Assets, Container, Sprite, Texture } from 'pixi.js';
+﻿import { Assets, Container, Rectangle, Sprite, Texture } from 'pixi.js';
 import type { AABB } from '@core/Physics';
 import { assetPath } from '@core/AssetLoader';
 import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import type { PropDrop } from './BreakableProp';
 
-// PropShatter fleck 기본 색 (카탈로그 제거 후 공용 기본값).
 const DEFAULT_BASE_COLOR = 0x8a6a4a;
 const DEFAULT_ACCENT_COLOR = 0xddccaa;
+const DEFAULT_FRAME_DURATION_MS = 180;
 
-// 텍스처 캐시 — 스프라이트 파일명(.png 제외)으로 assets/sprites/ 에서 직접 로드.
-// 동일 스프라이트의 여러 인스턴스가 한 번만 로드된다.
+interface AtlasFrame {
+  frame: { x: number; y: number; w: number; h: number };
+  duration?: number;
+}
+
+interface AtlasJson {
+  frames: AtlasFrame[] | Record<string, AtlasFrame>;
+  meta: { image: string };
+}
+
+interface BreakableAtlasAnimation {
+  frames: Texture[];
+  durations: number[];
+}
+
 const textureCache = new Map<string, Texture>();
 const loadingPromises = new Map<string, Promise<Texture>>();
+const atlasCache = new Map<string, BreakableAtlasAnimation>();
+const atlasLoadingPromises = new Map<string, Promise<BreakableAtlasAnimation>>();
 
 function loadBreakableTexture(spriteName: string): Promise<Texture> {
   const cached = textureCache.get(spriteName);
@@ -46,11 +43,35 @@ function loadBreakableTexture(spriteName: string): Promise<Texture> {
   return promise;
 }
 
+function loadBreakableAtlas(spriteName: string): Promise<BreakableAtlasAnimation> {
+  const cached = atlasCache.get(spriteName);
+  if (cached) return Promise.resolve(cached);
+  const inFlight = atlasLoadingPromises.get(spriteName);
+  if (inFlight) return inFlight;
+  const promise = (async () => {
+    const atlas = await fetch(assetPath(`assets/sprites/${spriteName}.json`))
+      .then(r => r.json()) as AtlasJson;
+    const tex = await Assets.load<Texture>(assetPath(`assets/sprites/${atlas.meta.image}`));
+    tex.source.scaleMode = 'nearest';
+    const sourceFrames = Array.isArray(atlas.frames)
+      ? atlas.frames
+      : Object.values(atlas.frames);
+    const frames = sourceFrames.map(f => new Texture({
+      source: tex.source,
+      frame: new Rectangle(f.frame.x, f.frame.y, f.frame.w, f.frame.h),
+    }));
+    const durations = sourceFrames.map(f => Math.max(1, f.duration ?? DEFAULT_FRAME_DURATION_MS));
+    const animation = { frames, durations };
+    atlasCache.set(spriteName, animation);
+    return animation;
+  })();
+  atlasLoadingPromises.set(spriteName, promise);
+  return promise;
+}
+
 export class Breakable {
   readonly container: Container;
-  /** Sprite file name (without `.png`), loaded from assets/sprites/. */
   readonly spriteName: string;
-  /** AABB 좌상단 — container.x 는 bottom-center 기준이라 별도 추적. */
   x: number;
   y: number;
   width = 0;
@@ -58,41 +79,54 @@ export class Breakable {
   destroyed = false;
 
   private spriteNode: Sprite | null = null;
+  private animationFrames: Texture[] = [];
+  private animationDurations: number[] = [];
+  private animationTimer = 0;
+  private animationFrameIndex = 0;
 
-  /**
-   * @param px LDtk px[0] — pivot (bottom-center) 의 X
-   * @param py LDtk px[1] — pivot (bottom-center) 의 Y (= 바닥 라인)
-   */
   constructor(px: number, py: number, spriteName: string) {
     this.spriteName = spriteName;
     this.x = px;
     this.y = py;
-
     this.container = new Container();
-    // pivot 은 bottom-center — sprite 의 anchor 가 (0.5, 1) 이라
-    // container.x = px, container.y = py 만 맞추면 정확히 위치.
     this.container.x = px;
     this.container.y = py;
-
     void this.loadSprite();
   }
 
   private async loadSprite(): Promise<void> {
     try {
+      if (this.spriteName.endsWith('_atlas')) {
+        await this.loadAtlasSprite();
+        return;
+      }
       const tex = await loadBreakableTexture(this.spriteName);
       if (this.destroyed) return;
-      const sp = new Sprite(tex);
-      sp.anchor.set(0.5, 1);
-      this.container.addChild(sp);
-      this.spriteNode = sp;
-      this.width = tex.frame.width;
-      this.height = tex.frame.height;
-      // AABB 좌상단 갱신 — bottom-center 에서 width/2 만큼 좌측, height 만큼 위쪽.
-      this.x = this.container.x - this.width / 2;
-      this.y = this.container.y - this.height;
+      this.attachSprite(tex);
     } catch {
-      // 로드 실패 — 보이지 않는 placeholder. AABB 도 0 이라 충돌 없음.
+      // Missing art leaves the object invisible and non-colliding.
     }
+  }
+
+  private async loadAtlasSprite(): Promise<void> {
+    const animation = await loadBreakableAtlas(this.spriteName);
+    if (this.destroyed || animation.frames.length === 0) return;
+    this.animationFrames = animation.frames;
+    this.animationDurations = animation.durations;
+    this.animationFrameIndex = 0;
+    this.animationTimer = 0;
+    this.attachSprite(this.animationFrames[0]);
+  }
+
+  private attachSprite(texture: Texture): void {
+    const sp = new Sprite(texture);
+    sp.anchor.set(0.5, 1);
+    this.container.addChild(sp);
+    this.spriteNode = sp;
+    this.width = texture.frame.width;
+    this.height = texture.frame.height;
+    this.x = this.container.x - this.width / 2;
+    this.y = this.container.y - this.height;
   }
 
   getAABB(): AABB {
@@ -106,7 +140,6 @@ export class Breakable {
     return this.rollDrop();
   }
 
-  /** PropShatter 의 fleck 색 (공용 기본 톤). */
   getParticleColor(): number {
     return DEFAULT_BASE_COLOR;
   }
@@ -115,13 +148,18 @@ export class Breakable {
     return DEFAULT_ACCENT_COLOR;
   }
 
-  /** PropShatter 의 sprite-chunk 분할용 — 로드된 texture 또는 null. */
   getArtifactTexture(): Texture | null {
     return this.spriteNode?.texture ?? null;
   }
 
-  update(_dt: number): void {
-    // 정적 — 향후 sway / flicker 가 필요하면 여기에 추가.
+  update(dt: number): void {
+    if (!this.spriteNode || this.animationFrames.length <= 1) return;
+    this.animationTimer += dt;
+    while (this.animationTimer >= this.animationDurations[this.animationFrameIndex]) {
+      this.animationTimer -= this.animationDurations[this.animationFrameIndex];
+      this.animationFrameIndex = (this.animationFrameIndex + 1) % this.animationFrames.length;
+      this.spriteNode.texture = this.animationFrames[this.animationFrameIndex];
+    }
   }
 
   destroy(): void {
@@ -129,7 +167,6 @@ export class Breakable {
     destroyDisplayObject(this.container, { children: true });
   }
 
-  /** Sprite 카탈로그 + drop 테이블 — 단순 gold weight. BreakableProp 와 동일 분포. */
   private rollDrop(): PropDrop {
     const roll = Math.floor(Math.random() * 100);
     if (roll < 50) return { type: 'none', amount: 0 };

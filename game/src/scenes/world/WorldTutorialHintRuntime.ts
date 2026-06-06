@@ -5,9 +5,8 @@ import type { TutorialHint } from '@ui/TutorialHint';
 import type { Game } from '../../Game';
 
 const HINT_LINGER_MS = 1000;
-const JUMP_HINT_AFTER_MOVE_MS = 1000;
 
-type TutorialHintId = 'hint_jump' | 'hint_attack';
+type TutorialHintId = 'hint_attack';
 
 interface WorldTutorialHintRuntimeDeps {
   game: Game;
@@ -20,17 +19,13 @@ interface WorldTutorialHintRuntimeDeps {
 
 export class WorldTutorialHintRuntime {
   private dropThroughHintHandled = false;
-  private jumpHintHandled = false;
   private attackHintHandled = false;
-  private jumpHintMoveDelayMs: number | null = null;
 
   constructor(private readonly deps: WorldTutorialHintRuntimeDeps) {}
 
   update(dt: number): void {
     const player = this.deps.getPlayer();
     const input = this.deps.game.input;
-    const currentLevelId = this.deps.getCurrentLevelId();
-    const spawnLevelId = this.deps.getPlayerSpawnLevelId();
 
     if (!this.dropThroughHintHandled && player.isOnOneWayPlatform()) {
       this.deps.tutorialHint.tryShow('hint_drop_through', {
@@ -38,26 +33,6 @@ export class WorldTutorialHintRuntime {
         text: t('tutorial.drop_through'),
         persistent: true,
       });
-    }
-
-    if (!this.jumpHintHandled) {
-      const isInSpawnRoom = currentLevelId === spawnLevelId;
-      const movedHorizontally =
-        input.isDown(GameAction.MOVE_LEFT) || input.isDown(GameAction.MOVE_RIGHT);
-      if (isInSpawnRoom && movedHorizontally && this.jumpHintMoveDelayMs === null) {
-        this.jumpHintMoveDelayMs = JUMP_HINT_AFTER_MOVE_MS;
-      }
-      if (this.jumpHintMoveDelayMs !== null) {
-        this.jumpHintMoveDelayMs = Math.max(0, this.jumpHintMoveDelayMs - dt);
-      }
-      if (isInSpawnRoom && this.jumpHintMoveDelayMs === 0) {
-        this.deps.tutorialHint.tryShow('hint_jump', {
-          actions: [GameAction.JUMP],
-          text: t('tutorial.jump'),
-          persistent: true,
-        });
-      }
-      this.dismissHandledHintWhenPressed('hint_jump', GameAction.JUMP, input);
     }
 
     if (!this.attackHintHandled) {
@@ -80,16 +55,11 @@ export class WorldTutorialHintRuntime {
   private dismissHandledHintWhenPressed(
     id: TutorialHintId,
     action: GameAction,
-    input: Pick<Game['input'], 'isJustPressed' | 'isDown'>,
+    input: Pick<Game['input'], 'isJustPressed'>,
   ): void {
     if (!this.deps.tutorialHint.isShowing(id) || !input.isJustPressed(action)) return;
 
     this.deps.tutorialHint.dismissAfter(id, HINT_LINGER_MS);
-    if (id === 'hint_jump') {
-      this.jumpHintHandled = true;
-      this.jumpHintMoveDelayMs = null;
-    } else {
-      this.attackHintHandled = true;
-    }
+    this.attackHintHandled = true;
   }
 }

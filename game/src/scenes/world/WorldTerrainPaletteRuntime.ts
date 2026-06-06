@@ -7,8 +7,10 @@ import type { Container } from 'pixi.js';
 import type { WorldProceduralDecorRuntime } from './WorldProceduralDecorRuntime';
 
 export class WorldTerrainPaletteRuntime {
+  private bgFilter: PaletteSwapFilter | null = null;
   private wallFilter: PaletteSwapFilter | null = null;
   private naturalFilter: PaletteSwapFilter | null = null;
+  private interiorFilter: PaletteSwapFilter | null = null;
   private wallRimFilter: RimLightFilter | null = null;
 
   get rimFilter(): RimLightFilter | null {
@@ -49,7 +51,7 @@ export class WorldTerrainPaletteRuntime {
       brightness: wallEntry.brightness,
       tint: wallEntry.tint,
     });
-    const rimFilter = new RimLightFilter({ color: 0xff6633, alpha: 1.0, thickness: 3, topGuardPixels: 16 });
+    const rimFilter = new RimLightFilter({ color: this.getWallRimColor(wallEntry.id), alpha: 1.0, thickness: 3, topGuardPixels: 16 });
     const interiorFilter = new PaletteSwapFilter({
       paletteTex: atlas.texture,
       rowCount: atlas.rowCount,
@@ -61,14 +63,32 @@ export class WorldTerrainPaletteRuntime {
       tint: bgEntry.tint,
     });
 
+    this.bgFilter = bgFilter;
     this.wallFilter = wallFilter;
     this.naturalFilter = naturalFilter;
+    this.interiorFilter = interiorFilter;
     this.wallRimFilter = rimFilter;
 
     renderer.bgLayer.filters = [bgFilter];
     renderer.wallLayer.filters = [wallFilter, rimFilter];
     renderer.interiorLayer.filters = [interiorFilter];
     renderer.shadowLayer.filters = [wallFilter];
+  }
+
+  applyAreaPalette(bgAreaId: string, wallAreaId: string): void {
+    const bgEntry = getAreaPalette(bgAreaId);
+    const wallEntry = getAreaPalette(wallAreaId);
+    if (this.bgFilter) this.applyPaletteEntry(this.bgFilter, bgAreaId, bgEntry);
+    if (this.wallFilter) this.applyPaletteEntry(this.wallFilter, wallAreaId, wallEntry);
+    if (this.naturalFilter) {
+      this.applyPaletteEntry(this.naturalFilter, wallAreaId, wallEntry);
+      this.naturalFilter.setStrength(0.5);
+    }
+    if (this.interiorFilter) {
+      this.applyPaletteEntry(this.interiorFilter, bgAreaId, bgEntry);
+      this.interiorFilter.setBrightness((bgEntry.brightness ?? 1.0) * 0.65);
+    }
+    this.wallRimFilter?.setColor(this.getWallRimColor(wallAreaId));
   }
 
   applyProceduralDecorFilters(decorRuntime: WorldProceduralDecorRuntime): boolean {
@@ -103,5 +123,18 @@ export class WorldTerrainPaletteRuntime {
       decorRuntime.artificialLayer,
       decorRuntime.structureLayer,
     ]);
+  }
+
+  private applyPaletteEntry(filter: PaletteSwapFilter, areaId: string, entry: ReturnType<typeof getAreaPalette>): void {
+    filter.setRow(getAreaPaletteRow(areaId));
+    filter.setDepthBias(entry.depthBias);
+    filter.setDepthCenter(entry.depthCenter);
+    filter.setBrightness(entry.brightness);
+    filter.setTint(entry.tint);
+  }
+
+  private getWallRimColor(wallAreaId: string): number {
+    const entry = getAreaPalette(wallAreaId);
+    return entry.stops[entry.stops.length - 1]?.color ?? entry.tint;
   }
 }

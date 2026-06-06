@@ -1,4 +1,4 @@
-import { Graphics, Sprite } from 'pixi.js';
+import { BitmapText, Graphics, Sprite } from 'pixi.js';
 import { Entity } from './Entity';
 import {
   resolveX,
@@ -15,6 +15,7 @@ import { StateMachine } from '@utils/StateMachine';
 import type { CombatEntity } from '@combat/HitManager';
 import { getEnemyStats, type MovementType } from '@data/enemyStats';
 import { EnemyConst } from '@data/constData';
+import { PIXEL_FONT } from '@ui/fonts';
 import { type ElementAffinity, elementGroup } from '@combat/ElementAffinity';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
 import { isBossEnemy } from '@entities/EnemyMetadata';
@@ -39,7 +40,7 @@ const CHASE_TURN_HYSTERESIS_PX = 8;
 const CHASE_TURN_COOLDOWN_MS = 300;
 const CHASE_TURN_PAUSE_MS = 33;
 
-export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'hit' | 'death';
+export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'scatter' | 'hit' | 'death';
 
 export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
   fsm: StateMachine<S>;
@@ -54,6 +55,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   exp = 0;
   /** Movement type from CSV: 'ground' = wall/floor collision, 'flying' = solids only */
   movementType: MovementType = 'ground';
+  monsterType = '';
   facingRight = false;
   alive = true;
 
@@ -180,6 +182,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   // HP bar
   private hpBarContainer: Graphics;
+  private debugMonsterTypeLabel: BitmapText;
   private hpBarVisible = false;
   private hpBarTimer = 0;
   private readonly HP_BAR_SHOW_DURATION = EnemyConst.HpBarShowMs;
@@ -227,6 +230,16 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.hpBarContainer.visible = false;
     this.container.addChild(this.hpBarContainer);
 
+    this.debugMonsterTypeLabel = new BitmapText({
+      text: '',
+      style: { fontFamily: PIXEL_FONT, fontSize: 14, fill: 0xffd166 },
+    });
+    this.debugMonsterTypeLabel.anchor.set(0.5, 1);
+    this.debugMonsterTypeLabel.x = this.width / 2;
+    this.debugMonsterTypeLabel.y = -2;
+    this.debugMonsterTypeLabel.visible = false;
+    this.container.addChild(this.debugMonsterTypeLabel);
+
     this.fsm = new StateMachine<S>();
     this.setupStates();
     this.fsm.transition('idle' as S);
@@ -235,6 +248,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   /** Apply stats from CSV table. Call in subclass constructor after super(). */
   applyStats(type: string, level: number): void {
     const s = getEnemyStats(type, level);
+    this.monsterType = type;
+    this.debugMonsterTypeLabel.text = type;
+    this.debugMonsterTypeLabel.x = this.width / 2;
+    this.debugMonsterTypeLabel.y = -2;
     this.hp = s.hp;
     this.maxHp = s.hp;
     this.atk = s.atk;
@@ -246,6 +263,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.jumpTiles = s.jumpTiles;
     this.exp = s.exp;
     this.movementType = s.movementType;
+  }
+
+  setDebugMonsterTypeVisible(show: boolean): void {
+    this.debugMonsterTypeLabel.visible = show && this.monsterType.length > 0 && this.alive;
   }
 
   protected abstract setupStates(): void;

@@ -414,8 +414,8 @@ enemy_skeleton:
 
   # 기본 스탯 (Lv1, 아이템계 미적용) — SSoT: Content_Stats_Enemy.csv
   stats:
-    hp: 80
-    atk: 20
+    hp: 96
+    atk: 14
     def: 3
     spd: 1.5        # 이동 속도 (타일/초)
     weight: 1.0     # 넉백 저항 계수. actual_knockback = force / weight
@@ -478,8 +478,8 @@ enemy_ghost:
 
   # 기본 스탯 (Lv1, 아이템계 미적용) — SSoT: Content_Stats_Enemy.csv
   stats:
-    hp: 40
-    atk: 15
+    hp: 48
+    atk: 10
     def: 1
     spd: 2.0        # 이동 속도 (타일/초)
     weight: 0.5     # 가벼운 적: 넉백이 크다. actual_knockback = force / 0.5

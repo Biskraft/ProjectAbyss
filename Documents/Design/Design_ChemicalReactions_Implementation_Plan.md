@@ -200,7 +200,7 @@ CSV / TS 코드 카탈로그 확장.
 | :--- | :--- | :--- |
 | 16 Layer 1 디버전스 정정 | TileSystem.md / Fluid.md / Container.md / Combat_*.md | Agent B 의 DIV-C-* 목록 |
 | `System_World_ChemicalReactions.md` §4-§6 매트릭스 표 row 추가 | SSoT | R-NEW-001-054 row |
-| `Design_ItemWorld_Themes.md` §2.3 emergent 표 갱신 | Themes | 5 기질 시그니처 emergent |
+| `Design/_archive/NarrativeWorldReset_2026-05-28/Design_ItemWorld_Themes.md` §2.3 emergent 표 갱신 (📦 archived 2026-05-28) | Themes | 5 기질 시그니처 emergent |
 | `gdd-integrity-checker §16` 룰 확장 | skill | 54 신규 ID 자동 검증 |
 | 임시 파일 3건 archive | `memory/wiki/audits/2026-05-16_chemical_reactions/` | _temp_*.md 보존 |
 | Phase 3 카드 등록 | DEC 또는 후속 카드 문서 | NM-02/03/07 |

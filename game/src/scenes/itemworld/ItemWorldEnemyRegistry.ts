@@ -33,8 +33,8 @@ export class ItemWorldEnemyRegistry {
     return hasAnyEnemy(this.enemies);
   }
 
-  update(dtMs: number): void {
-    updateEnemies(this.enemies, dtMs);
+  update(dtMs: number, entityLayer?: Container): void {
+    updateEnemies(this.enemies, dtMs, entityLayer);
   }
 
   render(alpha: number): void {

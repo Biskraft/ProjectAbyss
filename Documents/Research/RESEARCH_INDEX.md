@@ -30,7 +30,7 @@
 
 | 문서 | 핵심 인사이트 |
 |:-----|:-----|
-| **Combat_Behavior** | 도주 속도 = 플레이어 70~80%. "따라잡을 수 없지만 불가능하지도 않은" 긴장 |
+| **Combat_Behavior** | 도주 속도 = 플레이어 70-80%. "따라잡을 수 없지만 불가능하지도 않은" 긴장 |
 | **Growth_Economy** | 선형 합산 + 자동 팜 성장 하이브리드 → 아이템계(수집) + 허브(수확) 동기 동시 충족 |
 | **Classification_Balance** | 스탯형/파밍형/상태이상형 역할 분담 + 슬롯 제약 → 단일 최적 빌드 방지 |
 | **Multiplayer_Social** | 아이템 오너 귀속 + 동행자 보상 → 역할 분담과 공정성 동시 달성 |
@@ -55,8 +55,8 @@
 | **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |
 | **SkillSystem_ActionRPG** | 7종 게임 분석, "무기별 분기+공용 트리" 하이브리드 구조, 4슬롯 깊이 확보 6방안 |
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
-| **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0~2 우선순위) |
-| **PixelArt_Animation_Principles** | 키프레임 우선 4~8f 원칙 + 예비동작 프레임표 + 스프라이트 크기 규격 + Phase 1 최소 세트 |
+| **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0-2 우선순위) |
+| **PixelArt_Animation_Principles** | 키프레임 우선 4-8f 원칙 + 예비동작 프레임표 + 스프라이트 크기 규격 + Phase 1 최소 세트 |
 | **HealingSystem_Recovery** | Flask+전투연동+기억 단편 복합 모델 권장. 레어리티별 Flask 차등(5→1), SotN Dark Metamorphosis→단조열 봉합, 디스가이아 층간 무회복 채택 |
 | **ReferenceGame_UI_UX** | 6종 레퍼런스 전수조사. 2-Space별 HUD 전략, Rally HP→단조열 봉합, 맵 색상 코딩, God Mode→기억의 보호, 핵심 차용 패턴 TOP 10 |
 | **UX_Layout_Sizing** | HUD 크기/배치/간격 정량 기준. 세이프존, 시선추적, 피츠법칙, 해상도 스케일링, 레퍼런스 실측(HP 너비 8-25%), 웹 제약(정수배율/ESC충돌) |

@@ -750,6 +750,8 @@ flowchart LR
 
 # 14. 호러·코스믹 호러 내러티브
 
+> **ECHORIS 적용 주의(DEC-047):** ECHORIS의 톤은 코스믹 호러가 아니다 — 고독(메가 스트럭처 적막) + 인물 서사 + 위로. 아래 §14는 범용 호러 작법 레퍼런스로 보존하되, ECHORIS에는 '우주적 공포'가 아니라 '응답 없는 고독·잊혀짐' 연출로만 차용한다. 인간 척도 불온함(언캐니)만 유지.
+
 *Save the Cat! Writes Horror* 는 호러의 구성 블록을 분해한다. (출처: `Reference/Books/Save the Cat Writes Horror.md`)
 
 ### 14.1 호러의 3가지 빌딩 블록

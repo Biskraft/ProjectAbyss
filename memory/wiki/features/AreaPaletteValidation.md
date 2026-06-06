@@ -15,3 +15,6 @@
 
 - Do not add fake `Content_System_Area_Palette.csv` rows just to silence LDtk-authored tileset warnings. Add intentional non-area LDtk tilesets to `AUTHORED_LDTK_TILESET_PATHS` and make sure the asset exists.
 - Keep area retagging limited to default area tilesets. LDtk-specific override art should stay authored in LDtk and be preloaded/preserved by runtime loaders.
+
+- 2026-06-05: `Sheets/Content_System_Area_Palette.csv` includes `world_prologue_wall` for white/cold prologue wall coloring. Do not hardcode world wall color in terrain filters; add or select WALL AreaID rows instead.
+

@@ -12,3 +12,6 @@
 Verification: 2026-06-03 `npx tsc --noEmit`, `npm run build`, and Puppeteer smoke against `http://localhost:3000/play/?debug=1` passed.
 
 - 2026-06-05: `ProceduralDecorLayerHelpers.detachProceduralDecorLayers()` now uses `DisplayObjectLifecycleHelpers.detachDisplayObject()` for detach-only layer cleanup; generation timing and palette/filter policy remain world-owned.
+
+- 2026-06-05: `LdtkWorldScene.loadLevel()` skips procedural decor generation for level identifiers whose lowercase name starts with `prologue_`; entering those maps still clears prior decor and grass burnables.
+

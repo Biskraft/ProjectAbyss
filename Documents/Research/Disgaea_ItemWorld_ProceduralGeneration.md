@@ -25,7 +25,7 @@
 | 적 종류 및 배치 | 완전 랜덤 | 아이템 랭크+층수 기반 |
 | 이노센트(미복종) 배치 | 완전 랜덤 | 아이템 내 이노센트 목록 기반 |
 | 스킵 게이트(포탈) 위치 | 완전 랜덤 | 도달 가능하도록 보장 [추정] |
-| 미스터리 게이트 유무 | 확률적 | ~10~20% 출현 |
+| 미스터리 게이트 유무 | 확률적 | ~10-20% 출현 |
 | 레벨 구슬 유무 | 확률적 | D3 이후, 21층 이상 |
 
 ### 1.2 적 레벨 결정
@@ -120,7 +120,7 @@ Room 유형 분류:
   BC(Boss Cell) 높을수록 밀도 증가
 ```
 
-**핵심:** "Every room feels handmade, but every run is different." 바이옴당 50~100+ 핸드메이드 룸을 de-duplication 알고리즘으로 배치.
+**핵심:** "Every room feels handmade, but every run is different." 바이옴당 50-100+ 핸드메이드 룸을 de-duplication 알고리즘으로 배치.
 
 ---
 
@@ -131,7 +131,7 @@ Room 유형 분류:
 | 생성 방식 | 완전 알고리즘 | Template 조립 | Concept Graph + Room Pool |
 | Critical Path | 사후 검증 (약한 보장) | 사전 확정 (수학적 보장) | Graph 내재 (바이옴 보장) |
 | 맵 크기 | 완전 랜덤 | 고정 (4×4 Grid) | 바이옴별 Fixed + 가변 |
-| 핸드크래프트 | 없음 | Room Template + Chunk | 바이옴당 50~100+ 프리팹 |
+| 핸드크래프트 | 없음 | Room Template + Chunk | 바이옴당 50-100+ 프리팹 |
 | 전략 레이어 | 지오 패널/심볼 | 함정/장애물 | Rune 게이트 |
 | 반복성 방지 | 완전 랜덤 (무한 조합) | Chunk 조합 (유한하지만 다양) | de-duplication 알고리즘 |
 

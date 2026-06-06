@@ -62,6 +62,7 @@ export class WorldVoidReturnRuntime {
     }
 
     const player = this.deps.getPlayer();
+    player.attackInputEnabled = true;
     player.lastSafeX = x;
     player.lastSafeY = y;
     placePlayerAt(player, x, y, {

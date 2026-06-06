@@ -60,18 +60,18 @@ export class Slime extends Enemy {
   private animTimer = 0;
   private animFrameIndex = 0;
 
-  constructor(level = 1, statsKey: 'Slime' | 'WeakSlime' = 'Slime') {
+  constructor(level = 1) {
     super({
       // 사용자 결정 (2026-05-04): 16 → 24px (이미지 사이즈 확장에 맞춤).
       width: 24,
       height: 24,
-      color: statsKey === 'WeakSlime' ? 0x88dd88 : 0x44cc44,
+      color: 0x44cc44,
       hp: 1, atk: 1, def: 0,          // placeholder — overwritten by applyStats
       detectRange: 0, attackRange: 0,
       moveSpeed: WANDER_SPEED,
       attackCooldown: 0,
     });
-    this.applyStats(statsKey, level);
+    this.applyStats('Slime', level);
 
     this.hopTimer = HOP_TIMER_MIN + Math.random() * (HOP_TIMER_MAX - HOP_TIMER_MIN);
     if (Math.random() < 0.5) this.wanderDir = -1;

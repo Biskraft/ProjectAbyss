@@ -137,6 +137,7 @@ export class WorldDebugWarpRuntime {
     const currentLevel = this.deps.getCurrentLevel();
     if (!currentLevel) return;
     const player = this.deps.getPlayer();
+    player.attackInputEnabled = true;
     const grid = currentLevel.collisionGrid;
     const tileSize = 16;
     const col = Math.floor(clickX / tileSize);

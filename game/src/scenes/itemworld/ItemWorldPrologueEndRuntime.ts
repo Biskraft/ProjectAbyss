@@ -160,7 +160,7 @@ export class ItemWorldPrologueEndRuntime {
 
   /**
    * 말소자 placeholder — 흰색 언캐니 인간형 실루엣(32px 폭). 길게 늘어난 몸,
-   * 형체를 다 드러내지 않는 공허(코스믹 호러 원칙). 정식 아트 교체 예정.
+   * 형체를 다 드러내지 않는 공허(불가지·고독 원칙). 정식 아트 교체 예정.
    */
   private buildMalsojaPlaceholder(): Container {
     const c = new Container();

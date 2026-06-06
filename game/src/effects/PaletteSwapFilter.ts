@@ -152,6 +152,12 @@ export class PaletteSwapFilter extends Filter {
     uniforms.uDepthBias = bias;
   }
 
+  /** Set the screen-Y pivot for the depth gradient. */
+  setDepthCenter(center: number): void {
+    const uniforms = this.getPaletteUniforms();
+    uniforms.uDepthCenter = Math.max(0, Math.min(center, 1));
+  }
+
   /** Scale the palette-sampled color (>1 brightens, <1 darkens). */
   setBrightness(brightness: number): void {
     const uniforms = this.getPaletteUniforms();

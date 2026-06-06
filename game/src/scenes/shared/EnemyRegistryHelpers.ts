@@ -59,8 +59,25 @@ export function hasAliveEnemyWithin(
   return false;
 }
 
-export function updateEnemies(enemies: readonly Enemy<string>[], dtMs: number): void {
-  for (const enemy of enemies) enemy.update(dtMs);
+type SummonerEnemy = Enemy<string> & {
+  pendingSummons: Enemy<string>[];
+};
+
+function hasPendingSummons(enemy: Enemy<string>): enemy is SummonerEnemy {
+  const candidate = enemy as Enemy<string> & { pendingSummons?: unknown };
+  return Array.isArray(candidate.pendingSummons);
+}
+
+export function updateEnemies(enemies: Enemy<string>[], dtMs: number, entityLayer?: Container): void {
+  const updating = [...enemies];
+  for (const enemy of updating) enemy.update(dtMs);
+  for (const enemy of updating) {
+    if (!enemy.alive || !hasPendingSummons(enemy)) continue;
+    for (const summon of enemy.pendingSummons) {
+      addEnemyToRegistry(enemies, summon, entityLayer);
+    }
+    enemy.pendingSummons.length = 0;
+  }
 }
 
 export function renderEnemies(enemies: readonly Enemy<string>[], alpha: number): void {

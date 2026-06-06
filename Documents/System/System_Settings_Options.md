@@ -95,7 +95,7 @@
 | 화면 배율 (픽셀 퍼펙트) | cycle | Auto / 1x / 2x / 3x | Auto | P2 | 존재 | `echoris_scale` | 640×360 정수 배율. Blasphemous "Pixel Perfect" 동형. `Game.ts` 1x=640/2x=1280/3x=1920 |
 | 스케일 필터 | cycle | Sharp(nearest) / Smooth | Sharp | P2 | 부분 | `echoris_scale_filter` | 픽셀아트 원칙상 Sharp 기본. Smooth는 비정수 창 대응 |
 | 스크린 셰이크 강도 | slider | Off / Low(0.5) / Full(1.0) | Full | P2 | 부분 | `echoris_shake` | `CombatConst.HeavyShakeMult`·`KillShakeBonus`·`Camera.Shake*` 에 배율 적용. Hollow Knight 선례 |
-| 화면 밝기 (Gamma) | slider | 50 ~ 150 (%) | 100 | P3 | 신규 | `echoris_brightness` | 후처리 밝기 보정. 캘리브레이션 이미지 권장 |
+| 화면 밝기 (Gamma) | slider | 50-150 (%) | 100 | P3 | 신규 | `echoris_brightness` | 후처리 밝기 보정. 캘리브레이션 이미지 권장 |
 | 패럴랙스 배경 | toggle | On / Off | On | P3 | 존재 | `echoris_parallax` | `ParallaxBackground.ts`. 저사양 성능 옵션 |
 | VFX/파티클 밀도 | cycle | Full / Reduced | Full | P3 | 부분 | `echoris_vfx_density` | 성능 옵션. 게임플레이 가독성 정보(함정/위험)는 항상 유지 |
 | FPS 표시 | toggle | On / Off | Off | P3 | 부분 | `echoris_show_fps` | 디버그/성능 확인용. `Debug.ts` |
@@ -108,11 +108,11 @@
 
 | 항목 | 타입 | 값 / 범위 | 기본값 (코드 SSoT) | 우선 | 백킹 | localStorage 키 | 비고 |
 |:--|:--|:--|:--|:--|:--|:--|:--|
-| 마스터 볼륨 | slider | 0 ~ 100 (10단위) | 100 | P1 | 존재 | `echoris_vol_master` | `AudioBus` masterVolume |
-| BGM 볼륨 | slider | 0 ~ 100 | 55 | P1 | 존재 | `echoris_vol_bgm` | `DEFAULT_CHANNEL_STATE.bgm=0.55` |
-| 환경음 (Ambient) | slider | 0 ~ 100 | 22-23 | P1 | 존재 | `echoris_vol_ambient` | `ambient=0.225` (2026-05-05 청취 검증) |
-| 효과음 (SFX) | slider | 0 ~ 100 | 80 | P1 | 존재 | `echoris_vol_sfx` | `sfx=0.80` |
-| 음성 (Voice) | slider | 0 ~ 100 | 70 | P2 | 존재 | `echoris_vol_voice` | `voice=0.70` |
+| 마스터 볼륨 | slider | 0-100 (10단위) | 100 | P1 | 존재 | `echoris_vol_master` | `AudioBus` masterVolume |
+| BGM 볼륨 | slider | 0-100 | 55 | P1 | 존재 | `echoris_vol_bgm` | `DEFAULT_CHANNEL_STATE.bgm=0.55` |
+| 환경음 (Ambient) | slider | 0-100 | 22-23 | P1 | 존재 | `echoris_vol_ambient` | `ambient=0.225` (2026-05-05 청취 검증) |
+| 효과음 (SFX) | slider | 0-100 | 80 | P1 | 존재 | `echoris_vol_sfx` | `sfx=0.80` |
+| 음성 (Voice) | slider | 0-100 | 70 | P2 | 존재 | `echoris_vol_voice` | `voice=0.70` |
 | 채널 음소거 | toggle | 채널별 Mute | Off | P2 | 존재 | `echoris_mute_<ch>` | `AudioBus` muted 플래그 활용 |
 | 포커스 손실 시 음소거 | toggle | On / Off | On | P2 | 부분 | `echoris_mute_unfocus` | 탭 비활성 시 마스터 일시 음소거 |
 
@@ -128,7 +128,7 @@
 | 게임패드 리바인딩 | keybind | 액션별 패드 버튼 | 아래 기본 매핑 | P3 | 신규 | `echoris_padbinds` | 표준 게임패드 매핑(`gamepadStandard.ts`) |
 | 진동 강도 (Rumble) | slider | Off / Low / Full | Full | P2 | 부분 | `echoris_rumble` | `utils/GamepadRumble`. Hollow Knight 선례 |
 | 패드 글리프 스타일 | cycle | Auto / Xbox / PlayStation / Nintendo | Auto | P3 | 부분 | `echoris_pad_glyph` | `core/input/padGlyphs.ts` |
-| 스틱 데드존 | slider | 0 ~ 40 (%) | 기본 데드존 | P3 | 부분 | `echoris_deadzone` | 아날로그 스틱 드리프트 대응 |
+| 스틱 데드존 | slider | 0-40 (%) | 기본 데드존 | P3 | 부분 | `echoris_deadzone` | 아날로그 스틱 드리프트 대응 |
 | 기본값 복원 | action | — | — | P2 | 신규 | — | 키/패드 매핑 전체 초기화 |
 
 #### 기본 입력 매핑 (`inputBindings.ts` 정합 — 리바인딩 초기값)

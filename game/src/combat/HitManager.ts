@@ -27,6 +27,7 @@ export interface CombatEntity {
    */
   attackHitboxMul?: number;
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void;
+  modifyIncomingHitDamage?(damage: number, dirX: number, attacker: CombatEntity): number;
   onDeath?(): void;
 }
 
@@ -122,9 +123,10 @@ export class HitManager {
           criticalMultiplier: critical ? CombatConst.CritMultiplier : 1.0,
         });
 
-        target.hp -= damage;
-
         const dirX = facingRight ? 1 : -1;
+        const finalDamage = Math.max(0, target.modifyIncomingHitDamage?.(damage, dirX, attacker) ?? damage);
+        target.hp -= finalDamage;
+
         target.onHit(
           step.knockbackX * dirX,
           step.knockbackY,
@@ -186,7 +188,7 @@ export class HitManager {
         const hitY = target.y + target.height * CombatConst.HitPointVerticalOffsetY;
 
         results.push({
-          target, damage, comboStep: step,
+          target, damage: finalDamage, comboStep: step,
           hitX, hitY, dirX, heavy, critical,
         });
       }

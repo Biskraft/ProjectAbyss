@@ -15,7 +15,7 @@ PA는 사쿠라이 8기법 기반 히트 피드백 시스템을 구현 완료했
 
 1. **JavaScript GC(Garbage Collection):** 매 프레임 새 객체를 할당하면 GC가 불규칙하게 수십~수백ms를 점유하며 히트스탑 타이밍을 파괴한다.
 2. **requestAnimationFrame 타이밍 불안정:** 브라우저 합성 스레드와의 경쟁, 전원 절약 모드, 백그라운드 탭 스로틀링이 프레임 간격을 불규칙하게 만든다.
-3. **Web Audio 레이턴시:** Howler.js가 내부적으로 사용하는 Web Audio API는 AudioContext 초기화 이후에도 OS 오디오 버퍼 스택으로 인해 30~100ms 추가 지연이 발생한다.
+3. **Web Audio 레이턴시:** Howler.js가 내부적으로 사용하는 Web Audio API는 AudioContext 초기화 이후에도 OS 오디오 버퍼 스택으로 인해 30-100ms 추가 지연이 발생한다.
 
 이 세 가지는 히트스탑(CMB-07-A), 히트 스파크(CMB-07-G), 히트 SFX(CMB-07-R~U) 각각에 직접적 영향을 준다. 본 문서는 PA 코드베이스에 구체적으로 적용 가능한 방법으로 각 문제를 분석하고 대응 체크리스트를 제시한다.
 
@@ -27,14 +27,14 @@ PA는 사쿠라이 8기법 기반 히트 피드백 시스템을 구현 완료했
 
 JavaScript V8 엔진의 Garbage Collector는 세대별(Generational) GC를 사용한다.
 
-- **Minor GC (Scavenge):** Young Generation 정리. 보통 1~5ms, 프레임 중간에 발생 가능.
-- **Major GC (Mark-Sweep-Compact):** Old Generation 정리. 10~100ms 이상 소요 가능. 이 구간 동안 `requestAnimationFrame` 콜백이 지연된다.
+- **Minor GC (Scavenge):** Young Generation 정리. 보통 1-5ms, 프레임 중간에 발생 가능.
+- **Major GC (Mark-Sweep-Compact):** Old Generation 정리. 10-100ms 이상 소요 가능. 이 구간 동안 `requestAnimationFrame` 콜백이 지연된다.
 
 히트스탑 1프레임 = 16.67ms이다. Major GC가 50ms를 점유하면 히트스탑 3프레임이 플레이어에게 순간적으로 소멸한다. "분명히 3타를 맞췄는데 멈추는 느낌이 없었다"는 플레이테스트 피드백의 주원인이다.
 
 ### 1.2. PA 현재 구조의 취약점
 
-`HitSpark.ts`의 `spawn()` 메서드는 히트가 발생할 때마다 `new Graphics()`를 최소 5~8개 생성한다 (중앙 플래시 1개 + 라인 스파크 4~7개). 60fps 기준 초당 수백 번의 전투가 발생하는 아이템계에서는 이것이 Old Generation으로 누적되어 Major GC를 주기적으로 트리거한다.
+`HitSpark.ts`의 `spawn()` 메서드는 히트가 발생할 때마다 `new Graphics()`를 최소 5-8개 생성한다 (중앙 플래시 1개 + 라인 스파크 4-7개). 60fps 기준 초당 수백 번의 전투가 발생하는 아이템계에서는 이것이 Old Generation으로 누적되어 Major GC를 주기적으로 트리거한다.
 
 `DamageNumber.ts`, `ScreenFlash.ts`도 매 히트마다 새 Container/Graphics 객체를 생성한다면 동일한 압력을 준다.
 
@@ -102,9 +102,9 @@ Chrome DevTools → Performance 탭 → Record → 전투 30초 → 타임라인
 | :--- | :--- | :--- |
 | 브라우저 탭 백그라운드 전환 | `document.hidden = true` | RAF가 1fps로 스로틀링됨 |
 | Windows 전원 절약 모드 | 노트북 배터리 사용 | 타이머 정밀도 15.625ms로 저하 |
-| 다른 탭의 무거운 렌더링 | GPU 공유 경쟁 | +5~20ms 지연 |
+| 다른 탭의 무거운 렌더링 | GPU 공유 경쟁 | +5-20ms 지연 |
 | V-Sync 미스 | 한 프레임 늦게 플립됨 | +16.67ms (1프레임 통째로 누락) |
-| High-DPI 디스플레이 + 낮은 GPU | 합성 비용 증가 | +3~8ms |
+| High-DPI 디스플레이 + 낮은 GPU | 합성 비용 증가 | +3-8ms |
 
 ### 2.2. PA 현재 구조 분석
 
@@ -175,7 +175,7 @@ document.addEventListener('visibilitychange', () => {
 [웹 게임은 여기서 처리]
 ```
 
-총 추가 지연: **5~15ms** (브라우저 메인 스레드 이벤트 루프 큐 대기 시간). 120Hz 모니터에서 1프레임(8.33ms)을 초과할 수 있다.
+총 추가 지연: **5-15ms** (브라우저 메인 스레드 이벤트 루프 큐 대기 시간). 120Hz 모니터에서 1프레임(8.33ms)을 초과할 수 있다.
 
 ### 3.2. PA 현재 구조 분석
 
@@ -190,13 +190,13 @@ document.addEventListener('visibilitychange', () => {
 
 **점프 버퍼와 어택 큐의 의미 재확인**
 
-PA의 점프 버퍼(250ms)와 어택 큐(`attackQueued` 플래그)는 단순히 편의 기능이 아니다. 이것들은 **입력 레이턴시 보상 메커니즘**이다. 플레이어가 시각적으로 "착지 직전"에 점프를 누르면 5~15ms 입력 지연으로 인해 착지 프레임을 놓칠 수 있다. 버퍼가 이를 흡수한다.
+PA의 점프 버퍼(250ms)와 어택 큐(`attackQueued` 플래그)는 단순히 편의 기능이 아니다. 이것들은 **입력 레이턴시 보상 메커니즘**이다. 플레이어가 시각적으로 "착지 직전"에 점프를 누르면 5-15ms 입력 지연으로 인해 착지 프레임을 놓칠 수 있다. 버퍼가 이를 흡수한다.
 
 현재 점프 버퍼 250ms는 관대한 편이다. Celeste는 6프레임(100ms), Hollow Knight는 5프레임(83ms)을 사용한다. PA가 타이트한 조작감을 목표로 한다면 150ms로 줄이되, 플레이테스트로 검증하는 것을 권장한다.
 
 **`isJustPressed` 폴링 방식의 한계**
 
-현재 `isJustPressed`는 고정 스텝 루프에서 폴링한다. `keydown` 이벤트가 두 스텝 사이 16ms 어딘가에서 발생하면, 최악의 경우 다음 스텝까지 약 16ms를 더 기다린다. 이론적 최대 입력 레이턴시: 16ms(프레임 시작 직후 키 누름) + 브라우저 이벤트 지연 15ms = **31ms**. 이는 실제로는 크게 눈에 띄지 않지만, 히트스탑이 1~2프레임일 때 타이밍 불일치로 "공격이 씹혔다" 느낌을 줄 수 있다.
+현재 `isJustPressed`는 고정 스텝 루프에서 폴링한다. `keydown` 이벤트가 두 스텝 사이 16ms 어딘가에서 발생하면, 최악의 경우 다음 스텝까지 약 16ms를 더 기다린다. 이론적 최대 입력 레이턴시: 16ms(프레임 시작 직후 키 누름) + 브라우저 이벤트 지연 15ms = **31ms**. 이는 실제로는 크게 눈에 띄지 않지만, 히트스탑이 1-2프레임일 때 타이밍 불일치로 "공격이 씹혔다" 느낌을 줄 수 있다.
 
 **게임패드 폴링 (미래 고려사항)**
 
@@ -268,11 +268,11 @@ while (this.accumulated >= FIXED_STEP) {
 ### 5.1. 현재 구조의 GC 비용 측정
 
 `HitSpark.ts`의 `spawn()` 1회 호출 비용:
-- `new Graphics()` × 5~8개
-- `this.parent.addChild()` × 5~8회 (씬 트리 변경)
-- 180ms 후 `removeChild()` × 5~8회 + 배열 `splice()`
+- `new Graphics()` × 5-8개
+- `this.parent.addChild()` × 5-8회 (씬 트리 변경)
+- 180ms 후 `removeChild()` × 5-8회 + 배열 `splice()`
 
-아이템계에서 초당 10히트가 발생하면: 초당 50~80개의 Graphics 객체 생성/파괴. 분당 3,000~4,800개. V8은 약 1MB의 Young Generation 공간을 소진하면 Minor GC를 발동한다. Graphics 객체 하나의 메모리 크기를 보수적으로 500 bytes로 추산하면 약 2,000개마다 Minor GC가 발생한다 — 즉 약 30초마다 GC 히컵이 발생한다.
+아이템계에서 초당 10히트가 발생하면: 초당 50-80개의 Graphics 객체 생성/파괴. 분당 3,000-4,800개. V8은 약 1MB의 Young Generation 공간을 소진하면 Minor GC를 발동한다. Graphics 객체 하나의 메모리 크기를 보수적으로 500 bytes로 추산하면 약 2,000개마다 Minor GC가 발생한다 — 즉 약 30초마다 GC 히컵이 발생한다.
 
 ### 5.2. 풀링 설계 원칙
 
@@ -293,7 +293,7 @@ Graphics 명령어를 매 스파크마다 재작성하는 것은 GPU 버퍼 업�
 
 **원칙 4: DamageNumber 텍스트도 풀링 대상이다**
 
-PixiJS의 `Text` 객체는 Canvas API를 호출해 텍스처를 생성하므로 `Graphics`보다 훨씬 무겁다. 데미지 숫자는 반드시 풀링되어야 한다. 풀 크기 16~32개면 충분하다.
+PixiJS의 `Text` 객체는 Canvas API를 호출해 텍스처를 생성하므로 `Graphics`보다 훨씬 무겁다. 데미지 숫자는 반드시 풀링되어야 한다. 풀 크기 16-32개면 충분하다.
 
 ### 5.3. PixiJS v8 ParticleContainer 활용 검토
 
@@ -317,9 +317,9 @@ Web Audio API의 오디오 경로:
     ↓ 하드웨어 출력
 ```
 
-일반적인 레이턴시: **20~80ms** (Windows 기준). Mac은 10~30ms, Linux는 5~15ms.
+일반적인 레이턴시: **20-80ms** (Windows 기준). Mac은 10-30ms, Linux는 5-15ms.
 
-이 레이턴시의 주원인은 OS 오디오 드라이버 버퍼 크기다. WASAPI(Windows)는 기본 버퍼가 10~30ms이며 안전 마진을 추가하면 실제 체감 지연은 더 길다.
+이 레이턴시의 주원인은 OS 오디오 드라이버 버퍼 크기다. WASAPI(Windows)는 기본 버퍼가 10-30ms이며 안전 마진을 추가하면 실제 체감 지연은 더 길다.
 
 ### 6.2. Howler.js의 구체적 이슈
 
@@ -347,11 +347,11 @@ source.start(ctx.currentTime + 0.005);
 
 ### 6.3. 히트 SFX 레이턴시 보상 전략
 
-PA의 CMB-07-T는 "피격 반응 SFX에 +30~50ms 지연"을 설계한다고 명시되어 있다 (Dead Cells 3레이어 구조). 이것은 사실 웹 오디오 레이턴시를 의도적으로 활용하는 패턴이다.
+PA의 CMB-07-T는 "피격 반응 SFX에 +30-50ms 지연"을 설계한다고 명시되어 있다 (Dead Cells 3레이어 구조). 이것은 사실 웹 오디오 레이턴시를 의도적으로 활용하는 패턴이다.
 
-- **L12 임팩트 SFX**: 히트 프레임에 즉시 트리거 → 실제 재생은 20~40ms 후 (OS 레이턴시)
+- **L12 임팩트 SFX**: 히트 프레임에 즉시 트리거 → 실제 재생은 20-40ms 후 (OS 레이턴시)
 - **L13 슬래시 SFX**: 공격 동작 시작에 트리거 → 히트보다 먼저 들림 (의도적)
-- **L14 피격 반응 SFX**: 임팩트로부터 30~50ms 지연 트리거 → OS 레이턴시 포함 50~90ms 후 실제 재생
+- **L14 피격 반응 SFX**: 임팩트로부터 30-50ms 지연 트리거 → OS 레이턴시 포함 50-90ms 후 실제 재생
 
 이 3레이어가 자연스럽게 분리되어 들리려면 총 레이턴시가 일정해야 한다. Howler의 레이턴시가 플랫폼마다 다른 문제는 `AudioContext.currentTime`을 기준으로 상대적 스케줄링을 사용해 보상한다.
 
@@ -428,7 +428,7 @@ PixiJS v8는 동일한 텍스처를 사용하는 스프라이트를 자동으로
 
 **현재 PA의 드로우 콜 현황:**
 - 플레이어 스프라이트: `Graphics` (배칭 불가)
-- 히트 스파크: `Graphics` 5~8개 (배칭 불가, 각각 별도 드로우 콜)
+- 히트 스파크: `Graphics` 5-8개 (배칭 불가, 각각 별도 드로우 콜)
 - 데미지 숫자: `Text` (배칭 불가)
 - 타일맵: `@pixi/tilemap` (배칭 가능)
 
@@ -533,7 +533,7 @@ requestAnimationFrame(function detect() {
 | ID | 항목 | 근거 | 예상 대상 파일 |
 | :--- | :--- | :--- | :--- |
 | OPT-01 | 백그라운드 탭 복귀 시 `accumulated = 0` 리셋 | 복귀 시 5틱 몰림으로 타이머/히트스탑 불규칙 | `Game.ts` |
-| OPT-02 | `ticker.maxFPS = 60` 설정 | 고주사율 디스플레이에서 불필요한 렌더 60~240회/초 낭비 | `Game.ts` |
+| OPT-02 | `ticker.maxFPS = 60` 설정 | 고주사율 디스플레이에서 불필요한 렌더 60-240회/초 낭비 | `Game.ts` |
 | OPT-03 | `Entity.render()`의 `vibrateFrames` 감소 위치 확인 | `update()` 내 감소라면 히트스탑 중 진동이 멈추는 버그 가능 | `Entity.ts` |
 
 ### 12.2. P1 — 다음 스프린트

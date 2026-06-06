@@ -157,7 +157,12 @@ function parseStops(raw: string): PaletteStop[] {
       color: parseHex(hexStr),
     });
   }
-  return stops;
+  return stops.length > 0
+    ? stops
+    : [
+      { t: 0, color: 0x000000 },
+      { t: 1, color: 0xffffff },
+    ];
 }
 
 const lines = csvText.trim().split(/\r?\n/);

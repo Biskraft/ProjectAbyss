@@ -13,7 +13,7 @@
 
 | 옵션 | 범위 | 기본값 |
 |:-----|:-----|:-------|
-| Game Speed | 50~100% (10% 단위) | 100% |
+| Game Speed | 50-100% (10% 단위) | 100% |
 | Invincibility | On/Off | Off |
 | Infinite Stamina | On/Off | Off |
 | Infinite Dashes | On/Off | Off |
@@ -44,7 +44,7 @@
 | Game Speed | 단계별 감속 | 100% |
 
 **추가 접근성 옵션:**
-- HUD 크기: 50~150% 슬라이더
+- HUD 크기: 50-150% 슬라이더
 - 색맹 모드: 적록/청황 2종
 - 고대비 UI 옵션
 - 가독성 높은 대체 폰트 토글
@@ -285,7 +285,7 @@
 - 파티클 밀도 조절 옵션
 
 #### 1.5 HUD 크기 조절
-- 50~150% 스케일 슬라이더 (Dead Cells 방식)
+- 50-150% 스케일 슬라이더 (Dead Cells 방식)
 - 별도 HUD 컨테이너에 스케일 팩터 적용
 
 ---
@@ -324,7 +324,7 @@
 - **프리셋**: Story / Standard / Challenge + 커스텀
 
 #### 3.2 게임 속도 조절
-- 전체 속도 50~100% (10% 단위)
+- 전체 속도 50-100% (10% 단위)
 - PixiJS: `Ticker.shared.speed` 또는 자체 deltaTime 배율
 
 #### 3.3 내비게이션 보조
@@ -392,7 +392,7 @@
 | A-05 | **번쩍임 감소** | 시각 | Easy | 히트 플래시 강도 조절. WCAG 2.3.1 검증 |
 | A-06 | **레어리티 아이콘/레이블** | 시각 | Easy | 색상 외에 N/M/R/L/A 텍스트 또는 형태 아이콘 추가 |
 | A-07 | **텍스트 크기 조절** | 시각 | Medium | 8px 기준 x3/x4/x5 정수배. BitmapFont 스케일링 |
-| A-08 | **게임 속도 조절** | 인지 | Medium | `Ticker.shared.speed` 또는 deltaTime 배율. 50~100% |
+| A-08 | **게임 속도 조절** | 인지 | Medium | `Ticker.shared.speed` 또는 deltaTime 배율. 50-100% |
 | A-09 | **입력 타이밍 보조** | 운동 | Medium | 코요테 타임/입력 버퍼를 설정값 노출. "Generous" 프리셋 |
 | A-10 | **Assist Mode 프레임** | 전체 | Easy | 위 옵션을 "Assist" 탭으로 통합. Celeste식 프레이밍 |
 | A-11 | **게임패드 지원** | 운동 | Medium | Web Gamepad API. 기본 매핑 + 리매핑 + 데드존 |

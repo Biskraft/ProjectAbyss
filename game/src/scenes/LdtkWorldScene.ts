@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LdtkWorldScene.ts
  *
  * World-space scene that loads hand-crafted LDtk levels instead of procedurally
@@ -27,7 +27,7 @@ import { CameraZoneRuntime } from '@core/CameraZoneRuntime';
 import { LdtkLoader, isLdtkWallSlope2x1Tile } from '@level/LdtkLoader';
 import { LdtkRenderer } from '@level/LdtkRenderer';
 import { CollisionDebugOverlay } from '@level/CollisionDebugOverlay';
-import type { LdtkLevel } from '@level/LdtkLoader';
+import type { LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import { collectLdtkTilesetPaths } from '@level/LdtkTilesetPaths';
 import { applyDefaultWorldAreaRetags } from '@level/LdtkAreaRetagHelpers';
 import { filterWorldWallTilesForCollision } from './world/WorldLdtkTileFilterHelpers';
@@ -192,6 +192,7 @@ import { WorldItemDropRuntime } from './world/WorldItemDropRuntime';
 import { WorldHandPlacedItemRuntime } from './world/WorldHandPlacedItemRuntime';
 import { WorldFixedItemSpawnRuntime } from './world/WorldFixedItemSpawnRuntime';
 import { WorldProjectileRuntime } from './world/WorldProjectileRuntime';
+import { WorldCommonSpriteRuntime } from './world/WorldCommonSpriteRuntime';
 import { WorldEnemyRegistry } from './world/WorldEnemyRegistry';
 import { WorldEnemyKillRuntime } from './world/WorldEnemyKillRuntime';
 import { WorldEnemyUpdateRuntime } from './world/WorldEnemyUpdateRuntime';
@@ -271,8 +272,8 @@ import { BgmController } from '@audio/BgmController';
 const TILE_SIZE = 16;
 const FADE_DURATION = 200;
 const FROZEN_RETURN_ARM_DISTANCE = 4 * TILE_SIZE;
-// FIRST_ANVIL_LEVEL_ID ���� (2026-05-24): LDtk Anvil entity ��
-// RetireAfterFirstBoss field �� ù �غ� ���θ� �����ϵ��� ��ü.
+// FIRST_ANVIL_LEVEL_ID ???? (2026-05-24): LDtk Anvil entity ??
+// RetireAfterFirstBoss field ?? u ??? ???��? ????????? ??u.
 const LDTK_PATH = assetPath('assets/World_ProjectAbyss.ldtk');
 // ItemTunnel world was removed from the LDtk project; tunnel descent flow is
 // archived in WorldAnvilItemWorldFlowRuntime while the default anvil FX enters
@@ -281,7 +282,7 @@ const LDTK_WORLD_IDS: string[] = ['Overworld'];
 const BUILDER_WORLD_ID = 'Builder';
 // AreaIDs used by the overworld ? Content_System_Area_Palette.csv's Tileset
 // column drives which atlases get loaded for this scene.
-const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall'] as const;
+const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall', 'world_prologue_bg', 'world_prologue_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 
 // Parallax BG area per level. The prologue levels use their own pre-colored
@@ -289,8 +290,13 @@ const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 // level falls back to the shaft tone. SSoT for the tones is the CSV.
 const DEFAULT_BG_AREA_ID = 'world_shaft_bg';
 const PROLOGUE_BG_AREA_ID = 'world_prologue_bg';
+const DEFAULT_WALL_AREA_ID = 'world_shaft_wall';
+const PROLOGUE_WALL_AREA_ID = 'world_prologue_wall';
 function bgAreaIdForLevel(identifier: string): string {
-  return identifier.startsWith('Prologue') ? PROLOGUE_BG_AREA_ID : DEFAULT_BG_AREA_ID;
+  return identifier.toLowerCase().startsWith('prologue_') ? PROLOGUE_BG_AREA_ID : DEFAULT_BG_AREA_ID;
+}
+function wallAreaIdForLevel(identifier: string): string {
+  return identifier.toLowerCase().startsWith('prologue_') ? PROLOGUE_WALL_AREA_ID : DEFAULT_WALL_AREA_ID;
 }
 
 // Hand-authored levels that opt out of procedural decoration entirely.
@@ -304,6 +310,7 @@ const NO_PROCEDURAL_DECOR_LEVELS = new Set<string>(['Prologue_01']);
 // ---------------------------------------------------------------------------
 
 export class LdtkWorldScene extends Scene {
+  private debugPrologueCutsceneStarted = false;
   private readonly saveAccess: LdtkSceneSaveAccess;
   // LDtk level data
   private loader!: LdtkLoader;
@@ -315,7 +322,7 @@ export class LdtkWorldScene extends Scene {
   /**
    * Drive the builder's footstep camera shake even when mode is 'patrol'.
    * BuilderSpawner can force this on for patrol-style routes that still need
-   * the weighty "��" feedback.
+   * the weighty "??" feedback.
    */
   private readonly builderStepFeedbackRuntime = new WorldBuilderStepFeedbackRuntime();
   private readonly builderPlayerStateRuntime = new WorldBuilderPlayerStateRuntime();
@@ -389,6 +396,7 @@ export class LdtkWorldScene extends Scene {
   private worldFixedItemSpawnRuntime!: WorldFixedItemSpawnRuntime;
   private worldHandPlacedItemRuntime!: WorldHandPlacedItemRuntime;
   private worldProjectileRuntime!: WorldProjectileRuntime;
+  private readonly worldCommonSpriteRuntime = new WorldCommonSpriteRuntime();
   /** Entities that ride the active GiantBuilder. Each frame their world
    *  coords are recomputed from the builder's current position so pickup /
    *  interaction hitboxes (which use world coords) stay in sync with the
@@ -396,7 +404,7 @@ export class LdtkWorldScene extends Scene {
    *  (for bob-animated entities) can be attached. */
   private readonly builderAttachmentRuntime = new WorldBuilderAttachmentRuntime();
   private inventoryUI!: InventoryUI;
-  /** DEC-046 Identity Archive (��� ��ü�� ��� ����). JUMP Ű�� ����. */
+  /** DEC-046 Identity Archive (??? ??u?? ??? ????). JUMP ??? ????. */
   private identityArchive!: IdentityArchive;
   private hud!: HUD;
   private areaTitle!: AreaTitle;
@@ -432,7 +440,7 @@ export class LdtkWorldScene extends Scene {
 
   // Toast, damage numbers & Sakurai hit effects
   private toast!: ToastManager;
-  /** Gamepad hot-plug ���� ������ unsubscribe ? exit �� ȣ��. */
+  /** Gamepad hot-plug ???? ?????? unsubscribe ? exit ?? ???. */
   private _gpUnsub: (() => void) | null = null;
   private noWeaponFeedbackRuntime!: WorldNoWeaponFeedbackRuntime;
   private bossHpRuntime!: BossHpRuntime;
@@ -545,10 +553,10 @@ export class LdtkWorldScene extends Scene {
   private worldCrackedFloorRuntime!: WorldCrackedFloorRuntime;
   private readonly worldBreakablePropRegistry = new WorldBreakablePropRegistry();
   private worldBreakablePropRuntime!: WorldBreakablePropRuntime;
-  /** �ڵ� �÷��̽� Breakable (LDtk Entity 'Breakable') ������Ʈ��. �μ����� props �� �� ��Ÿ���� ����. */
+  /** ??? ?��???? Breakable (LDtk Entity 'Breakable') ?????????. ?��????? props ?? ?? ??????? ????. */
   private readonly worldBreakableRegistry = new WorldBreakableRegistry();
   private worldBreakableRuntime!: WorldBreakableRuntime;
-  /** �ڵ� �÷��̽� Building (LDtk Entity 'Building') ������Ʈ��. �ǹ� ����/ǥ�ø� ����. */
+  /** ??? ?��???? Building (LDtk Entity 'Building') ?????????. ??? ????/??��? ????. */
   private readonly worldBuildingRegistry = new WorldBuildingRegistry();
   private worldBuildingRuntime!: WorldBuildingRuntime;
   private readonly worldSecretWallRegistry = new WorldSecretWallRegistry();
@@ -573,8 +581,8 @@ export class LdtkWorldScene extends Scene {
 
   private endingRuntime!: WorldEndingRuntime;
   /**
-   * Exit Light Bleed ? ���� ������ �̾����� �ⱸ �������� ���� ���� ������ �Ͽ�
-   * �÷��̾ ���� ������ �е��� ���� ������ ȿ��.
+   * Exit Light Bleed ? ???? ?????? ??????? ?? ???????? ???? ???? ?????? ???
+   * ?��???? ???? ?????? ?��??? ???? ?????? ???.
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    */
   private exitGlowRuntime!: WorldExitGlowRuntime;
@@ -583,7 +591,7 @@ export class LdtkWorldScene extends Scene {
   private prologueEndRuntime!: WorldPrologueEndRuntime;
   private worldEgoDialogueRuntime!: WorldEgoDialogueRuntime;
 
-  /** Pattern D (proximity-interaction) ? ���� ��ȣ�ۿ� �켱���� �����. */
+  /** Pattern D (proximity-interaction) ? ???? ?????? ?��???? ?????. */
   private proximity: ProximityRouter = new ProximityRouter();
 
 
@@ -699,6 +707,7 @@ export class LdtkWorldScene extends Scene {
     });
     this.worldEnemyUpdateRuntime = new WorldEnemyUpdateRuntime({
       getEnemies: () => this.worldEnemyRegistry.enemies,
+      getEntityLayer: () => this.entityLayer,
     });
     this.worldEnemyContactRuntime = new WorldEnemyContactRuntime({
       game: this.game,
@@ -1122,8 +1131,8 @@ export class LdtkWorldScene extends Scene {
       },
       detachSharedUiForItemWorld: () => {
         this.uiController.detachForItemWorld();
-        // �̴ϸʵ� hide. detachForItemWorld �� ���� ���� UI �� ������, �̴ϸ��� ������ �ٷ��
-        // �ϹǷ� visible=true �� ä�� �θ� attach ���� ������ ��߳��Ƿ� ���⼭ ��������� detach.
+        // ????? hide. detachForItemWorld ?? ???? ???? UI ?? ??????, ?????? ?????? ????
+        // ???? visible=true ?? a?? ?��? attach ???? ?????? ??????? ???? ????????? detach.
         this.worldMinimap.detach();
         this.altarController.destroyUi();
       },
@@ -1251,10 +1260,7 @@ export class LdtkWorldScene extends Scene {
         this.itemWorldEntryState.setInTunnel(false);
         this.itemWorldEntryState.clearItem();
         this.game.sceneManager.pop();
-        this.saveAccess.setScene('chapter_01');
-        this.loadLevel('Start_Room_01', 'down');
-        this.itemWorldReturnFade.start();
-        this.toast.show(t('ui.prologue.backup_restored'), 0xaaccff);
+        this.prologueEndRuntime.startFromItemWorldHandoff();
       },
     });
     this.portalItemWorldFlowRuntime = new WorldPortalItemWorldFlowRuntime({
@@ -1329,6 +1335,7 @@ export class LdtkWorldScene extends Scene {
   }
 
   private createLdtkItemWorldScene(item: ItemInstance, entryCorridor: boolean): ItemWorldScene {
+    this.player.attackInputEnabled = true;
     const itemWorldScene = new ItemWorldScene(
       this.game,
       item,
@@ -1379,11 +1386,33 @@ export class LdtkWorldScene extends Scene {
       getPlayer: () => this.player,
     });
     this.prologueEndRuntime = new WorldPrologueEndRuntime({
-      getFadeOverlay: () => this.fadeOverlay,
-      loadLevel: (levelId, enterFrom) => { this.loadLevel(levelId, enterFrom); },
+      game: this.game,
+      getLevel: (levelId) => this.loader.getLevel(levelId),
+      createRenderer: () => new LdtkRenderer(),
+      getAtlases: () => this.atlases,
+      getOverlayParent: () => this.container,
+      getAreaPaletteIds: (levelId) => ({
+        bgAreaId: bgAreaIdForLevel(levelId),
+        wallAreaId: wallAreaIdForLevel(levelId),
+      }),
+      enterChapter1FromPrologue: () => {
+        this.itemWorldEntryState.setInTunnel(false);
+        this.itemWorldEntryState.clearItem();
+        this.saveAccess.setScene('chapter_01');
+        this.worldProgressState.unlockedEvents.add('__itemWorldTutorialDone');
+        this.loadLevel('Start_Room_01', 'down');
+      },
+      holdWakeUpPose: () => this.player.holdWakeUpPose(),
+      playWakeUp: () => this.player.playWakeUpOverride(900),
+      isWakeMovementPressed: () => this.game.input.isDown(GameAction.MOVE_LEFT) || this.game.input.isDown(GameAction.MOVE_RIGHT),
+      setCinematicUiVisible: (visible) => {
+        this.game.uiContainer.visible = visible;
+        this.game.feedbackOverlayContainer.visible = visible;
+        this.hud.container.visible = visible && this.game.hudReady;
+        this.worldMinimap.setVisible(visible && this.game.hudReady);
+      },
       showToast: (message, color) => this.toast.show(message, color),
       isPrologueScene: () => this.saveAccess.isPrologueScene(),
-      setScene: (scene) => this.saveAccess.setScene(scene),
     });
     this.dialogueTriggerRuntime = new WorldDialogueTriggerRuntime({
       game: this.game,
@@ -1655,9 +1684,9 @@ export class LdtkWorldScene extends Scene {
   }
 
   /**
-   * Pattern D ���� ��ȣ�ۿ� �켱����:
+   * Pattern D ???? ?????? ?��????:
    *   Altar(30) > Anvil(20) > SavePoint(10)
-   * �ڵ鷯�� `this.*` �� closure �� ĸó�� ����Ѵ�.
+   * ????? `this.*` ?? closure ?? ��o?? ??????.
    */
   private registerProximityHandlers(): void {
     const anvil: ProximityInteraction = {
@@ -1666,8 +1695,8 @@ export class LdtkWorldScene extends Scene {
       canInteract: () => {
         if (!this.anvil || this.altarController.isSelectActive || !this.anvilInteractionRuntime.isPlayerNearAnvil()) return false;
         if (this.itemWorldEntryState.isDeploymentActive()) return false;
-        // Step 5 (2026-05-25): anvil �� �������� ��� ������ *�׻� ������ ����* �� ������Ʈ(IW ����̺� ������)
-        // �� �ܿ��� ��� ���θ� ������. retire(disabled)/used �� ��Ȱ��.
+        // Step 5 (2026-05-25): anvil ?? ???????? ??? ?????? *??? ?????? ????* ?? ???????(IW ?????? ??????)
+        // ?? ????? ??? ???��? ??????. retire(disabled)/used ?? ?????.
         if (this.anvil.hasItem()) return true;
         const prompts = this.anvilPrompts;
         if (prompts?.isSuppressed) return false;
@@ -1708,8 +1737,8 @@ export class LdtkWorldScene extends Scene {
     const startHidden = this.introHandoffRuntime.captureTitleHandoff();
 
     // Fetch and parse LDtk project (multi-world ? pick Overworld).
-    // cache:'no-store' + cache-bust query �� ĳ�õ� �� ������(������ / Vite / SW / proxy)
-    // �� ��ȸ�� �׻� �ֽ� .ldtk �� �޴´�. prod ��忡���� ���� (init 1ȸ).
+    // cache:'no-store' + cache-bust query ?? ��?o? ?? ??????(?????? / Vite / SW / proxy)
+    // ?? ????? ??? ??? .ldtk ?? ??��?. prod ??????? ???? (init 1?).
     const cacheBust = `?t=${Date.now()}`;
     const json = await fetch(LDTK_PATH + cacheBust, { cache: 'no-store' }).then((r) => r.json()) as Record<string, unknown>;
     if (import.meta.env.DEV) {
@@ -1743,17 +1772,14 @@ export class LdtkWorldScene extends Scene {
       this.worldPlayerProgressionState.replaceFromSave(saveData);
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // �ű� ���̺�: ���ѷα� �⺻ ���� Scalpel �� ��� ����. �κ��丮�� �ְ� �����ϸ�
-      // Builder �� ItemDrop �Ⱦ� �ƽŰ� ������ �Ⱦ� cutscene + "Open Inventory" hint
-      // �帧�� ź�� (saveAccess flags�� set �Ͽ� firstEver �Ⱦ� ó��).
-      // IW ���� ������ �κ��丮 Ű hint (INVENTORY_KEY_AFTER_FIRST_IW_HINT_ID) ��
-      // ù �Ⱦ� ���� �κ��丮�� ������ �����Ѵ�.
+      // Fresh start keeps the original early-world inventory seed. The later
+      // Start_Room_01 chapter handoff normalizes to Rustborn after the first
+      // Item World event is complete.
       this.inventory = new Inventory();
       const starterDef = SWORD_DEFS.find(d => d.id === 'sword_scalpel') ?? SWORD_DEFS[0];
       const starterSword = createItem(starterDef, 'normal');
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid, true);
-      // Second starting item: Halfblade (carried, not equipped).
       const halfbladeDef = SWORD_DEFS.find(d => d.id === 'sword_halfblade');
       if (halfbladeDef) {
         this.inventory.add(createItem(halfbladeDef, 'normal'));
@@ -1817,8 +1843,8 @@ export class LdtkWorldScene extends Scene {
     // Tile mutator overlay (fire/ice/electric VFX on top of static tile sprites).
     this.worldTileMutationRuntime.initializeRenderer(this.entityLayer);
 
-    // Fluid layer ? entity layer ���� �ڿ� �ּ� player/enemy �� fluid ���� �׷��� ���̰� �Ѵ�.
-    // �� �ܷ� ��ũ�� �� �ڿ� �򸮵��� fluid �� ������ �ٷ�� (�ܷ��� ���� ���̾�).
+    // Fluid layer ? entity layer ???? ??? ??? player/enemy ?? fluid ???? ????? ????? ???.
+    // ?? ??? ????? ?? ??? ?????? fluid ?? ?????? ???? (????? ???? ?????).
     this.fluidLayer = new Container();
     this.container.addChild(this.fluidLayer);
     // FluidSpawner debug overlay lives above entity layer so designers see
@@ -1846,9 +1872,9 @@ export class LdtkWorldScene extends Scene {
     this.vividLayer = new Container();
     this.container.addChild(this.vividLayer);
 
-    // Shift+I �浹 ����� �������� ? ���� ��/AABB �� ���� ���̾�, ���� ���� ȭ�� ���̾�.
-    // hud �� app.stage ����(FpsCounter �� ����) ? uiContainer.visible ���(�����۰�
-    // ���� anvil dive ��)�� ������� �ʰ� �׻� �ֻ�ܿ� �Ƿ��� ǥ�õǵ���.
+    // Shift+I ?�� ????? ???????? ? ???? ??/AABB ?? ???? ?????, ???? ???? ??? ?????.
+    // hud ?? app.stage ????(FpsCounter ?? ????) ? uiContainer.visible ???(???????
+    // ???? anvil dive ??)?? ??????? ??? ??? ????? ????? ??o????.
     this.collisionDebug = new CollisionDebugOverlay(this.game.uiScale);
     this.container.addChild(this.collisionDebug.container);
     this.game.app.stage.addChild(this.collisionDebug.hud);
@@ -1877,8 +1903,8 @@ export class LdtkWorldScene extends Scene {
       );
     };
     this.entityLayer.addChild(this.player.container);
-    // Arc Tether ? Spark ��þƮ�� �ߵ��ϴ� ���� �Ⱦ� VFX. Player layer ��, entityLayer ��
-    // �״�� �ε� player ���� *�ڿ�* add (�׷��� �Ⱦ� �۷ο찡 player ���� �׷�����).
+    // Arc Tether ? Spark ??��??? ?????? ???? ??? VFX. Player layer ??, entityLayer ??
+    // ???? ?��? player ???? *???* add (????? ??? ??���� player ???? ???????).
     this.worldContainerCarryRuntime.initialize(this.entityLayer);
     if (saveData) {
       this.player.hp = saveData.player.hp;
@@ -1993,8 +2019,8 @@ export class LdtkWorldScene extends Scene {
       onSave: () => this.worldSaveRuntime.save(),
     });
 
-    // Pause menu (9-slice from UISkin) ? uiContainer(native) �ڽ� (UI native 1�� ������).
-    // input �ݹ����� SELECT KEYBOARD �� �Է� preset �� �޴´�.
+    // Pause menu (9-slice from UISkin) ? uiContainer(native) ??? (UI native 1?? ??????).
+    // input ??????? SELECT KEYBOARD ?? ??? preset ?? ??��?.
     this.pauseMenu = new PauseMenu(this.uiSkin, this.game.uiScale, this.game.input, this.game);
     this.pauseMenu.onAction = (action) => {
       if (action === 'status') {
@@ -2061,22 +2087,22 @@ export class LdtkWorldScene extends Scene {
       isFirstItemWorldBossDefeated: () => this.saveAccess.isFirstItemWorldBossDefeated(),
     });
 
-    // Inventory UI ? uiContainer(native) �ڽ�. InventoryUI ���ο��� scale.set(uiScale)
-    // �ϹǷ� 640 ���� ���̾ƿ��� ȭ�鿡 �°� �����ϵȴ� (UI native �����̳ʴ� ������ 1��).
+    // Inventory UI ? uiContainer(native) ???. InventoryUI ???��??? scale.set(uiScale)
+    // ???? 640 ???? ???????? ??? ?��? ???????? (UI native ???????? ?????? 1??).
     this.inventoryUI = new InventoryUI(this.inventory, this.game.uiScale, this.saveAccess);
     this.inventoryUI.setSkin(this.uiSkin!);
     this.game.uiContainer.addChild(this.inventoryUI.container);
-    // �κ��丮 ����/������ ���� Anvil UI ó�� HUD + minimap ��� (�ű� �߰� 2026-05-24).
+    // ?��??? ????/?????? ???? Anvil UI o?? HUD + minimap ??? (??? ??? 2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
       this.hud.container.visible = !vis;
       this.worldMinimap.setVisible(!vis);
     };
 
-    // DEC-046 Identity Archive ? �κ��丮�� ����. JUMP Ű�� ����.
+    // DEC-046 Identity Archive ? ?��????? ????. JUMP ??? ????.
     this.identityArchive = new IdentityArchive(this.inventory, this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.identityArchive.container);
 
-    // Sacred Pickup ? LorePopup + DivePreview + LoreDisplay ��� uiContainer(native) �ڽ� (UI native 1�� ������).
+    // Sacred Pickup ? LorePopup + DivePreview + LoreDisplay ??? uiContainer(native) ??? (UI native 1?? ??????).
     this.lorePopup = new LorePopup(this.saveAccess, this.uiSkin, this.game.uiScale);
     this.game.uiContainer.addChild(this.lorePopup.container);
     this.loreDisplay = new LoreDisplay(this.game.input, this.game.uiScale);
@@ -2147,7 +2173,7 @@ export class LdtkWorldScene extends Scene {
         this.worldPlayerStatRuntime.sync();
         this.player.hp = this.player.maxHp;
         this.savePointRuntime.snapPlayerToNearest();
-        // ���� �� HP VFX(Flask R pulse, glow, HP bar pulse, vignette) �� �����Ѵ�.
+        // ???? ?? HP VFX(Flask R pulse, glow, HP bar pulse, vignette) ?? ???????.
         this.hud.resetLowHpEffects();
         this.hud.updateHP(this.player.hp, this.player.maxHp);
       },
@@ -2250,7 +2276,7 @@ export class LdtkWorldScene extends Scene {
 
     this.initialized = true;
 
-    // Tier 3 ambient bed demo (Plan_Audio_Demo �?-1 #1A + #1C, DEC-040 �?3-2.4 筌욊?�荑?
+    // Tier 3 ambient bed demo (Plan_Audio_Demo ??-1 #1A + #1C, DEC-040 ??3-2.4 吏�??�?
     AmbientLayer.startWorldTier3Demo();
 
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
@@ -2268,9 +2294,9 @@ export class LdtkWorldScene extends Scene {
     if (this.lorePopup && !this.lorePopup.container.parent) ui.addChild(this.lorePopup.container);
     if (this.loreDisplay && !this.loreDisplay.container.parent) ui.addChild(this.loreDisplay.container);
     if (this.divePreview && !this.divePreview.container.parent) ui.addChild(this.divePreview.container);
-    // ���� BGM ? intro 1ȸ �� loop. 5�� fade-in ���� �ε巴�� ��ȯ�ȴ�.
-    // ItemWorld ��� pop ���� ���ƿ��� BgmController �� �̹� ���� trackKey ��
-    // no-op �̹Ƿ� ����� ������ �ʴ´�.
+    // ???? BGM ? intro 1? ?? loop. 5?? fade-in ???? ?����?? ??????.
+    // ItemWorld ???? pop ???? ??????? BgmController ?? ??? ???? trackKey ??
+    // no-op ???? ????? ?????? ??��?.
     BgmController.play(
       'mus_world_main',
       { intro: 'mus_world_main_intro', loop: 'mus_world_main_loop' },
@@ -2290,13 +2316,14 @@ export class LdtkWorldScene extends Scene {
     });
     this.introHandoffRuntime.hideHudForIntroIfNeeded();
     if (!this.currentLevel) return; // first init ? loadLevel handles setup
+    this.normalizeStartRoomInventoryAfterItemWorld();
 
     if (this.itemWorldEntryState.consumeWorldVisualsReleased()) {
       const levelId = this.currentLevel.identifier;
       const px = this.player.x;
       const py = this.player.y;
-      // Step 4/5 (2026-05-25): loadLevel �� spawnAnvilFromLdtk �� �� Anvil �� �����ϹǷ�
-      // �� ���� placedItem sprite �� ������ �д�. ������ + ������ ���� (disabled bypass).
+      // Step 4/5 (2026-05-25): loadLevel ?? spawnAnvilFromLdtk ?? ?? Anvil ?? ????????
+      // ?? ???? placedItem sprite ?? ?????? ?��?. ?????? + ?????? ???? (disabled bypass).
       const preservedAnvilItem = this.anvilReturnState.getPreservedItem(this.anvil, this.itemWorldEntryState.getEntryItem());
       this.loadLevel(levelId, 'down');
       if (preservedAnvilItem && this.anvil) {
@@ -2378,7 +2405,9 @@ export class LdtkWorldScene extends Scene {
     if (this.endingRuntime.update(dt)) return;
 
     // Ch.0 prologue end sequence (P2.1~P6). Blocks gameplay while running.
-    if (this.prologueEndRuntime.update(dt)) return;
+    const prologueBlocksScene = this.prologueEndRuntime.update(dt);
+    const prologuePlayerLocked = this.prologueEndRuntime.isPlayerLocked;
+    if (prologueBlocksScene) return;
 
     if (this.acquireOverlayRuntime.update(dt)) {
       this.game.camera.update(dt);
@@ -2505,12 +2534,12 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Debug warp:
-    //   Shift+M  ? ����� ������ + ����Ű�� ����� ����� ����
-    //   Backtick ? ��ü�� ����� ���� (���߿� ���� �̵�)
+    //   Shift+M  ? ????? ?????? + ??????? ????? ????? ????
+    //   Backtick ? ??u?? ????? ???? (????? ???? ???)
     this.debugWarpRuntime.update();
 
     // World Map toggle (M key) ? disabled inside item tunnels.
-    // Shift+M �� �� handleDebugWarp �� ���� consume �ϹǷ� �Ϲ� M ��۰� �浹���� �ʴ´�.
+    // Shift+M ?? ?? handleDebugWarp ?? ???? consume ???? ??? M ???? ?��???? ??��?.
     this.uiController.handleWorldMapToggle({
       canToggle: !this.itemWorldEntryState.isInTunnel(),
       onBeforeOpen: () => {
@@ -2527,9 +2556,9 @@ export class LdtkWorldScene extends Scene {
       });
     }
 
-    // �ű� �߰� (2026-05-03): ù IW ���� ������ �κ��丮 ������ ���� INVENTORY
-    // Ű�� ������ Rustborn ���� ���̸� Ego ��� �Ǵ� 'Locked' �佺Ʈ�� ����.
-    // shiftDown / inItemTunnel �� ���� �� ������ �ǳʶڴ� (debug / �ڽ� �� ��ȣ).
+    // ??? ??? (2026-05-03): u IW ???? ?????? ?��??? ?????? ???? INVENTORY
+    // ??? ?????? Rustborn ???? ????? Ego ??? ??? 'Locked' ?��??? ????.
+    // shiftDown / inItemTunnel ?? ???? ?? ?????? ????? (debug / ??? ?? ???).
     if (
       !this.saveAccess.isFirstItemWorldBossDefeated() &&
       !this.itemWorldEntryState.isInTunnel() &&
@@ -2553,15 +2582,15 @@ export class LdtkWorldScene extends Scene {
     this.uiController.handleInventoryToggle({
       canToggle: !this.itemWorldEntryState.isInTunnel() && !this.game.input.shiftDown && this.saveAccess.isFirstItemWorldBossDefeated(),
       onToggled: () => {
-        // Broken Sword �Ⱦ� ���� �κ��丮���� "��� �ִ� ���� ����" �϶�� �帧�� �ȳ��Ѵ�.
-        // �κ��丮�� ó�� ���� �ܰ�� I Ű �Է��� ������ �Ⱦ� ���� �帧���� �Ǵ��Ѵ�.
-        // ù ���̺� ������ ��� �ִ� ���⸦ �����ϵ��� �κ��丮 ������ �����Ѵ�.
+        // Broken Sword ??? ???? ?��??????? "??? ??? ???? ????" ???? ???? ??????.
+        // ?��????? o?? ???? ???? I ? ????? ?????? ??? ???? ?????? ??????.
+        // u ????? ?????? ??? ??? ???? ????????? ?��??? ?????? ???????.
         if (!this.saveAccess.isFirstPickupDone()) return;
         this.worldProgressState.unlockedEvents.add('__itemKeyPressedAfterItemWorld');
         this.hud.setItemKeyHighlight(false);
-        // 2026-05-18: tutorialHint.dismiss �� *Rustborn ��� ������ equip ���� ��*�� ȣ��.
-        // �ƴϸ� �����. I Ű �Է¸����� �κ��丮 �����ߴٸ� ��� �����̶� �Ⱦ� �帧�� �����Ѵ�.
-        // ù ���� ������ HUD pulse �� �����ϹǷ� hint �� ���Ƿ� ���� �ʴ´�.
+        // 2026-05-18: tutorialHint.dismiss ?? *Rustborn ??? ?????? equip ???? ??*?? ???.
+        // ???? ?????. I ? ??��????? ?��??? ???????? ??? ??????? ??? ???? ???????.
+        // u ???? ?????? HUD pulse ?? ???????? hint ?? ????? ???? ??��?.
       },
     });
 
@@ -2580,9 +2609,9 @@ export class LdtkWorldScene extends Scene {
         this.worldEgoDialogueRuntime.notifyWeaponSwap(previousWeaponDefId, currentWeaponDefId);
         this.worldPlayerStatRuntime.sync();
         this.hud.updateATK(this.player.atk);
-        // 2026-05-18: �κ��丮 hint �� *Rustborn ��� ������ ������ ����*���� dismiss.
-        // �� �ܿ��� ���� ��ü�����δ� ���� �����Ƿ� ��� ������ �����ϰ� hint �� �����ȴ�.
-        // "Rustborn ����" �� �ٽ� �����̹Ƿ� �� �� ����δ� ���� �ʴ´�.
+        // 2026-05-18: ?��??? hint ?? *Rustborn ??? ?????? ?????? ????*???? dismiss.
+        // ?? ????? ???? ??u?????��? ???? ??????? ??? ?????? ??????? hint ?? ???????.
+        // "Rustborn ????" ?? ??? ???????? ?? ?? ????��? ???? ??��?.
         this.inventoryTutorialHint.clearIfRustbornEquipped();
       }
       return; // Pause game while inventory open
@@ -2599,9 +2628,9 @@ export class LdtkWorldScene extends Scene {
       return;
     }
 
-    // Pattern D (proximity-interaction): ���� ��ȣ�ۿ� �켱���� ó��.
-    // ���� player.update() ���� ���̺� ť �� ���� ������Ʈ�� �����ϰ�
-    // ���� ��ȣ�ۿ��� registerProximityHandlers() ���� ����Ѵ�.
+    // Pattern D (proximity-interaction): ???? ?????? ?��???? o??.
+    // ???? player.update() ???? ????? ? ?? ???? ????????? ???????
+    // ???? ???????? registerProximityHandlers() ???? ??????.
     this.savePointRuntime.updateQueuedSave(dt);
 
     this.frozenReturnRuntime.updatePrompt();
@@ -2675,12 +2704,12 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Player
-    // ��� ���� ������ playerOnBuilder �� onCarrier �� ������ ĳ����
-    // grounding �� lastSafeX/Y ó���� �ϰ��ǰ� �Ѵ�.
-    // 1�� ���� �õ� (2026-05-24): �� ������ ��� ������ onCarrier ��
-    // false �� lastSafe �� *���� cell* �� ��������, ����� ������ ���� �� ĭ
-    // ���� ��� ���� �߸��� safe ��ġ�� ������ ������ �־���. �̹� update ���� lastSafe �� ������
-    // post-snap �ܰ迡���� *���� ��*�� ����, playerOnBuilder=true �� �ǵ�����.
+    // ??? ???? ?????? playerOnBuilder ?? onCarrier ?? ?????? ��????
+    // grounding ?? lastSafeX/Y o???? ?????? ???.
+    // 1?? ???? ?o? (2026-05-24): ?? ?????? ??? ?????? onCarrier ??
+    // false ?? lastSafe ?? *???? cell* ?? ????????, ????? ?????? ???? ?? ?
+    // ???? ??? ???? ????? safe ????? ?????? ?????? ?????. ??? update ???? lastSafe ?? ??????
+    // post-snap ??????? *???? ??*?? ????, playerOnBuilder=true ?? ???????.
     const wasPlayerOnBuilder = this.builderPlayerStateRuntime.beginPlayerUpdate(this.player);
     const preUpdateLastSafeX = this.player.lastSafeX;
     const preUpdateLastSafeY = this.player.lastSafeY;
@@ -2690,9 +2719,17 @@ export class LdtkWorldScene extends Scene {
     // Commit last frame's interaction-prompt accumulation before the player
     // reads it (attack suppression buffer).
     this.game.input.beginInteractionFrame();
-    this.player.update(dt);
-    this.worldDoorSwitchInteractionRuntime.resolvePlayerCollision();
-    this.builderPlayerStateRuntime.update(dt);
+    if (prologuePlayerLocked) {
+      if (this.prologueEndRuntime.shouldTickWakeUpAnimation) {
+        this.player.tickWakeUpOverrideAnimation(dt);
+      } else {
+        this.player.holdWakeUpPose();
+        stopPlayerMotion(this.player, { savePreviousPosition: true });
+      }
+    } else {
+      this.player.update(dt);
+      this.worldDoorSwitchInteractionRuntime.resolvePlayerCollision();
+    }    this.builderPlayerStateRuntime.update(dt);
 
     this.noWeaponFeedbackRuntime.update(dt);
 
@@ -2708,9 +2745,9 @@ export class LdtkWorldScene extends Scene {
       this.player,
       this.activeBuilder ? (snappedToBuilder || this.builderStampRuntime.isPlayerOnStamp(this.player, this.collisionGridRuntime.grid)) : false,
     );
-    // ���� safe ���� �����Ѵ�. ��� ���� �ӹ��� ���� player.update �� ����
-    // lastSafeX/Y(=���� cell)�� �����, ��� �� world �� ���� ���� ä safe ground
-    // �� ������ void ���� �� �߸��� world ��ġ�� �����ϹǷ� grounded ������ �����Ѵ�.
+    // ???? safe ???? ???????. ??? ???? ????? ???? player.update ?? ????
+    // lastSafeX/Y(=???? cell)?? ??????, ??? ?? world ?? ???? ???? a safe ground
+    // ?? ?????? void ???? ?? ????? world ????? ???????? grounded ?????? ???????.
     if (this.builderPlayerStateRuntime.isOnBuilder) {
       this.player.lastSafeX = preUpdateLastSafeX;
       this.player.lastSafeY = preUpdateLastSafeY;
@@ -2777,11 +2814,12 @@ export class LdtkWorldScene extends Scene {
     this.worldEnemyKillRuntime.processDefeatedEnemies();
 
     this.worldProjectileRuntime.update(dt);
+    this.worldCommonSpriteRuntime.update(dt);
     this.worldEnemyContactRuntime.update();
 
     // Breakable props (sway animation)
     this.worldBreakablePropRuntime.update(dt);
-    // �ڵ� �÷��̽� Breakable (LDtk Entity).
+    // ??? ?��???? Breakable (LDtk Entity).
     this.worldBreakableRuntime.update(dt);
     // Decorative grass sway
     this.proceduralDecorRuntime.update(dt);
@@ -2803,7 +2841,7 @@ export class LdtkWorldScene extends Scene {
     // Dialogue / Lore triggers
     this.dialogueTriggerRuntime.update(dt);
 
-    // ���� Ego dialogue triggers (code-driven, not LDtk) ����
+    // ???? Ego dialogue triggers (code-driven, not LDtk) ????
     this.worldEgoDialogueRuntime.update(dt);
     this.worldEnemyKillRuntime.update(dt);
 
@@ -2834,7 +2872,7 @@ export class LdtkWorldScene extends Scene {
     this.voidRuntime.checkContact();
 
     // Elemental tile hazards (magma, charged, acid, fire, thunder, burn)
-    // GDD: Documents/System/System_World_TileSystem.md ��2.6-2.13
+    // GDD: Documents/System/System_World_TileSystem.md ??2.6-2.13
     this.worldTileHazardRuntime.update(dt);
 
     // Updraft wind zones
@@ -2854,10 +2892,10 @@ export class LdtkWorldScene extends Scene {
     // Save point interaction ? UP key near save point
     this.savePointRuntime.updateProximity(this.itemWorldEntryState.isDeploymentActive());
 
-    // Shift+P ����� ������ Game.ts ������ ���� ó���ϹǷ� ���⼭�� �ٷ��� �ʴ´�.
+    // Shift+P ????? ?????? Game.ts ?????? ???? o?????? ?????? ????? ??��?.
 
-    // Shift+I ����� UI ����� Game.ts ���� ���� ó���ϹǷ� INVENTORY �� �̸� consume �Ͽ�
-    // �κ��丮 ���԰� �浹���� �ʰ� �Ѵ�.
+    // Shift+I ????? UI ????? Game.ts ???? ???? o?????? INVENTORY ?? ??? consume ???
+    // ?��??? ????? ?��???? ??? ???.
 
     // Debug commands ? only active with ?debug=1 in URL
     if (new URLSearchParams(window.location.search).has('debug')) {
@@ -2901,14 +2939,14 @@ export class LdtkWorldScene extends Scene {
 
     this.worldEgoShardCastRuntime.update(dt);
 
-    // ���� Grab / Throw (B / RB) ? Arc Tether �� ������� �Ⱦ� + Spelunky �� ��� ����
-    // ���� ����:
-    //   1) GRAB �Է� �� findNearestGrabbableContainer (facing ��, 6ĭ)
-    //   2) ã���� startGrabPull : pickUp() ���� ��� (held=true �� no gravity)
-    //      + pullingContainer ���� + arcTether.startPull(boosted)
-    //   3) 200ms ���� ������ ? ease-out ���� (�� ���� held �� �����ȴ�)
-    //   4) ���� ������ pullingContainer=null, arcTether �� hold �� ���´�.
-    // �׷��� �ָ� �ִ� �����̳ʵ� pull ������ �ڿ������� �տ� ������ �Ѵ�.
+    // ???? Grab / Throw (B / RB) ? Arc Tether ?? ??????? ??? + Spelunky ?? ??? ????
+    // ???? ????:
+    //   1) GRAB ??? ?? findNearestGrabbableContainer (facing ??, 6?)
+    //   2) a???? startGrabPull : pickUp() ???? ??? (held=true ?? no gravity)
+    //      + pullingContainer ???? + arcTether.startPull(boosted)
+    //   3) 200ms ???? ?????? ? ease-out ???? (?? ???? held ?? ???????)
+    //   4) ???? ?????? pullingContainer=null, arcTether ?? hold ?? ???��?.
+    // ????? ??? ??? ???????? pull ?????? ????????? ??? ?????? ???.
     this.worldContainerCarryRuntime.update({
       dtMs: dt,
       game: this.game,
@@ -2944,7 +2982,7 @@ export class LdtkWorldScene extends Scene {
 
     this.hud.update(dt);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
-    this.hud.setFloorText(this.currentLevel?.identifier ?? '');
+    this.hud.setFloorText(this.buildDebugFloorText());
     this.areaTitle.update(dt);
 
     // Hide minimap + adjust gold in item tunnel and in the fixed item world
@@ -2975,11 +3013,11 @@ export class LdtkWorldScene extends Scene {
     // While riding the builder, include visualYOffset so the camera tracks the
     // player's *visual* position. Without this, the physics +16 tile crossing
     // jump (see builder update above) propagates to the camera target and
-    // causes a "Ƣ��" rocking as the camera snaps to each crossing.
+    // causes a "???" rocking as the camera snaps to each crossing.
     //
     // The offset is rounded to an integer pixel: a fractional target would
     // make the rounded camera renderY oscillate near .5 boundaries every
-    // frame, producing a rapid 1px "����" shake. Tile-crossing cancellation
+    // frame, producing a rapid 1px "????" shake. Tile-crossing cancellation
     // still works because the offset is symmetric (~+8 ? ~-8 at crossing).
     const cam = this.game.camera;
     const cx = this.player.x + this.player.width / 2;
@@ -3027,8 +3065,8 @@ export class LdtkWorldScene extends Scene {
     if (p.consumeDropThroughEvent()) {
       this.builderPlayerStateRuntime.startDropThroughGrace();
       this.movementVfxRuntime.dropThroughDust.spawn(p.x + p.width / 2, p.y + p.height, p.width * 0.9);
-      // ���� ù drop-through ���Ŀ� ���� hint �� ��� �����ְ� 1�� �� fade,
-      // ���Ŀ��� handled flag �� set.
+      // ???? u drop-through ???��? ???? hint ?? ??? ??????? 1?? ?? fade,
+      // ???��??? handled flag ?? set.
       this.worldTutorialHints.handleDropThroughEvent();
     }
     // Ice skid streak
@@ -3047,7 +3085,7 @@ export class LdtkWorldScene extends Scene {
     this.movementVfxRuntime.updateCharacterFeedback(dt);
     this.worldFluidRuntime.residue.update(dt);
     this.movementVfxRuntime.waterBubbles.update(dt);
-    // ���� Maintained spawners: refill when live count drops below minCount ����
+    // ???? Maintained spawners: refill when live count drops below minCount ????
     this.maintainedContainerSpawnerRuntime.update(dt);
     this.worldContainerPhysicsRuntime.update(dt);
 
@@ -3056,6 +3094,47 @@ export class LdtkWorldScene extends Scene {
     this.pickupVfxRuntime.update(dt);
     const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 0;
     this.statusFeedbackRuntime.update(dt, hpRatio);
+  }
+
+  private buildDebugFloorText(): string {
+    const level = this.currentLevel;
+    if (!level) {
+      return '';
+    }
+
+    const monsterTypes = new Set<string>();
+    const npcNames = new Set<string>();
+    for (const entity of level.entities) {
+      if (entity.type === 'Enemy_Spawn') {
+        const monsterType = (entity.fields['type'] as string | undefined) ?? 'Skeleton';
+        if (monsterType.trim().length > 0) {
+          monsterTypes.add(monsterType.trim());
+        }
+        continue;
+      }
+
+      if (entity.type === 'Slime' || entity.type === 'Boss') {
+        monsterTypes.add(entity.type);
+        continue;
+      }
+
+      if (entity.type === 'NPC') {
+        const speaker = entity.fields['speaker'];
+        const character = entity.fields['character'];
+        const npcName = typeof speaker === 'string' && speaker.trim().length > 0
+          ? speaker.trim()
+          : typeof character === 'string' && character.trim().length > 0
+            ? character.trim()
+            : '';
+        if (npcName.length > 0) {
+          npcNames.add(npcName);
+        }
+      }
+    }
+
+    const monsterText = monsterTypes.size > 0 ? [...monsterTypes].join(',') : '-';
+    const npcText = npcNames.size > 0 ? [...npcNames].join(',') : '-';
+    return `${level.identifier} | MonsterType:${monsterText} | NPC:${npcText}`;
   }
 
   render(alpha: number): void {
@@ -3068,7 +3147,7 @@ export class LdtkWorldScene extends Scene {
     const p = this.player;
     const colOffX = (p.width - p.collisionW) / 2;
     const colOffY = p.height - p.collisionH;
-    // �̵� ����� Ȱ���̸� �� ��ü �浹 �׸��嵵 �Ѱ� 'builder-surface' �ٴ��� �ð�ȭ.
+    // ??? ????? ?????? ?? ??u ?�� ????? ??? 'builder-surface' ????? ?��??.
     const b = this.activeBuilder;
     const builderGrid = b ? {
       grid: b.collisionGrid,
@@ -3089,13 +3168,13 @@ export class LdtkWorldScene extends Scene {
     this.uiController.destroy();
     this.anvilCyclePrompt?.destroy();
     // Close and detach modal overlays so they don't bleed into the next scene.
-    // (Previously: M/I �� ����� ä ���� ��ȯ�ϸ� overlay �� legacyUIContainer
-    //  �� ���� ItemWorldScene ���� "stuck" ���·� �� �־���.)
+    // (Previously: M/I ?? ????? a ???? ?????? overlay ?? legacyUIContainer
+    //  ?? ???? ItemWorldScene ???? "stuck" ???��? ?? ?????.)
     this.altarController.destroyUi();
     this.deployBlurRuntime.clear();
     this.dialogueTriggerRuntime.clear();
     this.prologueEndRuntime.clear();
-    // ��׶���� �������� ���� ���� ���� ȭ�鿡 �ܷ����� �ʵ��� ����.
+    // ??????? ???????? ???? ???? ???? ??? ??????? ????? ????.
     if (this.collisionDebug) this.collisionDebug.hud.visible = false;
     this.oxygenOverlay.hide();
     this.itemWorldTransitionRuntime.destroy();
@@ -3141,7 +3220,7 @@ export class LdtkWorldScene extends Scene {
     this.combatFeedbackRuntime.clearDamageNumbers();
     this.deployBlurRuntime.destroy();
     this.renderer?.destroy();
-    // hud �� game.uiContainer(�� �ܺ�) �ڽ��̶� super.destroy() �� �������� ���� ? ���� ����.
+    // hud ?? game.uiContainer(?? ???) ?????? super.destroy() ?? ???????? ???? ? ???? ????.
     if (this.collisionDebug) destroyDisplayObject(this.collisionDebug.hud, { children: true });
     super.destroy();
   }
@@ -3202,12 +3281,12 @@ export class LdtkWorldScene extends Scene {
 
     this.worldFluidRuntime.attachLevel(level);
     this.worldWeatherRuntime.configureForLevel(level);
-    // ���� HP �ٸ� �����. �� �� ���� �� ���� ���� ���� �� ���¸� ���
-    // ���� ������ �濡�� activateBossLock �� update �� �ٽ� �ѵ��� �Ѵ�.
+    // ???? HP ??? ?????. ?? ?? ???? ?? ???? ???? ???? ?? ???��? ???
+    // ???? ?????? ?�?? activateBossLock ?? update ?? ??? ????? ???.
     this.hud.hideBossHP();
 
     // Render tiles ? filter wall tiles by collision grid (destroyed tiles stay gone).
-    // value=2 (water) �� ���� sprite �� dynamic FluidSystem �� �׸��Ƿ� ���� �������� �ǳʶڴ�.
+    // value=2 (water) ?? ???? sprite ?? dynamic FluidSystem ?? ?????? ???? ???????? ?????.
     this.renderer.clear();
     const filteredWalls = filterWorldWallTilesForCollision({
       wallTiles: level.wallTiles,
@@ -3217,12 +3296,15 @@ export class LdtkWorldScene extends Scene {
     // Retag BG/WALL tiles to CSV-derived atlas ? but ONLY if the tile's
     // current tilesetPath matches the LDtk default for that layer. Levels
     // that override the tileset (e.g. Builder with builder_01) keep theirs.
+    const bgAreaId = bgAreaIdForLevel(level.identifier);
+    const wallAreaId = wallAreaIdForLevel(level.identifier);
     applyDefaultWorldAreaRetags({
-      bgAreaId: 'world_shaft_bg',
-      wallAreaId: 'world_shaft_wall',
+      bgAreaId,
+      wallAreaId,
       bgTiles: level.backgroundTiles,
       wallTiles: filteredWalls,
     });
+    this.terrainPaletteRuntime.applyAreaPalette(bgAreaId, wallAreaId);
     // All other tiles (Interior, extras, overridden tilesets) keep their
     // original LDtk tilesetPath. Tilesets are pre-loaded in init().
     const allExtraTiles = Object.values(level.extraTileLayers).flat();
@@ -3257,7 +3339,8 @@ export class LdtkWorldScene extends Scene {
       // carried over from the previous level; generate() is what we skip.
       procDecorator.clear();
       this.grassFireRuntime.clearGrass();
-      if (!NO_PROCEDURAL_DECOR_LEVELS.has(level.identifier)) {
+      const isPrologueLevel = level.identifier.toLowerCase().startsWith('prologue_');
+      if (!NO_PROCEDURAL_DECOR_LEVELS.has(level.identifier) && !isPrologueLevel) {
         procDecorator.generate(this.collisionGridRuntime.grid, hashString(level.identifier));
         this.grassFireRuntime.registerProceduralBurnables(procDecorator.getGrassClumpsWithCells(), this.worldTileMutationRuntime.mutator);
         if (this.terrainPaletteRuntime.applyProceduralDecorFilters(this.proceduralDecorRuntime)) {
@@ -3272,9 +3355,8 @@ export class LdtkWorldScene extends Scene {
     }
 
     // Parallax background ? rebuild on first load or when the BG area changes
-    // (e.g. prologue �� shaft). Room transitions within the same area skip the
+    // (e.g. prologue ?? shaft). Room transitions within the same area skip the
     // rebuild to prevent jarring position resets.
-    const bgAreaId = bgAreaIdForLevel(level.identifier);
     if (!this.parallaxBG.isReady || this.parallaxAreaId !== bgAreaId) {
       const bgEntry = getAreaPalette(bgAreaId);
       const atlas = getAreaPaletteAtlas();
@@ -3306,9 +3388,11 @@ export class LdtkWorldScene extends Scene {
     this.worldBreakablePropRuntime.spawnForLevel(level);
     this.worldBreakableRuntime.spawn(level);
     this.worldBuildingRuntime.spawn(level);
+    this.worldCommonSpriteRuntime.spawnForLevel(level, this.renderer.interiorLayer);
 
     // Place player
     this.worldPlayerSpawnRuntime.place(level, enterDirection);
+    this.normalizeStartRoomInventoryAfterItemWorld();
 
     // Spawn enemies (skip for Shop rooms)
     this.worldEnemyRegistry.clear();
@@ -3336,15 +3420,19 @@ export class LdtkWorldScene extends Scene {
     this.worldCollapsingPlatformRuntime.spawn(level);
     this.dialogueTriggerRuntime.loadLevel(level);
     this.prologueEndRuntime.loadLevel(level);
+    if (!this.debugPrologueCutsceneStarted && new URLSearchParams(window.location.search).has('prologueCutscene')) {
+      this.debugPrologueCutsceneStarted = true;
+      this.prologueEndRuntime.startFromItemWorldHandoff();
+    }
 
     this.cameraZoneRuntime.loadLevel(level, { resetToDefaults: true });
 
     this.worldHandPlacedItemRuntime.loadLevel(level);
 
-    // Exit Light Bleed ? �ⱸ ���� �� ���� ȿ���� ���� �濡 �°� �ε��Ѵ�.
-    // ��� �������� *����* ȣ���Ѵ�: loadLevel() ���� clearAll() �� ��� �۷ο츦
-    // ���Ƿ�, ��� ���Ա� �۷ο�(spawnBuilderEntities)�� �� *����* �����ž�
-    // ��Ƴ��´�. (������ �ڹٲ�� ���Ա� �۷ο찡 ��� ������ ǥ�õ��� ����.)
+    // Exit Light Bleed ? ?? ???? ?? ???? ????? ???? ?� ?��? ?��????.
+    // ??? ???????? *????* ??????: loadLevel() ???? clearAll() ?? ??? ??�ﮜ
+    // ?????, ??? ????? ??��?(spawnBuilderEntities)?? ?? *????* ???????
+    // ?????��?. (?????? ????? ????? ??���� ??? ?????? ??o??? ????.)
     this.exitGlowRuntime.loadLevel(level);
 
     const builderSpawner = level.entities.find((e) => e.type === 'BuilderSpawner' && e.fields.Enabled !== false);
@@ -3352,9 +3440,9 @@ export class LdtkWorldScene extends Scene {
       this.builderFlowRuntime.spawnBuilderFromSpawner(level, builderSpawner);
     }
 
-    // HUD/minimap visibility ? Shaft_DemoEnd ������ ����� (����
-    // ���� 2026-05-17). �� �ܿ��� ��Ʈ�ΰ� ���� hudReady �� �Ǹ� intro ����
-    // �ٽ� ǥ���Ѵ�.
+    // HUD/minimap visibility ? Shaft_DemoEnd ?????? ????? (????
+    // ???? 2026-05-17). ?? ????? ?????? ???? hudReady ?? ??? intro ????
+    // ??? ??????.
     if (level.identifier === 'Shaft_DemoEnd') {
       this.hud.container.visible = false;
       this.worldMinimap.setVisible(false);
@@ -3396,14 +3484,32 @@ export class LdtkWorldScene extends Scene {
     return true;
   }
 
+  private keepOnlyRustbornEquipped(): void {
+    const rustbornDef = SWORD_DEFS.find(d => d.id === 'sword_rustborn') ?? SWORD_DEFS[0];
+    this.inventory = new Inventory();
+    const rustborn = createItem(rustbornDef, 'normal');
+    this.inventory.add(rustborn);
+    this.inventory.equip(rustborn.uid, true);
+    this.inventoryUI?.setInventory(this.inventory);
+    this.saveAccess.markItemSeen(rustborn.def.id);
+    this.worldPlayerStatRuntime?.sync();
+  }
+
+  private normalizeStartRoomInventoryAfterItemWorld(): void {
+    if (this.currentLevel?.identifier !== 'Start_Room_01') return;
+    if (!this.worldProgressState.unlockedEvents.has('__itemWorldTutorialDone')) return;
+
+    this.keepOnlyRustbornEquipped();
+  }
+
   // ---------------------------------------------------------------------------
   // Enemy spawning
   // ---------------------------------------------------------------------------
 
   /**
-   * Arc Tether �Ⱦ� ����� ã�� �� player facing ���� cone (�� 60��, �ݰ� 6ĭ) �ȿ��� �����.
-   * LOOK_UP / LOOK_DOWN �Է� �� �� �������� GRAB ���� ȸ���Ѵ� (stack/��� �Ⱦ�).
-   * ����� �����̳�(< 24px)�� cone ���̾ �켱 ��´� (���� ���� ���� ���).
+   * Arc Tether ??? ????? a?? ?? player facing ???? cone (?? 60??, ??? 6?) ????? ?????.
+   * LOOK_UP / LOOK_DOWN ??? ?? ?? ???????? GRAB ???? ?????? (stack/??? ???).
+   * ????? ???????(< 24px)?? cone ????? ?�� ??��? (???? ???? ???? ???).
    */
   /**
    * Spawn Dialogue and Memory triggers from LDtk entities.
@@ -3411,9 +3517,9 @@ export class LdtkWorldScene extends Scene {
   /**
    * (Documents/Research/RoomTransition_Readability_Research.md A2)
    *
-   * ���� �𼭸� (w/e): col 0 �Ǵ� gridW-1 ���� ���Ʒ��� passable run �� ã�� 1ĭ �̻��̸� ��� ����.
-   * ���� �𼭸� (n/s): row 0 �Ǵ� gridH-1 ���� �¿�� passable ���� �˻��Ѵ�.
-   * passable ������ checkLevelEdges() �� ����Ѵ� (�� 0 �Ǵ� 2).
+   * ???? ???? (w/e): col 0 ??? gridW-1 ???? ??????? passable run ?? a?? 1? ?????? ??? ????.
+   * ???? ???? (n/s): row 0 ??? gridH-1 ???? ?��?? passable ???? ??????.
+   * passable ?????? checkLevelEdges() ?? ?????? (?? 0 ??? 2).
    */
   // ---------------------------------------------------------------------------
   // Ending sequence ? delegated to EndingSequence class
@@ -3442,6 +3548,7 @@ export class LdtkWorldScene extends Scene {
   }
 
 }
+
 
 
 
