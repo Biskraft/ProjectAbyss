@@ -70,3 +70,8 @@ F 키
 - 게임패드 지원 (현재 키보드 전용)
 - 외부 긴 설문 링크 (Phase 3+ 응답률 검증 후)
 - BigQuery export로 본문 코호트 분석
+
+## 2026-06-07 Entry Point Update
+
+- Feedback entry moved from the global F-key/HUD indicator to the ESC pause menu. FeedbackPanel remains the global modal/submission owner, but opens through the pause menu FEEDBACK item.
+

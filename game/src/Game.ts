@@ -103,6 +103,8 @@ export class Game {
   private fpsCounter!: FpsCounter;
   private displayScaleMode: DisplayScale = 'auto';
   private scaleFilter: ScaleFilter = 'sharp';
+  private uiStartupDebugFrames = 0;
+  private uiStartupDebugLastScene = '';
 
   async init(): Promise<void> {
     // Compute integer pixel scale for native resolution
@@ -328,6 +330,7 @@ export class Game {
       PerfMonitor.begin('scene.render');
       this.sceneManager.render(alpha);
       PerfMonitor.end('scene.render');
+      this.debugLogStartupUiVisibility();
 
       // --- Zoom via RenderTexture ---
       const zoom = this.camera.zoom;
@@ -407,6 +410,52 @@ export class Game {
     canvas.style.width = `${Math.floor(GAME_WIDTH * displayScale)}px`;
     canvas.style.height = `${Math.floor(GAME_HEIGHT * displayScale)}px`;
     canvas.style.imageRendering = this.scaleFilter === 'sharp' ? 'pixelated' : 'auto';
+  }
+
+  private debugLogStartupUiVisibility(): void {
+    if (!new URLSearchParams(window.location.search).has('debug') || this.uiStartupDebugFrames >= 900) return;
+    this.uiStartupDebugFrames++;
+    const activeScene = this.sceneManager.active?.constructor?.name ?? 'none';
+    const sceneChanged = activeScene !== this.uiStartupDebugLastScene;
+    this.uiStartupDebugLastScene = activeScene;
+    if (!sceneChanged && this.uiStartupDebugFrames % 10 !== 1) return;
+
+    const describeLayer = (name: string, container: Container): string => {
+      const visibleChildren = container.children
+        .map((child, index) => {
+          const display = child as Container & { label?: string | null; alpha?: number };
+          if (!display.visible) return null;
+          const ctor = display.constructor?.name ?? 'DisplayObject';
+          const label = display.label || '';
+          const childCount = 'children' in display ? display.children.length : 0;
+          const alpha = typeof display.alpha === 'number' ? display.alpha.toFixed(2) : '?';
+          const visibleGrandchildren = 'children' in display
+            ? display.children
+              .map((grandchild, grandIndex) => {
+                const grandDisplay = grandchild as Container & { label?: string | null; alpha?: number };
+                if (!grandDisplay.visible) return null;
+                const grandCtor = grandDisplay.constructor?.name ?? 'DisplayObject';
+                const grandLabel = grandDisplay.label || '';
+                const grandAlpha = typeof grandDisplay.alpha === 'number' ? grandDisplay.alpha.toFixed(2) : '?';
+                return `${grandIndex}:${grandCtor}${grandLabel ? `#${grandLabel}` : ''}(alpha=${grandAlpha})`;
+              })
+              .filter((entry): entry is string => !!entry)
+              .slice(0, 12)
+              .join(', ')
+            : '';
+          return `${index}:${ctor}${label ? `#${label}` : ''}(alpha=${alpha},children=${childCount}${visibleGrandchildren ? `,visibleKids=${visibleGrandchildren}` : ''})`;
+        })
+        .filter((entry): entry is string => !!entry);
+      return `${name}[visible=${container.visible}, children=${container.children.length}] ${visibleChildren.join(' | ') || '(none)'}`;
+    };
+
+    console.log(
+      `[StartupUI frame=${this.uiStartupDebugFrames} hudReady=${this.hudReady} active=${activeScene}${sceneChanged ? ' sceneChanged' : ''}]`,
+      describeLayer('ui', this.uiContainer),
+      describeLayer('legacy', this.legacyUIContainer),
+      describeLayer('feedback', this.feedbackOverlayContainer),
+      describeLayer('transition', this.transitionLayer),
+    );
   }
 
   generateTexture(container: Container) {

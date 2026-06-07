@@ -1951,6 +1951,7 @@ export class LdtkWorldScene extends Scene {
     });
 
     // HUD
+    if (startHidden && !saveData) this.game.hudReady = false;
     this.hud = new HUD(this.game.uiScale);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
@@ -2058,6 +2059,10 @@ export class LdtkWorldScene extends Scene {
         this.characterStats.show();
         this.pauseMenu.close();
       }
+      else if (action === 'feedback') {
+        this.pauseMenu.close();
+        this.game.feedbackPanel.open();
+      }
       else if (action === 'quit_confirmed') {
         this.game.sceneManager.replace(new TitleScene(this.game));
       }
@@ -2067,8 +2072,8 @@ export class LdtkWorldScene extends Scene {
     // Character stats overlay (opened from pause menu STATUS) ? uiContainer(native)
     this.characterStats = new CharacterStats(this.uiSkin, this.game.uiScale);
     this.characterStats.onVisibilityChanged = (vis) => {
-      this.hud.container.visible = !vis;
-      this.worldMinimap.setVisible(!vis);
+      this.hud.container.visible = !vis && this.game.hudReady;
+      this.worldMinimap.setVisible(!vis && this.game.hudReady);
     };
     this.game.uiContainer.addChild(this.characterStats.container);
 
@@ -2118,8 +2123,8 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.addChild(this.inventoryUI.container);
     // ?��??? ????/?????? ???? Anvil UI o?? HUD + minimap ??? (??? ??? 2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
-      this.hud.container.visible = !vis;
-      this.worldMinimap.setVisible(!vis);
+      this.hud.container.visible = !vis && this.game.hudReady;
+      this.worldMinimap.setVisible(!vis && this.game.hudReady);
     };
 
     // DEC-046 Identity Archive ? ?��????? ????. JUMP ??? ????.
@@ -2215,12 +2220,12 @@ export class LdtkWorldScene extends Scene {
         this.player.hp = this.player.maxHp;
         this.player.isDead = false;
         this.player.drowned = false;
-        this.hud.container.visible = true;
-        this.worldMinimap.setVisible(true);
+        this.hud.container.visible = this.game.hudReady;
+        this.worldMinimap.setVisible(this.game.hudReady);
       },
       loadLevel: (roomId) => { this.loadLevel(roomId, 'down'); },
-      setHudVisible: (visible) => { this.hud.container.visible = visible; },
-      setMinimapVisible: (visible) => { this.worldMinimap.setVisible(visible); },
+      setHudVisible: (visible) => { this.hud.container.visible = visible && this.game.hudReady; },
+      setMinimapVisible: (visible) => { this.worldMinimap.setVisible(visible && this.game.hudReady); },
     });
 
     this.transitionController = new WorldTransitionController();
@@ -3481,9 +3486,12 @@ export class LdtkWorldScene extends Scene {
     if (level.identifier === 'Shaft_DemoEnd') {
       this.hud.container.visible = false;
       this.worldMinimap.setVisible(false);
-    } else if (this.game.hudReady) {
+    } else if (this.game.hudReady && !this.introHandoffRuntime.isHudSuppressed) {
       this.hud.container.visible = true;
       this.worldMinimap.setVisible(true);
+    } else {
+      this.hud.container.visible = false;
+      this.worldMinimap.setVisible(false);
     }
 
     // Settle player physics (gravity snap to floor) before camera snap

@@ -1,4 +1,4 @@
-﻿import { Container, Graphics, BitmapText, Text, Sprite } from 'pixi.js';
+import { Container, Graphics, BitmapText, Text, Sprite } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { PIXEL_FONT } from './fonts';
 import { t } from '@i18n';
@@ -172,7 +172,7 @@ export class HUD {
   private actionKeyBar: Container;
   private sideKeyBar: Container;
 
-  // [I]tem ??媛뺤“ ??泥??꾩씠?쒓퀎 ?대━?????뚮젅?댁뼱媛 ?몃깽?좊━瑜????뚭퉴吏 flask ? ?숈씪?섍쾶 ?꾩뒪.
+  // [I]tem ??강조 ??�??�이?�계 ?�리?????�레?�어가 ?�벤?�리�????�까지 flask ?� ?�일?�게 ?�스.
   private itemKeyIcon: Container | null = null;
   private itemKeyPulseGlow: Graphics;
   private itemKeyPulseTimer = 0;
@@ -290,6 +290,7 @@ export class HUD {
   constructor(uiScale = 1) {
     this.s = uiScale;
     this.container = new Container();
+    this.container.visible = false;
 
     // Pre-compute all scaled constants
     const s = uiScale;
@@ -309,7 +310,7 @@ export class HUD {
     this.BOSS_W = BASE_BOSS_W * s;
     this.BOSS_H = BASE_BOSS_H * s;
     this.BOSS_X = (this.SW - this.BOSS_W) / 2;
-    // 蹂댁뒪 諛붾? ?붾㈃ ?곷떒?쇰줈 ?대룞. BOSS_Y ?꾨옒??留됰?媛 洹몃젮吏怨?    // 蹂댁뒪 ?대쫫? BOSS_Y - 10*s ??諛곗튂?섎?濡?理쒖냼 10*s ???щ갚 ?꾩슂.
+    // 보스 바�? ?�면 ?�단?�로 ?�동. BOSS_Y ?�래??막�?가 그려지�?    // 보스 ?�름?� BOSS_Y - 10*s ??배치?��?�?최소 10*s ???�백 ?�요.
     this.BOSS_Y = 24 * s;
 
     // --- HP bar ---
@@ -479,7 +480,7 @@ export class HUD {
   }
 
   /**
-   * ?泥대젰 愿???쒓컖 ?④낵(Flask R pulse, glow, HP bar pulse, ?곕?吏 vignette)瑜?   * 利됱떆 珥덇린?? ?щ쭩 ??由ъ뒪???꾩씠?쒓퀎?먯꽌 ?붾뱶 蹂듦? ???몄텧?섏뿬 ?붿긽??   * ???꾨젅?꾧퉴吏 ?⑥? ?딅룄濡?蹂댁옣?쒕떎.
+   * ?�체력 관???�각 ?�과(Flask R pulse, glow, HP bar pulse, ?��?지 vignette)�?   * 즉시 초기?? ?�망 ??리스???�이?�계?�서 ?�드 복�? ???�출?�여 ?�상??   * ???�레?�까지 ?��? ?�도�?보장?�다.
    */
   resetLowHpEffects(): void {
     this.lowHpTimer = 0;
@@ -848,7 +849,7 @@ export class HUD {
     }
   }
 
-  /** [I]tem ??媛뺤“ on/off ??泥??꾩씠?쒓퀎 ?대━???좊룄 ??I ?낅젰源뚯?留?true. */
+  /** [I]tem ??강조 on/off ??�??�이?�계 ?�리???�도 ??I ?�력까�?�?true. */
   setItemKeyHighlight(active: boolean): void {
     this.itemKeyPulseActive = active;
     if (!active) {

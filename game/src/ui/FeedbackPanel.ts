@@ -1,12 +1,12 @@
 /**
- * FeedbackPanel — F-key in-game feedback channel for anonymous public testers.
+ * FeedbackPanel ??F-key in-game feedback channel for anonymous public testers.
  *
  * Owned by Game (single instance, mounted to legacyUIContainer). Active only
  * inside LdtkWorldScene / ItemWorldScene when the scene is not paused.
  *
  * Submission path:
- *   - Body text → Google Form (FeedbackSubmit, no-cors POST)
- *   - Counts/categories/meta → GA4 (trackFeedbackSubmitted)
+ *   - Body text ??Google Form (FeedbackSubmit, no-cors POST)
+ *   - Counts/categories/meta ??GA4 (trackFeedbackSubmitted)
  *   - User never sees the Google Form UI.
  *
  * IME safety: backed by a hidden HTMLTextAreaElement that owns input focus.
@@ -101,7 +101,7 @@ export class FeedbackPanel {
   private sendButtonHovered = false;
   private closeButtonBg!: Graphics;
   private closeButtonHovered = false;
-  private hintIndicator!: Container;
+  private hintIndicator: Container | null = null;
   private get hintDefault(): string { return t('ui.feedback.default_hint'); }
 
   // Bound listeners (so they can be removed cleanly).
@@ -119,27 +119,23 @@ export class FeedbackPanel {
 
     this.buildUI();
     this.buildHiddenInput();
-    this.buildHintIndicator();
-
-    // Global F key listener — fires regardless of scene focus state.
-    window.addEventListener('keydown', (e) => this.handleGlobalKey(e));
   }
 
   /** Persistent `[F] FEEDBACK` hint shown on HUD whenever F can open the panel. */
   private buildHintIndicator(): void {
     this.hintIndicator = new Container();
     // Mounted on the same overlay layer as the panel so it sits above HUD.
-    // Sibling of `this.container` — separate visibility from the panel itself.
+    // Sibling of `this.container` ??separate visibility from the panel itself.
     this.game.feedbackOverlayContainer.addChild(this.hintIndicator);
 
-    // KeyPrompt-style: [F] FEEDBACK — full pixel-sharp size, low alpha to stay
+    // KeyPrompt-style: [F] FEEDBACK ??full pixel-sharp size, low alpha to stay
     // present without competing with gameplay UI. Pixel fonts break at
     // fractional scales; keep scale at 1.0 and dim with alpha instead.
     const prompt = KeyPrompt.createPrompt('F', t('ui.feedback.hint_label'));
     this.hintIndicator.addChild(prompt);
     this.hintIndicator.alpha = 0.5;
 
-    // Right-middle placement — minimal gameplay-view obstruction.
+    // Right-middle placement ??minimal gameplay-view obstruction.
     this.hintIndicator.x = 640 - prompt.width - 6;
     this.hintIndicator.y = Math.floor((360 - prompt.height) / 2);
   }
@@ -241,7 +237,7 @@ export class FeedbackPanel {
       bg.on('pointerdown', () => {
         this.currentCategory = cat.value;
         this.refreshCategoryDisplay();
-        // Refocus textarea — click would otherwise blur it and break input.
+        // Refocus textarea ??click would otherwise blur it and break input.
         deferElementFocus(this.hiddenInput);
       });
       this.container.addChild(bg);
@@ -389,7 +385,7 @@ export class FeedbackPanel {
 
     // Re-acquire focus whenever the textarea blurs while the panel is open.
     // Mouse hover/clicks on Pixi canvas (game.input refocus, etc.) can
-    // silently yank focus to the canvas — without this listener, keyboard
+    // silently yank focus to the canvas ??without this listener, keyboard
     // input stops mid-typing.
     ta.addEventListener('blur', () => {
       if (!this.isOpen) return;
@@ -420,7 +416,7 @@ export class FeedbackPanel {
     this.isOpen = true;
     this.game.feedbackOpen = true;
     this.container.visible = true;
-    this.hintIndicator.visible = false;
+    if (this.hintIndicator) this.hintIndicator.visible = false;
     this.currentText = '';
     this.currentCategory = null;
     this.hiddenInput.value = '';
@@ -453,9 +449,9 @@ export class FeedbackPanel {
   // -------------------------------------------------------------------------
 
   update(dtMs: number): void {
-    // Hint indicator visibility — show only in gameplay scenes when panel closed.
+    // Hint indicator visibility ??show only in gameplay scenes when panel closed.
     if (this.hintIndicator) {
-      this.hintIndicator.visible = !this.isOpen && this.canOpenInCurrentScene();
+      this.hintIndicator.visible = false;
     }
 
     if (!this.isOpen) return;
@@ -477,29 +473,17 @@ export class FeedbackPanel {
   // Input handling
   // -------------------------------------------------------------------------
 
-  private handleGlobalKey(e: KeyboardEvent): void {
-    // Only F triggers open from outside. All other keys handled inside the
-    // hidden textarea (keydown listener) when panel is open.
-    if (e.key === 'f' || e.key === 'F') {
-      if (this.isOpen) return;
-      this.open();
-      // Prevent F from leaking into game (e.g. as a movement modifier).
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }
-
   private handleKeyDown(e: KeyboardEvent): void {
     if (!this.isOpen) return;
 
-    // Esc — close without submit (always works, even mid-IME).
+    // Esc ??close without submit (always works, even mid-IME).
     if (e.key === 'Escape') {
       this.close();
       e.preventDefault();
       return;
     }
 
-    // Tab — cycle category (always, regardless of cursor or input content).
+    // Tab ??cycle category (always, regardless of cursor or input content).
     // Default browser behavior would tab out of the textarea.
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -508,7 +492,7 @@ export class FeedbackPanel {
       return;
     }
 
-    // Enter — submit. Blocked during IME composition (Hangul completion press).
+    // Enter ??submit. Blocked during IME composition (Hangul completion press).
     if (e.key === 'Enter') {
       if (this.isComposing) return;
       e.preventDefault();
@@ -670,7 +654,7 @@ export class FeedbackPanel {
   private canOpenInCurrentScene(): boolean {
     // Use Game.hudReady as the authoritative "gameplay UI is ready" signal.
     // The previous `scene.constructor.name === 'LdtkWorldScene'` check broke in
-    // production builds where Vite/Rollup minifies class names — that is why
+    // production builds where Vite/Rollup minifies class names ??that is why
     // the [F] FEEDBACK hint disappeared on the live KO build.
     if (!this.game.hudReady) return false;
     const scene = this.game.sceneManager.active as { isPaused?: boolean } | null;
@@ -687,7 +671,7 @@ export class FeedbackPanel {
   }
 
   // -------------------------------------------------------------------------
-  // Toast helper — uses active scene's ToastManager if available.
+  // Toast helper ??uses active scene's ToastManager if available.
   // -------------------------------------------------------------------------
 
   private toast(msg: string, color: number, durationMs: number): void {

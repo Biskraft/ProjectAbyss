@@ -10,6 +10,7 @@ interface ItemWorldRoomSpawnRuntimeDeps {
   hasMemoryRoom: (col: number, absRow: number) => boolean;
   getRoomType: (col: number, absRow: number) => string;
   createSpawnContext: (col: number, absRow: number, isBossRoom: boolean) => ItemWorldEnemySpawnContext | null;
+  spawnAuthoredMonsters: (col: number, absRow: number) => number;
   spawnRoomRewards: (col: number, absRow: number) => void;
   spawnEncounter: (args: {
     col: number;
@@ -28,6 +29,8 @@ export class ItemWorldRoomSpawnRuntime {
     const grid = this.deps.getUnifiedGrid();
     const cell = grid.cells[absRow]?.[col];
     if (!cell) return;
+
+    if (this.deps.spawnAuthoredMonsters(col, absRow) > 0) return;
 
     if (cell.role === 'hub' || cell.role === 'shrine') {
       const isStartRoom = col === grid.startRoom.col && absRow === grid.startRoom.absoluteRow;

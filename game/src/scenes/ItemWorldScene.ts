@@ -932,6 +932,11 @@ export class ItemWorldScene extends Scene {
       hasMemoryRoom: (col, absRow) => this.memoryRoomPlacementRuntime.has(col, absRow),
       getRoomType: (col, absRow) => this.roomTypeRuntime.get(col, absRow),
       createSpawnContext: (col, absRow, isBossRoom) => this.enemySpawnRuntime.createContext(col, absRow, isBossRoom),
+      spawnAuthoredMonsters: (col, absRow) => {
+        const record = this.cellVisualRuntime.getRecord(col + ':' + absRow);
+        if (!record) return 0;
+        return this.enemySpawnRuntime.spawnAuthoredPrologueMonsters(record.ldtkLevel, col, absRow);
+      },
       spawnRoomRewards: (col, absRow) => this.roomRewardSpawner.spawnForRoom(col, absRow),
       spawnEncounter: (args) => this.enemyEncounterRuntime.spawnForRoom(args),
     });
@@ -1627,6 +1632,7 @@ export class ItemWorldScene extends Scene {
     this.container.addChild(this.fadeOverlay);
 
     // HUD
+    this.game.hudReady = true;
     this.hud = new HUD(this.game.uiScale);
     this.hud.setMinimapFrameVisible(false);
     this.hud.setDebugInfoVisible(Debug.infoVisible);

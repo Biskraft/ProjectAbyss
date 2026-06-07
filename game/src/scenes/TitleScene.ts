@@ -1,11 +1,11 @@
 /**
- * TitleScene.ts — Title screen with control preset selection.
+ * TitleScene.ts ??Title screen with control preset selection.
  *
  * Flow:
  *   1. Logo fade-in (1s)
- *   2. If saved preset exists → skip to step 3 after "PRESS ANY KEY"
- *      If no saved preset → show preset selection cards
- *   3. Fade-out (0.5s) → game start
+ *   2. If saved preset exists ??skip to step 3 after "PRESS ANY KEY"
+ *      If no saved preset ??show preset selection cards
+ *   3. Fade-out (0.5s) ??game start
  */
 
 import { Text, TextStyle, Sprite, Assets, Container, Graphics, BlurFilter } from 'pixi.js';
@@ -25,12 +25,12 @@ import { GP } from '@core/input/gamepadStandard';
 import { createLdtkSceneSaveAccess } from './shared/SceneSaveAccess';
 import { destroyDisplayObject } from './shared/DisplayObjectLifecycleHelpers';
 
-// Logo asset path — synced with ui-components.html §title-screen spec.
+// Logo asset path ??synced with ui-components.html §title-screen spec.
 // assets/ui/ui_title_01.png is the official ECHORIS title logo:
 // 640×289 indexed PNG, 2 colors (white #FEFFFF + transparent), finalized 2026-05-20.
 const LOGO_PATH = assetPath('assets/ui/ui_title_01.png');
 
-// Presentation palette — pure black per ui-components.html §title-screen.
+// Presentation palette ??pure black per ui-components.html §title-screen.
 // COL_TEAL retained because legacy KeyConfig screens still reference it.
 const COL_VOID = 0x000000;
 const COL_ACCENT = 0xffa41b;
@@ -51,14 +51,14 @@ export class TitleScene extends Scene {
 
   // Logo elements
   private hintText!: Text;
-  /** Outer bloom — wide, heavily blurred, additive. Reads as ambient haze. */
+  /** Outer bloom ??wide, heavily blurred, additive. Reads as ambient haze. */
   private pulseGfx!: Graphics;
-  /** Inner hot core — tighter blur, additive, brighter. Forge highlight. */
+  /** Inner hot core ??tighter blur, additive, brighter. Forge highlight. */
   private pulseHotCore!: Graphics;
   private accentLine!: Graphics;
-  /** "Gamepad Recommended" / "🎮 Gamepad Detected" 자막 — 50% alpha base. */
+  /** "Gamepad Recommended" / "?�� Gamepad Detected" ?�막 ??50% alpha base. */
   private gamepadHint!: Text;
-  /** gamepadconnected 후 자막 fade-swap 잔여 시간 (ms). 0 이면 base 상태. */
+  /** gamepadconnected ???�막 fade-swap ?�여 ?�간 (ms). 0 ?�면 base ?�태. */
   private gamepadHintSwapMs = 0;
 
   // Preset selection
@@ -66,7 +66,7 @@ export class TitleScene extends Scene {
   private presetIndex = 0;
   private presetCards: Container[] = [];
   private presetSelectHint!: Text;
-  /** "🎮 Gamepad detected — Press [Menu] to skip" 힌트. presets phase 에서 패드 감지 시 visible. */
+  /** "?�� Gamepad detected ??Press [Menu] to skip" ?�트. presets phase ?�서 ?�드 감�? ??visible. */
   private presetsPadHint!: Text;
   private presetsPadHintBg!: Graphics;
 
@@ -77,7 +77,7 @@ export class TitleScene extends Scene {
     super(game);
   }
 
-  /** gamepadconnected → 자막 1.5s fade swap ("🎮 Gamepad Detected"). */
+  /** gamepadconnected ???�막 1.5s fade swap ("?�� Gamepad Detected"). */
   private _onGamepadConnect = (): void => {
     if (this.gamepadHint) {
       this.gamepadHint.text = t('title.gamepad_detected');
@@ -93,20 +93,23 @@ export class TitleScene extends Scene {
     const cy = sh / 2;
 
     this.uiRoot = new Container();
+    this.uiRoot.label = 'TitleScene.uiRoot';
+    this.uiRoot.visible = false;
+    this.uiRoot.alpha = 0;
     this.game.uiContainer.addChild(this.uiRoot);
 
-    // Background — pure black stage (ui-components.html §title-screen).
+    // Background ??pure black stage (ui-components.html §title-screen).
     // No grid lines, no accent stripe: minimum elements per the spec.
     const bg = new Graphics();
     bg.rect(0, 0, sw, sh).fill(COL_VOID);
     this.uiRoot.addChild(bg);
 
-    // Pulse glow — only ambient element behind the logo.
+    // Pulse glow ??only ambient element behind the logo.
     //
     // Two stacked graphics so the bloom reads as "forge breathing":
-    //   pulseGfx     — outer haze. Wide blur (24), additive blend, 4 falloff
+    //   pulseGfx     ??outer haze. Wide blur (24), additive blend, 4 falloff
     //                  layers. Drives the soft orange halo around the logo.
-    //   pulseHotCore — inner hot spot. Tight blur (6), additive blend, near-
+    //   pulseHotCore ??inner hot spot. Tight blur (6), additive blend, near-
     //                  white centre. Gives the impression of an ember at the
     //                  middle of the bloom.
     // BlurFilter is set once and the graphics is redrawn each frame; Pixi v8
@@ -122,9 +125,9 @@ export class TitleScene extends Scene {
     this.pulseHotCore.blendMode = 'add';
     this.uiRoot.addChild(this.pulseHotCore);
 
-    // Logo — sized to leave room for SELECT CONTROLS label + 3 preset cards
+    // Logo ??sized to leave room for SELECT CONTROLS label + 3 preset cards
     // below it on the 360-px-tall canvas. Native PNG is 640×166; targeting
-    // 280 px logical width gives ~73 px height — fits comfortably in the
+    // 280 px logical width gives ~73 px height ??fits comfortably in the
     // top quarter of the screen.
     let logoLoaded = false;
     try {
@@ -132,7 +135,7 @@ export class TitleScene extends Scene {
       if (tex && tex.width > 1) {
         const logo = new Sprite(tex);
         logo.anchor.set(0.5);
-        const TARGET_LOGICAL_W = 380; // ≈ 59% of canvas; height ≈ 99 px
+        const TARGET_LOGICAL_W = 380; // ??59% of canvas; height ??99 px
         const baseScale = TARGET_LOGICAL_W / tex.width;
         logo.scale.set(baseScale * s);
         logo.x = cx;
@@ -143,7 +146,7 @@ export class TitleScene extends Scene {
     } catch { /* no logo */ }
 
     if (!logoLoaded) {
-      // ECHORIS is the proper-noun brand — never localized. Cinzel kept for EN
+      // ECHORIS is the proper-noun brand ??never localized. Cinzel kept for EN
       // and KO alike (Cinzel covers latin only; CJK fallback irrelevant here).
       const titleText = new Text({
         text: 'ECHORIS',
@@ -169,8 +172,8 @@ export class TitleScene extends Scene {
     this.accentLine.visible = false;
     this.uiRoot.addChild(this.accentLine);
 
-    // "Press Any Key or Button to Continue" hint + 키보드/패드 글리프
-    // (System_Input_Gamepad §8.1 Stage 1 — 키↔패드 동시 표기)
+    // "Press Any Key or Button to Continue" hint + ?�보???�드 글리프
+    // (System_Input_Gamepad §8.1 Stage 1 ???�↔?�드 ?�시 ?�기)
     this.hintText = new Text({
       text: t('title.press_any'),
       style: new TextStyle({
@@ -187,9 +190,9 @@ export class TitleScene extends Scene {
     this.hintText.visible = false;
     this.uiRoot.addChild(this.hintText);
 
-    // 자막 "🎮 Gamepad Recommended" — hint 아래, 50% alpha base.
-    // gamepadconnected 시 "🎮 Gamepad Detected" 로 1.5s fade swap.
-    // Pixi Text (canvas) 사용 — emoji 렌더 위해 BitmapText 회피.
+    // ?�막 "?�� Gamepad Recommended" ??hint ?�래, 50% alpha base.
+    // gamepadconnected ??"?�� Gamepad Detected" �?1.5s fade swap.
+    // Pixi Text (canvas) ?�용 ??emoji ?�더 ?�해 BitmapText ?�피.
     this.gamepadHint = new Text({
       text: t('title.gamepad_recommended'),
       style: new TextStyle({
@@ -207,10 +210,10 @@ export class TitleScene extends Scene {
     this.gamepadHint.visible = false;
     this.uiRoot.addChild(this.gamepadHint);
 
-    // gamepadconnected 발생 시 자막 fade swap (Stage 1 spec).
+    // gamepadconnected 발생 ???�막 fade swap (Stage 1 spec).
     window.addEventListener('gamepadconnected', this._onGamepadConnect);
 
-    // ── Preset selection container (hidden initially) ──
+    // ?�?� Preset selection container (hidden initially) ?�?�
     this.presetContainer = new Container();
     this.presetContainer.visible = false;
     this.uiRoot.addChild(this.presetContainer);
@@ -254,7 +257,7 @@ export class TitleScene extends Scene {
       cardPulse.label = 'pulse';
       card.addChild(cardPulse);
 
-      // Preset label — info.label is the preset's display name, not localized
+      // Preset label ??info.label is the preset's display name, not localized
       // (preset names like "Default" / "Vim" / "WASD" are short brands).
       const label = new Text({
         text: info.label,
@@ -338,8 +341,8 @@ export class TitleScene extends Scene {
     this.presetSelectHint.y = cy + 108 * s;
     this.presetContainer.addChild(this.presetSelectHint);
 
-    // Pad-detected skip hint — kb 로 cards 진입 후 패드 잡으면 visible.
-    // 명확히 보이도록 강한 알파(1.0) + accent color + bg pill.
+    // Pad-detected skip hint ??kb �?cards 진입 ???�드 ?�으�?visible.
+    // 명확??보이?�록 강한 ?�파(1.0) + accent color + bg pill.
     const PAD_HINT_W = 340 * s;
     const PAD_HINT_H = 22 * s;
     const padHintY = cy + 122 * s;
@@ -367,7 +370,7 @@ export class TitleScene extends Scene {
     this.presetsPadHint.visible = false;
     this.presetContainer.addChild(this.presetsPadHint);
 
-    // ── Confirm modal (hidden initially) ──
+    // ?�?� Confirm modal (hidden initially) ?�?�
     this.confirmModal = new Container();
     this.confirmModal.visible = false;
     this.uiRoot.addChild(this.confirmModal);
@@ -383,7 +386,7 @@ export class TitleScene extends Scene {
     this.confirmModal.addChild(modalBg);
 
     // Modal texts (created as placeholders, updated in showConfirmModal)
-    // Modal texts — using ui-components.html tokens only:
+    // Modal texts ??using ui-components.html tokens only:
     // FONT_TITLE=12px, FONT_BODY=10px, FONT_HINT=8px
     // TEXT_PRIMARY=#ffffff, TEXT_SECONDARY=#aaaaaa, TEXT_ACCENT=#00ced1
     const modalTitle = new Text({
@@ -416,7 +419,7 @@ export class TitleScene extends Scene {
   }
 
   enter(): void {
-    if (this.uiRoot) this.uiRoot.visible = true;
+    this.hideTitleUi();
     this.game.camera.snap(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.game.camera.target = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
     // Title screen never wants gameplay HUD or the [F] FEEDBACK hint visible.
@@ -431,7 +434,7 @@ export class TitleScene extends Scene {
     const cy = (GAME_HEIGHT / 2) * s;
     const input = this.game.input;
 
-    // Pulse glow — "distant ember breath". Two design choices keep this
+    // Pulse glow ??"distant ember breath". Two design choices keep this
     // present without burning the eye:
     //   1) NO white core. Pure forge-orange palette (b04020..ffaa50). White
     //      is what made the prior bloom feel like a flashbulb.
@@ -448,13 +451,13 @@ export class TitleScene extends Scene {
       const py = cy - 40 * s;
 
       this.pulseGfx.clear();
-      // Outer mist — deep dim ember at the edge, warming as it approaches centre.
+      // Outer mist ??deep dim ember at the edge, warming as it approaches centre.
       this.pulseGfx.circle(px, py, baseR * 1.85).fill({ color: 0x8a3a18, alpha: 0.022 * pulse });
       this.pulseGfx.circle(px, py, baseR * 1.35).fill({ color: 0xc0541e, alpha: 0.038 * pulse });
       this.pulseGfx.circle(px, py, baseR * 0.95).fill({ color: 0xffa41b, alpha: 0.055 * pulse });
 
       this.pulseHotCore.clear();
-      // Inner ember — small, gentle, no white. Just two orange steps.
+      // Inner ember ??small, gentle, no white. Just two orange steps.
       this.pulseHotCore.circle(px, py, baseR * 0.42).fill({ color: 0xff8a38, alpha: 0.095 * pulse });
       this.pulseHotCore.circle(px, py, baseR * 0.22).fill({ color: 0xffaa55, alpha: 0.135 * pulse });
     }
@@ -466,22 +469,23 @@ export class TitleScene extends Scene {
 
     switch (this.phase) {
       case 'logo':
-        // 1초 페이드 후 press-any-key 프롬프트 + 자막 표시. 입력 대기.
-        // 키보드 키 OR 패드 버튼 (setVirtualAction 으로 keyState 진입) 모두 anyKeyJustPressed 가 검출.
+        // 1�??�이????press-any-key ?�롬?�트 + ?�막 ?�시. ?�력 ?��?
+        // ?�보????OR ?�드 버튼 (setVirtualAction ?�로 keyState 진입) 모두 anyKeyJustPressed 가 검�?
         if (this.elapsed >= 1000) {
+          this.showTitleUi();
           this.hintText.visible = true;
           this.gamepadHint.visible = true;
           // hint blink
           this.hintText.alpha = 0.3 + Math.sin(this.elapsed / 500) * 0.4;
-          // 자막 alpha — base 0.5, swap 후 1.5s 동안 1.0 → 0.5 fade.
+          // ?�막 alpha ??base 0.5, swap ??1.5s ?�안 1.0 ??0.5 fade.
           if (this.gamepadHintSwapMs > 0) {
             this.gamepadHintSwapMs = Math.max(0, this.gamepadHintSwapMs - dt);
-            const t = 1 - this.gamepadHintSwapMs / 1500; // 0 → 1
-            this.gamepadHint.alpha = 1 - 0.5 * t; // 1.0 → 0.5
+            const t = 1 - this.gamepadHintSwapMs / 1500; // 0 ??1
+            this.gamepadHint.alpha = 1 - 0.5 * t; // 1.0 ??0.5
           } else {
             this.gamepadHint.alpha = 0.5;
           }
-          // Shift+P → 저장된 preset 강제 reset 후 cards 진입 (재선택 통로).
+          // Shift+P ???�?�된 preset 강제 reset ??cards 진입 (?�선???�로).
           if (input.shiftDown && input.isRawKeyJustPressed('KeyP')) {
             localStorage.removeItem('echoris-keybindings');
             this.hintText.visible = false;
@@ -493,17 +497,17 @@ export class TitleScene extends Scene {
             this.updatePresetCards();
             break;
           }
-          // 입력 시 분기 (Shift 단독 입력 무시).
-          //   - 패드로 입력 → fadeout (키보드 layout 무관).
-          //   - 키보드 + 저장된 preset → fadeout (재선택 안 함).
-          //   - 키보드 + 저장 없음 → presets phase (cards 표시).
-          // Shift+P 로만 재선택 가능 — 사용자 결정 2026-05-04.
+          // ?�력 ??분기 (Shift ?�독 ?�력 무시).
+          //   - ?�드�??�력 ??fadeout (?�보??layout 무�?).
+          //   - ?�보??+ ?�?�된 preset ??fadeout (?�선??????.
+          //   - ?�보??+ ?�???�음 ??presets phase (cards ?�시).
+          // Shift+P 로만 ?�선??가?????�용??결정 2026-05-04.
           if (input.anyKeyJustPressed()
             && !input.isRawKeyJustPressed('ShiftLeft')
             && !input.isRawKeyJustPressed('ShiftRight')) {
             this.hintText.visible = false;
             this.gamepadHint.visible = false;
-            // First user gesture → opportunistic fullscreen nudge. Must be
+            // First user gesture ??opportunistic fullscreen nudge. Must be
             // called from the same gesture frame so the browser accepts it.
             this.tryAutoFullscreen();
             if (getInputDevice() === 'gamepad' || input.hasSavedPreset()) {
@@ -522,7 +526,7 @@ export class TitleScene extends Scene {
       case 'presskey':
         // Blink hint
         this.hintText.alpha = 0.3 + Math.sin(this.elapsed / 500) * 0.4;
-        // Shift+P: reset saved preset → go to preset selection
+        // Shift+P: reset saved preset ??go to preset selection
         if (input.shiftDown && input.isRawKeyJustPressed('KeyP')) {
           localStorage.removeItem('echoris-keybindings');
           this.phase = 'presets';
@@ -539,10 +543,10 @@ export class TitleScene extends Scene {
         break;
 
       case 'presets':
-        // 패드 감지 시 명시적 hint 표시 — A=Select / B=Skip.
-        //   A (FACE_DOWN) = 표준 "확인" — confirm modal 진입 (kb Enter 와 동일 경로)
-        //   B (FACE_RIGHT) = 표준 "취소/뒤" — kb layout 선택 건너뛰고 바로 fadeout
-        // "Menu" 버튼은 처음 쓰는 사람이 모를 수 있어 face button 채택.
+        // ?�드 감�? ??명시??hint ?�시 ??A=Select / B=Skip.
+        //   A (FACE_DOWN) = ?��? "?�인" ??confirm modal 진입 (kb Enter ?� ?�일 경로)
+        //   B (FACE_RIGHT) = ?��? "취소/?? ??kb layout ?�택 건너?�고 바로 fadeout
+        // "Menu" 버튼?� 처음 ?�는 ?�람??모�? ???�어 face button 채택.
         {
           const padActive = getInputDevice() === 'gamepad';
           this.presetsPadHint.visible = padActive;
@@ -554,10 +558,10 @@ export class TitleScene extends Scene {
               this.startFadeOut();
               break;
             }
-            // A = confirm modal (아래 confirm 분기에서 isJustPressed(JUMP) 로 흡수됨).
+            // A = confirm modal (?�래 confirm 분기?�서 isJustPressed(JUMP) �??�수??.
           }
         }
-        // Navigate presets — kb raw 또는 패드 GameAction (LS/DPad → MOVE_LEFT/RIGHT).
+        // Navigate presets ??kb raw ?�는 ?�드 GameAction (LS/DPad ??MOVE_LEFT/RIGHT).
         if (input.isRawKeyJustPressed('ArrowLeft') || input.isRawKeyJustPressed('KeyA')
           || input.isJustPressed(GameAction.MOVE_LEFT)) {
           this.presetIndex = (this.presetIndex + PRESET_NAMES.length - 1) % PRESET_NAMES.length;
@@ -569,7 +573,7 @@ export class TitleScene extends Scene {
           this.updatePresetCards();
         }
         this.updatePresetPulse();
-        // Confirm — kb 또는 패드 A (= JUMP 매핑).
+        // Confirm ??kb ?�는 ?�드 A (= JUMP 매핑).
         if (input.isRawKeyJustPressed('Enter')
           || input.isRawKeyJustPressed('KeyC')
           || input.isRawKeyJustPressed('KeyZ')
@@ -581,7 +585,7 @@ export class TitleScene extends Scene {
         break;
 
       case 'confirm':
-        // Confirm — kb Enter/C/Z/Space/J 또는 패드 A (= JUMP).
+        // Confirm ??kb Enter/C/Z/Space/J ?�는 ?�드 A (= JUMP).
         if (input.isRawKeyJustPressed('Enter')
           || input.isRawKeyJustPressed('KeyC')
           || input.isRawKeyJustPressed('KeyZ')
@@ -592,7 +596,7 @@ export class TitleScene extends Scene {
           this.confirmModal.visible = false;
           this.startFadeOut();
         }
-        // Cancel/back — kb Esc 또는 패드 B (FACE_RIGHT, 표준 "뒤로/취소").
+        // Cancel/back ??kb Esc ?�는 ?�드 B (FACE_RIGHT, ?��? "?�로/취소").
         if (input.isRawKeyJustPressed('Escape') || this.game.gamepad.isButtonJustPressed(GP.FACE_RIGHT)) {
           this.confirmModal.visible = false;
           this.phase = 'presets';
@@ -637,7 +641,7 @@ export class TitleScene extends Scene {
       title.y = my + 8 * s;
     }
 
-    // Key summary — 2줄로 분리하여 박스 안에 맞춤
+    // Key summary ??2줄로 분리?�여 박스 ?�에 맞춤
     const keys = this.confirmModal.getChildByLabel('modal-keys') as Text;
     if (keys) {
       keys.text = t('title.modal_keys', {
@@ -648,7 +652,7 @@ export class TitleScene extends Scene {
       });
       keys.x = cx;
       keys.y = my + 30 * s;
-      // wordWrap으로 박스 초과 방지
+      // wordWrap?�로 박스 초과 방�?
       keys.style.wordWrap = true;
       keys.style.wordWrapWidth = (mw - 20 * s);
       keys.style.align = 'center';
@@ -667,9 +671,7 @@ export class TitleScene extends Scene {
     if (this.transitioning) return;
     this.transitioning = true;
     this.phase = 'fadeout';
-    this.hintText.visible = false;
-    this.presetContainer.visible = false;
-    this.uiRoot.visible = false;
+    this.hideTitleUi();
 
     const started = this.game.transitionDirector.startCoverSwapReveal({
       cover: 'black',
@@ -682,6 +684,23 @@ export class TitleScene extends Scene {
     }
   }
 
+  private showTitleUi(): void {
+    if (!this.uiRoot || this.phase === 'fadeout') return;
+    this.uiRoot.visible = true;
+    this.uiRoot.alpha = 1;
+  }
+
+  private hideTitleUi(): void {
+    if (this.hintText) this.hintText.visible = false;
+    if (this.gamepadHint) this.gamepadHint.visible = false;
+    if (this.presetContainer) this.presetContainer.visible = false;
+    if (this.confirmModal) this.confirmModal.visible = false;
+    if (this.uiRoot) {
+      this.uiRoot.visible = false;
+      this.uiRoot.alpha = 0;
+    }
+  }
+
   private updatePresetCards(): void {
     const s = this.game.uiScale;
     const cardW = 100 * s;
@@ -691,7 +710,7 @@ export class TitleScene extends Scene {
       const card = this.presetCards[i];
       const isSelected = i === this.presetIndex;
 
-      // Find and redraw background — selected uses canonical 4-layer base.
+      // Find and redraw background ??selected uses canonical 4-layer base.
       // SSoT: docs/ui-components.html#selection-state. Pulse layer is
       // animated per-frame in update() below.
       const bg = card.getChildByLabel('bg') as Graphics | null;
@@ -711,7 +730,7 @@ export class TitleScene extends Scene {
       const pulse = card.getChildByLabel('pulse') as Graphics | null;
       if (pulse && !isSelected) pulse.clear();
 
-      // Adjust label brightness — children: [bg, pulse, label, ...]
+      // Adjust label brightness ??children: [bg, pulse, label, ...]
       const label = card.children[2] as Text | undefined;
       if (label && label instanceof Text) {
         label.style.fill = isSelected ? COL_WHITE : COL_DIM;
@@ -738,9 +757,9 @@ export class TitleScene extends Scene {
   /**
    * Best-effort fullscreen entry on the first user gesture.
    *
-   *  - Skipped silently when the page is in an iframe (itch.io etc) — the
+   *  - Skipped silently when the page is in an iframe (itch.io etc) ??the
    *    host already provides a fullscreen control there.
-   *  - Already-fullscreen → no-op.
+   *  - Already-fullscreen ??no-op.
    *  - On rejection (browser denied / no permission) a small hint becomes
    *    visible on the title prompt suggesting the F shortcut from inside
    *    the game (PauseMenu manual toggle covers the rest).
@@ -752,7 +771,7 @@ export class TitleScene extends Scene {
     if (isInIframe() || isFullscreenActive()) return;
     requestFullscreenSafely().then((ok) => {
       if (!ok && this.hintText) {
-        // Surface a non-blocking hint — the scene is about to fade out, so
+        // Surface a non-blocking hint ??the scene is about to fade out, so
         // the hint may flash briefly. That's fine: the player saw enough
         // to recall the F key when they reopen the pause menu.
         this.hintText.text = t('title.fullscreen_hint');

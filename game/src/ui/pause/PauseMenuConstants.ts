@@ -12,7 +12,7 @@ import {
 } from '../ModalPanel';
 
 export const PANEL_W = 200;
-export const PANEL_H = 174;
+export const PANEL_H = 192;
 export const PANEL_X = Math.floor((GAME_WIDTH - PANEL_W) / 2);
 export const PANEL_Y = Math.floor((GAME_HEIGHT - PANEL_H) / 2);
 export const ITEM_START_Y = 36;
@@ -35,6 +35,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { labelKey: 'ui.pause.continue', action: 'continue' },
   { labelKey: 'ui.pause.settings', action: 'settings' },
   { labelKey: 'ui.pause.status', action: 'status' },
+  { labelKey: 'ui.pause.feedback', action: 'feedback' },
   { labelKey: 'ui.pause.quit_to_title', action: 'quit', color: COL_DANGER },
 ];
 

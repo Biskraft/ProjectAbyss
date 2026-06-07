@@ -76,9 +76,10 @@ export class WorldUiController {
   enter(options: EnterOptions): void {
     const { hud, getMinimap, fadeOverlay, worldMap, inventoryUI } = this.deps;
     const minimap = getMinimap();
+    const gameplayUiReady = this.game.hudReady;
 
     attachDisplayObjectIfMissing(this.game.uiContainer, hud.container);
-    hud.container.visible = true;
+    hud.container.visible = gameplayUiReady;
     hud.setGoldBelowMinimap(options.goldBelowMinimap);
     hud.resetLowHpEffects();
     hud.updateHP(options.playerHp, options.playerMaxHp);
@@ -86,7 +87,7 @@ export class WorldUiController {
 
     if (minimap) {
       attachDisplayObjectIfMissing(this.game.uiContainer, minimap);
-      minimap.visible = options.showMinimap;
+      minimap.visible = gameplayUiReady && options.showMinimap;
     }
 
     if (fadeOverlay && !fadeOverlay.parent) {

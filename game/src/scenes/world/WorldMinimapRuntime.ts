@@ -115,6 +115,7 @@ export class WorldMinimapRuntime {
     if (worldMap.length === 0) return;
 
     this.minimap = new Container();
+    this.minimap.visible = false;
     this.minimapDot = null;
     this.builderLayer = null;
 

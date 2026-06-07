@@ -64,12 +64,8 @@ export class WorldIntroHandoffRuntime {
   }
 
   applyInitialHudGate(hideHud: boolean): void {
-    if (hideHud) {
-      hideDisplayObject(this.hud?.container);
-      this.deps.game.hudReady = false;
-    } else {
-      this.deps.game.hudReady = true;
-    }
+    hideDisplayObject(this.hud?.container);
+    if (hideHud) this.deps.game.hudReady = false;
   }
 
   showOrQueueAreaTitle(title: string): void {
@@ -128,10 +124,7 @@ export class WorldIntroHandoffRuntime {
     if (this.introPhase === 'awaitingHud') {
       this.hudRevealTimer -= dt;
       if (this.hudRevealTimer <= 0) {
-        if (this.hud) this.hud.container.visible = true;
-        if (!this.deps.isInItemTunnel()) this.deps.setMinimapVisible(true);
         this.introPhase = 'done';
-        this.deps.game.hudReady = true;
       }
     }
 

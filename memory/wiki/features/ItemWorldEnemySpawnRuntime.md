@@ -11,6 +11,7 @@ Current responsibilities:
 - Register spawned enemies by setting room metadata, assigning `roomData`/target through shared spawn helpers, and registering via injected `addEnemy` callback that owns list/container attachment while this runtime increments `roomEnemyCount`.
 - Reuse the runtime-level `EnemySpawnInitializationDeps` adapter when calling `initializeEnemySpawnedEntity()` so position/grid/target initialization stays aligned with world spawns.
 - Enemy placement/grid/target setup goes through `Enemy.bindSpawnContext(...)` via the shared spawn helper; do not reintroduce direct helper-side `enemy.roomData = ...` writes.
+- `ItemStratum_Prologue_*` templates may use authored LDtk `Enemy_Spawn` or `MonsterSpawn` entities. These spawn before procedural encounter logic and are scoped to prologue templates only; normal Item World rooms still use the spawn table.
 
 Scene-owned boundaries:
 

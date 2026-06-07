@@ -14,3 +14,5 @@
 - 2026-06-06 prologue white transition timing: after Malsoja appears, `ItemWorldPrologueEndRuntime` fades to white, then the Chapter 1 handoff enters `WorldPrologueEndRuntime` with a 2000ms white hold, 2500ms white-in, and a long 10000ms 0.1 -> 1.0 zoom. The scene mutation remains under `TransitionDirector`; the post-swap white-in is a cinematic overlay so the camera can move while white fades out.
 - Legacy `PortalTransition` still owns its colored signal/wipe visual, but its final scene push is handed off under a director-owned rarity-colored cover.
 - Do not add new C2 fade overlays or local fade state machines. Route content swaps through `Game.transitionDirector`.
+
+- 2026-06-07 startup UI follow-up: SceneManager.replace() must not hide global UI containers (uiContainer, legacyUIContainer, eedbackOverlayContainer) during director-covered swaps. TransitionDirector owns the cover layer; scene/UI visibility should remain scene-owned to avoid post-transition UI disappearance.

@@ -2,6 +2,7 @@ import type { Player } from '@entities/Player';
 import type { Enemy } from '@entities/Enemy';
 import { initializeEnemySpawnedEntity, type EnemySpawnInitializationDeps } from '@scenes/shared/EnemySpawnHelpers';
 import { setEnemyRoomKey } from '@entities/EnemyMetadata';
+import type { LdtkLevel } from '@level/LdtkLoader';
 import {
   IW_ROOM_H_PX,
   IW_ROOM_W_PX,
@@ -76,9 +77,54 @@ export class ItemWorldEnemySpawnRuntime {
     this.trackEnemy(enemy, roomKey);
   }
 
+  spawnAuthoredPrologueMonsters(level: LdtkLevel, col: number, absRow: number): number {
+    if (!level.identifier.startsWith('ItemStratum_Prologue_')) return 0;
+
+    const roomKey = `${col},${absRow}`;
+    const offX = col * IW_ROOM_W_PX;
+    const offY = absRow * IW_ROOM_H_PX;
+    let spawned = 0;
+
+    for (const entity of level.entities) {
+      const entityType = entity.type.toLowerCase();
+      if (entityType !== 'monsterspawn' && entityType !== 'enemy_spawn') continue;
+
+      const enemyType = this.stringField(entity.fields, ['MonsterType', 'monsterType', 'EnemyType', 'enemyType', 'type', 'Type']) ?? 'Skeleton';
+      const enemyLevel = this.numberField(entity.fields, ['Level', 'level']) ?? 1;
+      const enemy = this.deps.getSpawnController().createEnemyFromType(enemyType, enemyLevel);
+      this.spawnAt(enemy, roomKey, {
+        x: offX + entity.px[0],
+        y: offY + entity.px[1] - enemy.height,
+      });
+      spawned++;
+    }
+
+    return spawned;
+  }
+
   private trackEnemy(enemy: Enemy<string>, roomKey: string): void {
     setEnemyRoomKey(enemy, roomKey);
     const roomEnemyCount = this.deps.getRoomEnemyCount();
     roomEnemyCount.set(roomKey, (roomEnemyCount.get(roomKey) ?? 0) + 1);
+  }
+
+  private stringField(fields: Record<string, unknown>, names: string[]): string | null {
+    for (const name of names) {
+      const value = fields[name];
+      if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+    }
+    return null;
+  }
+
+  private numberField(fields: Record<string, unknown>, names: string[]): number | null {
+    for (const name of names) {
+      const value = fields[name];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim().length > 0) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+    return null;
   }
 }
