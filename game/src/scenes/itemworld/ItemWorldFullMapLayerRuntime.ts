@@ -21,6 +21,7 @@ interface RebuildOptions {
   bgPaletteFilter: PaletteSwapFilter;
   wallPaletteFilter: PaletteSwapFilter;
   naturalPaletteFilter: PaletteSwapFilter;
+  interiorPaletteFilter: PaletteSwapFilter;
   depthRatio: number;
 }
 
@@ -64,6 +65,7 @@ export class ItemWorldFullMapLayerRuntime {
     fullMapContainer.addChild(sealAggregate);
 
     bgAggregate.filters = [options.bgPaletteFilter];
+    interiorAggregate.filters = [options.interiorPaletteFilter];
     const wallFilters: Filter[] = [options.wallPaletteFilter];
     wallFilters.push(new RimLightFilter({ color: 0xff6633, alpha: 0.8, thickness: 2, topGuardPixels: 16, direction: 'bottom' }));
     wallAggregate.filters = wallFilters;
@@ -73,7 +75,7 @@ export class ItemWorldFullMapLayerRuntime {
     shadowAggregate.filters = [options.wallPaletteFilter];
     sealAggregate.filters = [options.wallPaletteFilter];
 
-    this.applyDepthTransform(options.bgPaletteFilter, options.wallPaletteFilter, options.depthRatio);
+    this.applyDepthTransform(options.bgPaletteFilter, options.wallPaletteFilter, options.interiorPaletteFilter, options.depthRatio);
 
     bgAggregate.cullableChildren = true;
     interiorAggregate.cullableChildren = true;
@@ -119,6 +121,7 @@ export class ItemWorldFullMapLayerRuntime {
   private applyDepthTransform(
     bgPaletteFilter: PaletteSwapFilter,
     wallPaletteFilter: PaletteSwapFilter,
+    interiorPaletteFilter: PaletteSwapFilter,
     depthRatio: number,
   ): void {
     bgPaletteFilter.setBrightness(
@@ -127,8 +130,14 @@ export class ItemWorldFullMapLayerRuntime {
     wallPaletteFilter.setBrightness(
       wallPaletteFilter.getBrightness() * (1.0 - depthRatio * 0.25),
     );
+    interiorPaletteFilter.setBrightness(
+      interiorPaletteFilter.getBrightness() * (1.0 - depthRatio * 0.3),
+    );
     bgPaletteFilter.setDepthBias(
       bgPaletteFilter.getDepthBias() + depthRatio * 0.15,
+    );
+    interiorPaletteFilter.setDepthBias(
+      interiorPaletteFilter.getDepthBias() + depthRatio * 0.15,
     );
   }
 

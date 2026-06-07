@@ -77,7 +77,7 @@ export function applyProjectilePlayerHitFeedback(input: ApplyProjectilePlayerHit
   const rawDamage = projectile.atk - player.def * 0.5;
   const dmg = Math.max(1, floorDamage ? Math.floor(rawDamage) : rawDamage);
 
-  player.onHit(dir * 80, -40, 150);
+  player.onHit(dir * 320, -160, 150);
   if (setLastDamageSource) player.lastDamageSource = 'projectile';
   player.hp -= dmg;
   if (flashHud) hud.flashDamage();

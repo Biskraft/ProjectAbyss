@@ -25,7 +25,7 @@
 
 ---
 
-## 3. CSV 스펙 (제안, 승인 대기)
+## 3. CSV 스펙 (확정 — `Content_Stats_Enemy.csv` · `Content_Enemy.csv` 등재 완료)
 
 ```
 CinderImp,1,18,4,0,200,16,55,600,2,25,ground,

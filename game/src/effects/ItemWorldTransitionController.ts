@@ -1,4 +1,4 @@
-import { Container } from 'pixi.js';
+﻿import { Container } from 'pixi.js';
 import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../Game';
 import type { Player } from '@entities/Player';
 import { PORTAL_COLOR } from '@entities/Portal';
@@ -9,6 +9,7 @@ import { RealityPeelingEffect } from '@effects/RealityPeelingEffect';
 import { TransitionOverlay } from '@effects/TransitionOverlay';
 import { BgmController } from '@audio/BgmController';
 import { clampEffect01 } from './EffectNumeric';
+import { TransitionTokens } from './TransitionDirector';
 
 export type ItemWorldTransitionState =
   | 'idle'
@@ -46,7 +47,7 @@ const PEEL_END = 1450;
 const ECHO_SPAWN_END = 2350;
 const ECHO_WALK_END = 3750;
 const SIGNAL_CUT_END = 4750;
-/** 진입 직전 추가 black hold 500ms — IW scene 활성화 전 시각적 buffer. */
+/** 吏꾩엯 吏곸쟾 異붽? black hold 500ms ??IW scene ?쒖꽦?????쒓컖??buffer. */
 const FADE_OUT_HOLD_END = 5250;
 
 export class ItemWorldTransitionController {
@@ -58,6 +59,7 @@ export class ItemWorldTransitionController {
   private ring: PortalRingEffect | null = null;
   private overlay: TransitionOverlay | null = null;
   private completed = false;
+  private directorStarted = false;
   private readonly originalPlayerAlpha: number;
   private isolatedEntities: Array<{ child: Container; alpha: number; visible: boolean }> = [];
 
@@ -70,6 +72,7 @@ export class ItemWorldTransitionController {
     this.target = target;
     this.elapsed = 0;
     this.completed = false;
+    this.directorStarted = false;
     this.state = 'activate';
     this.deps.game.input.inputLocked = true;
     this.deps.player.vx = 0;
@@ -95,8 +98,8 @@ export class ItemWorldTransitionController {
     this.deps.game.hitstopFrames += 4;
     this.deps.game.camera.shake(2);
 
-    // "낮은 기계음만 유지" — World BGM 을 0.25 까지 빠르게 dim. ItemWorldScene.enter
-    // 가 outro fade 로 마무리하므로 dim 은 transition 기간 한정.
+    // "??? 湲곌퀎?뚮쭔 ?좎?" ??World BGM ??0.25 源뚯? 鍮좊Ⅴ寃?dim. ItemWorldScene.enter
+    // 媛 outro fade 濡?留덈Т由ы븯誘濡?dim ? transition 湲곌컙 ?쒖젙.
     BgmController.setVolumeFactor(0.25, 400);
   }
 
@@ -165,12 +168,24 @@ export class ItemWorldTransitionController {
     }
 
     if (this.elapsed < FADE_OUT_HOLD_END) {
-      // 진입 fade-out hold — 화면 완전 검은색 유지. scanline/noise/ring 모두 비워
-      // 시각 정보를 0 으로 만들고 IW scene 활성화 직전 buffer.
+      // 吏꾩엯 fade-out hold ???붾㈃ ?꾩쟾 寃????좎?. scanline/noise/ring 紐⑤몢 鍮꾩썙
+      // ?쒓컖 ?뺣낫瑜?0 ?쇰줈 留뚮뱾怨?IW scene ?쒖꽦??吏곸쟾 buffer.
       this.state = 'fade_out_hold';
       this.echo?.hide();
       this.fadeIsolatedTarget(1);
       this.overlay?.holdBlack();
+      if (!this.directorStarted) {
+        this.directorStarted = true;
+        this.deps.game.transitionDirector.startCoverSwapReveal({
+          cover: 'black',
+          startCovered: true,
+          durationOutMs: 0,
+          durationInMs: 0,
+          holdFrames: 1,
+          holdMs: FADE_OUT_HOLD_END - SIGNAL_CUT_END,
+          onSwap: () => this.complete(),
+        });
+      }
       return;
     }
 
@@ -201,8 +216,8 @@ export class ItemWorldTransitionController {
     this.overlay = null;
     this.target = null;
     this.state = 'complete';
-    // BGM dim 복귀 — 정상 종료 직후엔 ItemWorldScene.enter 가 stop 하므로 무해.
-    // 취소(abort) 경로에서는 World BGM 이 살아있으니 즉시 풀 볼륨 복귀.
+    // BGM dim 蹂듦? ???뺤긽 醫낅즺 吏곹썑??ItemWorldScene.enter 媛 stop ?섎?濡?臾댄빐.
+    // 痍⑥냼(abort) 寃쎈줈?먯꽌??World BGM ???댁븘?덉쑝??利됱떆 ? 蹂쇰ⅷ 蹂듦?.
     BgmController.setVolumeFactor(1, 200);
   }
 
@@ -238,3 +253,4 @@ export class ItemWorldTransitionController {
     this.isolatedEntities = [];
   }
 }
+

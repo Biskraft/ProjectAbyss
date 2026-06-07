@@ -44,6 +44,12 @@ Prefer appending concise updates to an existing relevant page. Create a new page
 - Document prevention rules explicitly, for example: "Do not add game UI text without `Sheets/Content_Localization.csv` keys."
 - Avoid duplicating existing notes. Link or reference the prior decision instead.
 
+## Narrative worktree (로어·배경 스토리)
+
+- **작업장:** `Documents/Narrative/` — `Idea_Lore_*`, `Idea_WorldBuilding.md`, `Narrative_SSOT.md`, `AGENTS.md`.
+- 내러티브 전용 에이전트는 **이 경로만** 쓰기. `game/`, `Sheets/`, `memory/wiki/` 는 내러티브 세션에서 수정하지 않음.
+- 구 경로 `Documents/Idea/` 는 이전 완료(리다이렉트만 유지).
+
 ## High-Priority Current Context
 
 - `DEC-036`: 📦 narrative-system 통합 결정 archived 2026-05-28 → `Documents/Terms/_archive/NarrativeWorldReset_2026-05-28/`.
@@ -59,4 +65,8 @@ Prefer appending concise updates to an existing relevant page. Create a new page
 
 - For code changes, run the narrowest meaningful check first, then broaden when the change touches shared systems.
 - For game/data changes, prefer `npm run build` from `game/` when feasible because it runs CSV generation and validation before TypeScript and Vite build.
+- Do not run Playwright unless the user explicitly asks for it. It is visual/gameplay validation and has a higher coordination cost.
+- Prefer `npm run build` for changes touching shared systems, scene runtimes, data/CSV generation, or import wiring.
+- Prefer `npx tsc --noEmit` as the minimum check for TypeScript logic changes.
+- It is acceptable to skip validation for simple numeric tuning, text/wiki-only edits, or an obviously mechanical one-line change.
 - If a relevant check cannot be run, state that clearly in the final response.

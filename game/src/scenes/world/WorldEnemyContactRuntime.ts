@@ -6,6 +6,7 @@ import type { HUD } from '@ui/HUD';
 import type { DamageNumberManager } from '@ui/DamageNumber';
 import type { HitSparkManager } from '@effects/HitSpark';
 import { applyEnemyContactDamageForPlayer } from '@scenes/shared/EnemyContactDamageHelpers';
+import { applyEnemyMeleeAttackDamageForPlayer } from '@scenes/shared/EnemyMeleeAttackDamageHelpers';
 
 interface WorldEnemyContactRuntimeDeps {
   game: Game;
@@ -21,6 +22,14 @@ export class WorldEnemyContactRuntime {
   constructor(private readonly deps: WorldEnemyContactRuntimeDeps) {}
 
   update(): void {
+    applyEnemyMeleeAttackDamageForPlayer({
+      player: this.deps.getPlayer(),
+      enemies: this.deps.getEnemies(),
+      game: this.deps.game,
+      hitSparks: this.deps.getHitSparks(),
+      screenFlash: this.deps.getScreenFlash(),
+      isMeleeAttacking: enemy => enemy.isAttackActive?.() ?? false,
+    });
     applyEnemyContactDamageForPlayer({
       player: this.deps.getPlayer(),
       enemies: this.deps.getEnemies(),

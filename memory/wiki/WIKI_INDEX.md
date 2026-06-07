@@ -2,6 +2,7 @@
 
 ## Decisions
 
+- [DEC-048-World-Truth-Triangulation](decisions/DEC-048-World-Truth-Triangulation.md)
 - [DEC-047-Tone-Solitude-Over-CosmicHorror](decisions/DEC-047-Tone-Solitude-Over-CosmicHorror.md)
 - [DEC-046-Bonded-Subfaction](decisions/DEC-046-Bonded-Subfaction.md)
 - [DEC-045-Monster-Roster-Volume](decisions/DEC-045-Monster-Roster-Volume.md)
@@ -218,6 +219,7 @@
 - [WorldCrackedFloorRegistry](features/WorldCrackedFloorRegistry.md)
 - [WorldCrackedFloorRuntime](features/WorldCrackedFloorRuntime.md)
 - [WorldDebugWarpRuntime](features/WorldDebugWarpRuntime.md)
+- [WorldFallingHazardRuntime](features/WorldFallingHazardRuntime.md)
 - [WorldDeployBlurRuntime](features/WorldDeployBlurRuntime.md)
 - [WorldDialogueTriggerRuntime](features/WorldDialogueTriggerRuntime.md)
 - [WorldDoorAttackState](features/WorldDoorAttackState.md)
@@ -296,7 +298,7 @@
 - [WorldTileMutationRuntime](features/WorldTileMutationRuntime.md)
 - [WorldTileHazardRuntime](features/WorldTileHazardRuntime.md)
 - [WorldTransitionController](features/WorldTransitionController.md)
-- [TransitionFadeHelpers](features/TransitionFadeHelpers.md)
+- [TransitionDirector](features/TransitionDirector.md)
 - [WorldTransitionHelpers](features/WorldTransitionHelpers.md)
 - [WorldTutorialHintRuntime](features/WorldTutorialHintRuntime.md)
 - [WorldUiController](features/WorldUiController.md)
@@ -327,5 +329,8 @@
 - [2026-06-04](daily/2026-06-04.md)
 - [2026-06-05](daily/2026-06-05.md)
 - [2026-06-06](daily/2026-06-06.md)
+- [2026-06-07](daily/2026-06-07.md)
 - [2026-06-08](daily/2026-06-08.md)
 - [WorldPrologueEndRuntime](features/WorldPrologueEndRuntime.md)
+
+

@@ -77,6 +77,14 @@ export class ItemWorldGhostStreamRuntime {
     this.streamStartPoint = null;
   }
 
+  getVisualTargets(): Container[] {
+    if (!this.ghostOverlay) return [];
+    return [
+      this.ghostOverlay.container,
+      this.ghostOverlay.itemContainer,
+    ];
+  }
+
   scheduleForTunnel(
     x: number,
     y: number,

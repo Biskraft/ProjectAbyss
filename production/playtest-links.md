@@ -82,7 +82,7 @@ https://echoris.io/play?dev=1
 | GA4 속성 | `G-GECC9GCRHG` (Google Analytics 콘솔에서 검색) |
 | GA4 DebugView | GA4 콘솔 → Admin → DebugView (개발 중 실시간 확인) |
 | GA4 Realtime | GA4 콘솔 → Reports → Realtime |
-| Playtest 대시보드 (정적) | `dashboard.html` 프로젝트 루트 (Chart.js 기반, 수동 갱신) |
+| Playtest 대시보드 (정적) | `production/dashboard.html` (Chart.js 기반, 수동 갱신) |
 | Funnel Exploration | GA4 → Explore → Funnel exploration (직접 작성 필요) |
 
 ---

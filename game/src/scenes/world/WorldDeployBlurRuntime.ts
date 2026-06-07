@@ -16,6 +16,7 @@ export class WorldDeployBlurRuntime {
   private filter: BlurFilter | null = null;
   private active = false;
   private elapsedMs = 0;
+  private readonly appliedTargets = new Set<Container>();
 
   constructor(private readonly deps: WorldDeployBlurRuntimeDeps) {}
 
@@ -27,9 +28,9 @@ export class WorldDeployBlurRuntime {
       if (!this.active) {
         this.elapsedMs = 0;
         this.filter.strength = 0;
-        this.setOnTargets(true);
         this.active = true;
       }
+      this.syncTargets();
       this.elapsedMs += dt;
       const t = getProgress01(this.elapsedMs, DEPLOY_BLUR_RAMP_MS);
       const eased = t * t * (3 - 2 * t);
@@ -60,12 +61,32 @@ export class WorldDeployBlurRuntime {
     const blur = this.filter;
     if (!blur) return;
 
-    for (const target of this.deps.getTargets()) {
+    const targets = active ? this.deps.getTargets() : [...this.appliedTargets];
+    for (const target of targets) {
       if (active) {
         appendFilterIfMissing(target, blur);
+        this.appliedTargets.add(target);
       } else {
         removeFilterAndClearIfEmpty(target, blur);
+        this.appliedTargets.delete(target);
       }
+    }
+  }
+
+  private syncTargets(): void {
+    const blur = this.filter;
+    if (!blur) return;
+
+    const currentTargets = new Set(this.deps.getTargets());
+    for (const target of currentTargets) {
+      appendFilterIfMissing(target, blur);
+      this.appliedTargets.add(target);
+    }
+
+    for (const target of [...this.appliedTargets]) {
+      if (currentTargets.has(target)) continue;
+      removeFilterAndClearIfEmpty(target, blur);
+      this.appliedTargets.delete(target);
     }
   }
 }

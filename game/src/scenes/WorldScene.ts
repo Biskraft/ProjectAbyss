@@ -12,7 +12,7 @@ import { Player } from '@entities/Player';
 import { Skeleton } from '@entities/Skeleton';
 import { GoldenMonster } from '@entities/GoldenMonster';
 import { Projectile } from '@entities/Projectile';
-import { Portal, type PortalSourceType } from '@entities/Portal';
+import { Portal, PORTAL_COLOR, type PortalSourceType } from '@entities/Portal';
 import { Altar } from '@entities/Altar';
 import { HitManager, BASE_HITBOX_W } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
@@ -71,8 +71,8 @@ import {
 } from '@scenes/shared/MovementVfxHelpers';
 import {
   findDoorTransitionCandidate,
-  stepLegacyWorldTransition,
 } from '@scenes/shared/WorldTransitionHelpers';
+import { TransitionTokens } from '@effects/TransitionDirector';
 import { drawLegacyWorldMiniMap } from '@scenes/shared/WorldMiniMapHelpers';
 import { tryHitPlayerWithProjectile } from '@scenes/shared/ProjectileCollisionHelpers';
 import {
@@ -167,7 +167,6 @@ export class WorldScene extends Scene {
   private transitionState: TransitionState = 'none';
   private transitionTimer = 0;
   private pendingDirection: 'left' | 'right' | 'up' | 'down' | null = null;
-  private fadeOverlay!: Graphics;
   private doorTriggers: ReturnType<typeof getDoorTriggers> = [];
 
   // Door markers
@@ -259,12 +258,6 @@ export class WorldScene extends Scene {
     this.player = new Player(this.game);
     this.entityLayer.addChild(this.player.container);
     this.updatePlayerAtk();
-
-    // Fade overlay
-    this.fadeOverlay = new Graphics();
-    this.fadeOverlay.rect(0, 0, ROOM_W * TILE_SIZE, ROOM_H * TILE_SIZE).fill(0x000000);
-    this.fadeOverlay.alpha = 0;
-    this.container.addChild(this.fadeOverlay);
 
     // Mini-map
     this.miniMapContainer = new Container();
@@ -537,7 +530,15 @@ export class WorldScene extends Scene {
       this.portalTransition.update(dt);
       this.game.camera.update(dt);
       if (this.portalTransition.isDone) {
-        this.completePendingPortalEntry();
+        const started = this.game.transitionDirector.startCoverSwapReveal({
+          cover: 'black',
+          startCovered: true,
+          durationOutMs: 0,
+          durationInMs: 0,
+          holdFrames: 1,
+          onSwap: () => this.completePendingPortalEntry(),
+        });
+        if (!started) this.completePendingPortalEntry();
       }
       return;
     }
@@ -1023,25 +1024,23 @@ export class WorldScene extends Scene {
     this.pendingDirection = transition.direction;
     this.currentCol = transition.nextCol;
     this.currentRow = transition.nextRow;
+    this.game.transitionDirector.startCoverSwapReveal({
+      cover: 'black',
+      durationOutMs: TransitionTokens.ROOM_SWAP,
+      durationInMs: TransitionTokens.ROOM_SWAP,
+      onSwap: () => {
+        if (this.pendingDirection) this.loadRoom(this.pendingDirection);
+      },
+      onComplete: () => {
+        this.transitionState = 'none';
+        this.transitionTimer = 0;
+        this.pendingDirection = null;
+      },
+    });
   }
 
   private updateTransition(dt: number): void {
-    const transition = stepLegacyWorldTransition({
-      state: this.transitionState,
-      timer: this.transitionTimer,
-      pendingDirection: this.pendingDirection,
-      dtMs: dt,
-      durationMs: FADE_DURATION,
-    });
-
-    if (transition.loadDirection) {
-      this.loadRoom(transition.loadDirection);
-    }
-
-    this.transitionState = transition.state;
-    this.transitionTimer = transition.timer;
-    this.pendingDirection = transition.pendingDirection;
-    this.fadeOverlay.alpha = transition.fadeAlpha;
+    this.transitionTimer += dt;
   }
 
   render(alpha: number): void {
@@ -1062,4 +1061,5 @@ export class WorldScene extends Scene {
   }
 
 }
+
 

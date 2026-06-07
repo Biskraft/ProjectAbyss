@@ -1,7 +1,17 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-04-21
-> 총 58개 리서치 문서
+> 최근 업데이트: 2026-06-06
+> 총 59개 리서치 문서
+
+---
+
+## 내러티브·심리·권력 (3)
+
+| 문서 | 핵심 인사이트 |
+|:-----|:-----|
+| **Research_PowerExchange_FalseFaith** (RES-PWX-01) | 『アイル』·50 Shades·나나카오루 → 거짓 신앙·계약·복종=해방 전복; 본편 비성적 차용 |
+| **Research_Freud_AnalStage** (RES-PSY-01) | 보유/배출·정돈성 → 도면·에코·등재 은유 |
+| **Research_BDSM_Sexuality_Deep** (RES-BDSM-01) | 성욕 분류·Medical·야외 노출·8가지 BDSM 틀·7세력 시그니처·클론 방지 |
 
 ---
 

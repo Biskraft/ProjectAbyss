@@ -1,3 +1,4 @@
+import { aabbOverlap } from '@core/Physics';
 import type { Enemy } from '@entities/Enemy';
 import type { Player } from '@entities/Player';
 import type { HitSparkManager } from '@effects/HitSpark';
@@ -26,13 +27,21 @@ export function applyEnemyMeleeAttackDamageForPlayer(input: ApplyEnemyMeleeAttac
     if (!input.isMeleeAttacking(enemy)) continue;
     if (player.invincible || player.hp <= 0) continue;
 
-    const dx = Math.abs((enemy.x + enemy.width / 2) - (player.x + player.width / 2));
-    const dy = Math.abs((enemy.y + enemy.height / 2) - (player.y + player.height / 2));
-    if (dx >= enemy.width + player.width || dy >= Math.max(enemy.height, player.height)) continue;
+    const attackBox = enemy.getAttackAABB?.() ?? null;
+    if (attackBox) {
+      if (!aabbOverlap(
+        attackBox,
+        { x: player.x, y: player.y, width: player.width, height: player.height },
+      )) continue;
+    } else {
+      const dx = Math.abs((enemy.x + enemy.width / 2) - (player.x + player.width / 2));
+      const dy = Math.abs((enemy.y + enemy.height / 2) - (player.y + player.height / 2));
+      if (dx >= enemy.width + player.width || dy >= Math.max(enemy.height, player.height)) continue;
+    }
 
     const dir = enemy.facingRight ? 1 : -1;
     const dmg = Math.max(1, enemy.atk - player.def * 0.5);
-    player.onHit(dir * 100, -50, 200);
+    player.onHit(dir * 400, -200, 200);
     player.hp -= dmg;
     player.invincible = true;
     player.invincibleTimer = 1000;

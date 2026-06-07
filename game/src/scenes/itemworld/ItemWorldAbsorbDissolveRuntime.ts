@@ -35,6 +35,7 @@ export class ItemWorldAbsorbDissolveRuntime {
   private absorbFilter: ColorMatrixFilter | null = null;
   private absorbTimer = 0;
   private pullInTransition: WorldPullInTransitionController | null = null;
+  private directorHandoffStarted = false;
 
   constructor(private readonly deps: ItemWorldAbsorbDissolveRuntimeDeps) {}
 
@@ -49,6 +50,7 @@ export class ItemWorldAbsorbDissolveRuntime {
   start(): void {
     this.state = 'absorbing';
     this.absorbTimer = 0;
+    this.directorHandoffStarted = false;
     this.applyAbsorbFilter();
   }
 
@@ -62,8 +64,12 @@ export class ItemWorldAbsorbDissolveRuntime {
     }
 
     if (this.state !== 'dissolving') return;
-    if (!this.pullInTransition || this.pullInTransition.update(dt)) {
+    if (!this.pullInTransition) {
       this.finishDissolve();
+      return;
+    }
+    if (this.pullInTransition.update(dt)) {
+      this.finishDissolveUnderCover();
     }
   }
 
@@ -73,6 +79,7 @@ export class ItemWorldAbsorbDissolveRuntime {
       this.removeAbsorbFilter();
       this.state = 'none';
       this.absorbTimer = 0;
+      this.directorHandoffStarted = false;
     }
   }
 
@@ -109,6 +116,7 @@ export class ItemWorldAbsorbDissolveRuntime {
 
   private startDissolve(): void {
     this.state = 'dissolving';
+    this.directorHandoffStarted = false;
     this.cleanupPullIn(true);
 
     const transition = this.createPullInTransition();
@@ -138,7 +146,22 @@ export class ItemWorldAbsorbDissolveRuntime {
     this.promoteTrapdoorFallback();
     this.cleanupPullIn(false);
     this.state = 'none';
+    this.directorHandoffStarted = false;
     this.deps.onComplete();
+  }
+
+  private finishDissolveUnderCover(): void {
+    if (this.directorHandoffStarted) return;
+    this.directorHandoffStarted = true;
+    const started = this.deps.game.transitionDirector.startCoverSwapReveal({
+      cover: 'black',
+      startCovered: true,
+      durationOutMs: 0,
+      durationInMs: 0,
+      holdFrames: 1,
+      onSwap: () => this.finishDissolve(),
+    });
+    if (!started) this.finishDissolve();
   }
 
   private cleanupPullIn(restoreSources: boolean): void {

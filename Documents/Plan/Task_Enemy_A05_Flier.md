@@ -25,7 +25,7 @@
 
 ---
 
-## 3. CSV 스펙 (System_Enemy_AI.md §4.3 → CSV 변환, 승인 대기)
+## 3. CSV 스펙 (확정 — `Content_Stats_Enemy.csv` · `Content_Enemy.csv` 등재 완료)
 
 `Sheets/Content_Stats_Enemy.csv` 추가 제안 (§4.3 YAML 기반):
 

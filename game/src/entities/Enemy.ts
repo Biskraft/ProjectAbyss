@@ -9,6 +9,7 @@ import {
   resolveYPixelStepWithSlopes2x1,
   isInWater,
   isOnIce,
+  getTile,
   isSolid,
 } from '@core/Physics';
 import { StateMachine } from '@utils/StateMachine';
@@ -20,6 +21,7 @@ import { type ElementAffinity, elementGroup } from '@combat/ElementAffinity';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
 import { isBossEnemy } from '@entities/EnemyMetadata';
 import { destroyDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
+import { Debug } from '@core/Debug';
 
 const GRAVITY = 980;
 const MAX_FALL_SPEED = EnemyConst.MaxFallSpeed;
@@ -183,6 +185,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   // HP bar
   private hpBarContainer: Graphics;
   private debugMonsterTypeLabel: BitmapText;
+  private readonly debugRayGfx = new Graphics();
   private hpBarVisible = false;
   private hpBarTimer = 0;
   private readonly HP_BAR_SHOW_DURATION = EnemyConst.HpBarShowMs;
@@ -239,6 +242,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     this.debugMonsterTypeLabel.y = -2;
     this.debugMonsterTypeLabel.visible = false;
     this.container.addChild(this.debugMonsterTypeLabel);
+    this.container.addChild(this.debugRayGfx);
 
     this.fsm = new StateMachine<S>();
     this.setupStates();
@@ -270,6 +274,14 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   }
 
   protected abstract setupStates(): void;
+
+  isAttackActive(): boolean {
+    return false;
+  }
+
+  getAttackAABB(): { x: number; y: number; width: number; height: number } | null {
+    return null;
+  }
 
   update(dt: number): void {
     if (!this.alive) {
@@ -487,6 +499,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   render(alpha: number): void {
     if (!this.container.destroyed) {
       super.render(alpha);
+      this.renderDebugRay();
       this.sprite.scale.x = this.facingRight ? 1 : -1;
       this.sprite.x = this.facingRight ? 0 : this.width;
 
@@ -593,6 +606,48 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected horizontalDistToTarget(): number {
     if (!this.target) return Infinity;
     return Math.abs((this.target.x + this.target.width / 2) - (this.x + this.width / 2));
+  }
+
+  private renderDebugRay(): void {
+    this.debugRayGfx.clear();
+    if (!Debug.infoVisible || !this.alive || !this.target) return;
+    const startX = this.width / 2;
+    const startY = this.height / 2;
+    const targetX = this.target.x + this.target.width / 2 - this.x;
+    const targetY = this.target.y + this.target.height / 2 - this.y;
+    const canSee = this.hasLineOfSightToTarget();
+    this.debugRayGfx
+      .moveTo(startX, startY)
+      .lineTo(targetX, targetY)
+      .stroke({ color: canSee ? 0x36ff6b : 0xff3b30, alpha: 0.9, width: 1 });
+    this.debugRayGfx.circle(startX, startY, 2).fill({ color: 0x36ff6b, alpha: 0.95 });
+    this.debugRayGfx.circle(targetX, targetY, 2).fill({ color: 0xffd166, alpha: 0.95 });
+  }
+
+  protected hasLineOfSightToTarget(): boolean {
+    if (!this.target) return false;
+    return this.hasLineOfSightToPoint(
+      this.target.x + this.target.width / 2,
+      this.target.y + this.target.height / 2,
+    );
+  }
+
+  protected hasLineOfSightToPoint(targetX: number, targetY: number): boolean {
+    if (this.roomData.length === 0) return true;
+    const startX = this.x + this.width / 2;
+    const startY = this.y + this.height / 2;
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0.001) return true;
+    const steps = Math.max(1, Math.ceil(dist / (TILE_SIZE / 2)));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const col = Math.floor((startX + dx * t) / TILE_SIZE);
+      const row = Math.floor((startY + dy * t) / TILE_SIZE);
+      if (isSolid(getTile(this.roomData, col, row))) return false;
+    }
+    return true;
   }
 
   protected moveTowardTarget(speed: number): void {

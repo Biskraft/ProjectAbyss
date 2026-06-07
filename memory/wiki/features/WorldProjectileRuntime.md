@@ -9,6 +9,7 @@ Current state:
 - `LdtkWorldScene` supplies current player/HUD/feedback managers through getters and should not keep scene-local projectile hit callbacks.
 - Projectile list attachment, Ghost pending-drain, clear, and destroy/splice operations are shared through `game/src/scenes/shared/ProjectileCollectionHelpers.ts`.
 - Projectile AABB construction, deflect spark placement, and projectile-on-player hit feedback are shared through `game/src/scenes/shared/ProjectileCollisionHelpers.ts`; world-specific attack hitbox source remains in this runtime.
+- 2026-06-06: Hostile projectiles inherit the firing enemy's collision grid when pending projectiles are drained. `Projectile` now dies only on IntGrid `TILE_WALL` cells, so platforms, fluids, hazards, and air stay pass-through. Projectile-firing enemies gate attack entry/fire on wall-only line of sight through `Enemy.hasLineOfSightToTarget()`.
 
 Prevention rules:
 

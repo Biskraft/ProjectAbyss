@@ -1,5 +1,5 @@
-import { Container, Texture } from 'pixi.js';
-import type { Game } from '../../Game';
+import { Container, Graphics, Texture } from 'pixi.js';
+import { GAME_HEIGHT, GAME_WIDTH, type Game } from '../../Game';
 import type { LdtkEntity, LdtkLevel, LdtkTile } from '@level/LdtkLoader';
 import type { LdtkRenderer } from '@level/LdtkRenderer';
 import { t } from '@i18n';
@@ -15,9 +15,14 @@ const CINEMA_LEVEL = 'Prologue_Cinema_01';
 const START_LEVEL = 'Start_Room_01';
 const CHAPTER_SCENE = 'chapter_01';
 const ENTRY_DELAY_MS = 1500;
-const CINEMA_ZOOM_MS = 3600;
+const WHITE_HOLD_MS = 2000;
+const WHITE_IN_MS = 2500;
+const CINEMA_ZOOM_MS = 10000;
 const WAKE_UP_MS = 900;
 const WAKE_UP_MOVE_UNLOCK_DELAY_MS = 1000;
+// Fallback: even with no movement input, the character stands up on its own
+// after this hold so the prologue can never get stuck lying down.
+const AUTO_WAKE_DELAY_MS = 1200;
 const CINEMA_START_ZOOM = 0.1;
 const CINEMA_END_ZOOM = 1;
 const CINEMA_FADE_START_PROGRESS = 0.68;
@@ -34,17 +39,19 @@ interface WorldPrologueEndRuntimeDeps {
   playWakeUp: () => void;
   isWakeMovementPressed: () => boolean;
   setCinematicUiVisible: (visible: boolean) => void;
+  unlockInput: () => void;
   showToast: (message: string, color: number) => void;
   isPrologueScene: () => boolean;
 }
 
-type Phase = 'idle' | 'arm' | 'cinemaFade' | 'awaitWakeInput' | 'wakeUp';
+type Phase = 'idle' | 'arm' | 'whiteHold' | 'cinemaFade' | 'awaitWakeInput' | 'wakeUp';
 
 export class WorldPrologueEndRuntime {
   private phase: Phase = 'idle';
   private timer = 0;
   private didHandoff = false;
   private overlayRoot: Container | null = null;
+  private whiteOverlay: Graphics | null = null;
   private cinemaRenderer: LdtkRenderer | null = null;
   private startOverlayRenderer: LdtkRenderer | null = null;
   private readonly overlayPaletteRuntime = new WorldTerrainPaletteRuntime();
@@ -75,6 +82,10 @@ export class WorldPrologueEndRuntime {
     return this.phase === 'wakeUp' && this.timer < WAKE_UP_MS;
   }
 
+  get shouldHoldWakeUpPose(): boolean {
+    return this.phase === 'awaitWakeInput';
+  }
+
   update(dt: number): boolean {
     if (this.phase === 'idle') return false;
     this.timer += dt;
@@ -84,18 +95,33 @@ export class WorldPrologueEndRuntime {
       return false;
     }
 
+    if (this.phase === 'whiteHold') {
+      this.deps.game.camera.setZoom(CINEMA_START_ZOOM);
+      this.deps.game.camera.update(dt);
+      if (this.whiteOverlay) this.whiteOverlay.alpha = 1;
+      this.deps.holdWakeUpPose();
+      if (this.timer >= WHITE_HOLD_MS) {
+        this.phase = 'cinemaFade';
+        this.timer = 0;
+      }
+      return true;
+    }
+
     if (this.phase === 'cinemaFade') {
       const progress = getProgress01(this.timer, CINEMA_ZOOM_MS);
+      const whiteT = getProgress01(this.timer, WHITE_IN_MS);
       const t = this.easeInOut(progress);
       const fadeT = this.easeInOut(getProgress01(progress - CINEMA_FADE_START_PROGRESS, 1 - CINEMA_FADE_START_PROGRESS));
       const zoom = this.lerp(CINEMA_START_ZOOM, CINEMA_END_ZOOM, t);
       this.deps.game.camera.setZoom(zoom);
       this.deps.game.camera.update(dt);
+      if (this.whiteOverlay) this.whiteOverlay.alpha = 1 - this.easeInOut(whiteT);
       if (this.overlayRoot) this.overlayRoot.alpha = 1 - fadeT;
       this.overlayCommonSpriteRuntime.update(dt);
       this.overlayStartCommonSpriteRuntime.update(dt);
       this.deps.holdWakeUpPose();
       if (this.timer >= CINEMA_ZOOM_MS) {
+        this.destroyWhiteOverlay();
         this.destroyCinemaOverlay();
         this.phase = 'awaitWakeInput';
         this.timer = 0;
@@ -106,7 +132,7 @@ export class WorldPrologueEndRuntime {
     if (this.phase === 'awaitWakeInput') {
       this.deps.holdWakeUpPose();
       this.deps.game.camera.update(dt);
-      if (this.deps.isWakeMovementPressed()) {
+      if (this.deps.isWakeMovementPressed() || this.timer >= AUTO_WAKE_DELAY_MS) {
         this.deps.playWakeUp();
         this.phase = 'wakeUp';
         this.timer = 0;
@@ -118,6 +144,9 @@ export class WorldPrologueEndRuntime {
       this.deps.game.camera.update(dt);
       if (this.timer >= WAKE_UP_MS + WAKE_UP_MOVE_UNLOCK_DELAY_MS) {
         this.deps.setCinematicUiVisible(true);
+        // Release the global input lock held since the item-world handoff so the
+        // player can actually move once standing (wake gate used a raw-key bypass).
+        this.deps.unlockInput();
         this.deps.showToast(t('ui.prologue.backup_restored'), 0xaaccff);
         this.clear();
       }
@@ -131,19 +160,49 @@ export class WorldPrologueEndRuntime {
     this.phase = 'idle';
     this.timer = 0;
     this.didHandoff = false;
+    this.destroyWhiteOverlay();
     this.destroyCinemaOverlay();
   }
 
   private beginCinemaOverlay(): void {
     if (this.didHandoff) return;
     this.didHandoff = true;
+    if (this.deps.game.transitionDirector.isActive) {
+      this.runChapter1HandoffUnderCover();
+      return;
+    }
+    const started = this.deps.game.transitionDirector.startCoverSwapReveal({
+      cover: 'black',
+      durationOutMs: 0,
+      durationInMs: 0,
+      holdFrames: 1,
+      onSwap: () => this.runChapter1HandoffUnderCover(),
+    });
+    if (!started) this.runChapter1HandoffUnderCover();
+  }
+
+  private runChapter1HandoffUnderCover(): void {
     this.deps.enterChapter1FromPrologue();
     this.deps.setCinematicUiVisible(false);
     this.deps.holdWakeUpPose();
     this.createCinemaOverlay();
+    this.createWhiteOverlay();
     this.deps.game.camera.setZoom(CINEMA_START_ZOOM);
-    this.phase = 'cinemaFade';
+    this.phase = 'whiteHold';
     this.timer = 0;
+  }
+
+  private createWhiteOverlay(): void {
+    this.destroyWhiteOverlay();
+    const g = new Graphics();
+    g.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0xffffff);
+    g.alpha = 1;
+    this.whiteOverlay = g;
+    this.deps.game.transitionLayer.addChild(g);
+  }
+
+  private destroyWhiteOverlay(): void {
+    this.whiteOverlay = destroyNullableDisplayObject(this.whiteOverlay);
   }
 
   private createCinemaOverlay(): void {

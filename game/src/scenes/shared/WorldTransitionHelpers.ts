@@ -1,24 +1,11 @@
 import { aabbOverlap } from '@core/Physics';
-import {
-  getFadeInAlphaFromRemaining,
-  getFadeOutAlphaFromRemaining,
-} from './TransitionFadeHelpers';
 
 type DoorDirection = 'left' | 'right' | 'up' | 'down';
-type LegacyWorldTransitionState = 'none' | 'fade_out' | 'fade_in';
 
 export interface WorldDoorTransitionCandidate {
   direction: DoorDirection;
   nextCol: number;
   nextRow: number;
-}
-
-export interface LegacyWorldTransitionStep {
-  state: LegacyWorldTransitionState;
-  timer: number;
-  fadeAlpha: number;
-  pendingDirection: DoorDirection | null;
-  loadDirection?: DoorDirection;
 }
 
 export function findDoorTransitionCandidate<T extends {
@@ -70,64 +57,4 @@ export function findDoorTransitionCandidate<T extends {
   }
 
   return null;
-}
-
-export function stepLegacyWorldTransition({
-  state,
-  timer,
-  pendingDirection,
-  dtMs,
-  durationMs,
-}: {
-  state: LegacyWorldTransitionState;
-  timer: number;
-  pendingDirection: DoorDirection | null;
-  dtMs: number;
-  durationMs: number;
-}): LegacyWorldTransitionStep {
-  const nextTimer = timer - dtMs;
-
-  if (state === 'fade_out') {
-    if (nextTimer <= 0) {
-      return {
-        state: 'fade_in',
-        timer: durationMs,
-        fadeAlpha: 1,
-        pendingDirection,
-        loadDirection: pendingDirection ?? undefined,
-      };
-    }
-
-    return {
-      state,
-      timer: nextTimer,
-      fadeAlpha: getFadeOutAlphaFromRemaining(nextTimer, durationMs),
-      pendingDirection,
-    };
-  }
-
-  if (state === 'fade_in') {
-    if (nextTimer <= 0) {
-      return {
-        state: 'none',
-        timer: nextTimer,
-        fadeAlpha: 0,
-        pendingDirection: null,
-      };
-    }
-
-    return {
-      state,
-      timer: nextTimer,
-      fadeAlpha: getFadeInAlphaFromRemaining(nextTimer, durationMs),
-      pendingDirection,
-    };
-  }
-
-  return {
-    state,
-    timer: nextTimer,
-    fadeAlpha: 0,
-    pendingDirection,
-  };
 }

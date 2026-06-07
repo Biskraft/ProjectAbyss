@@ -38,7 +38,7 @@ export function applyEnemyContactDamageForPlayer(input: ApplyEnemyContactDamageI
 
     const dir = enemy.x + enemy.width / 2 > player.x + player.width / 2 ? -1 : 1;
     const dmg = Math.max(1, Math.floor(enemy.atk - player.def * 0.5));
-    player.onHit(dir * 100, -50, 200);
+    player.onHit(dir * 400, -200, 200);
     player.lastDamageSource = enemy.constructor.name.toLowerCase();
     player.hp -= dmg;
     input.hud.flashDamage();

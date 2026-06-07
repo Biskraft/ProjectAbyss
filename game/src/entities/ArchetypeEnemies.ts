@@ -1,6 +1,7 @@
 import { Graphics } from 'pixi.js';
 import { Enemy } from './Enemy';
 import { Projectile } from './Projectile';
+import { Debug } from '@core/Debug';
 
 const TILE = 16;
 
@@ -61,7 +62,10 @@ abstract class SimpleMeleeEnemy extends Enemy {
           this.fsm.transition('attack');
           return;
         }
-        this.moveTowardTarget(this.moveSpeed);
+        const target = this.target;
+        if (!target) return;
+        const moveDir = target.x + target.width / 2 >= this.x + this.width / 2 ? 1 : -1;
+        this.vx = moveDir * this.moveSpeed;
       },
     });
     this.fsm.addState({
@@ -112,10 +116,17 @@ export class Bulwark extends SimpleMeleeEnemy {
   private guardActive = false;
   private vulnerableTimer = 0;
   private telegraphTimer = 0;
+  private activeAttackTimer = 0;
+  private guardFacingRight = false;
+  private turnTimer = 0;
+  private pendingFacingRight: boolean | null = null;
+  private readonly attackBox = new Graphics();
 
   constructor(level = 1) {
     super({ width: 22, height: 24, color: 0x6f7d84, hp: 1, atk: 1, def: 0, detectRange: 160, attackRange: 22, moveSpeed: 22, attackCooldown: 1600 });
     this.applyStats('Bulwark', level);
+    this.attackBox.visible = false;
+    this.container.addChild(this.attackBox);
     this.redrawShield();
   }
 
@@ -141,36 +152,42 @@ export class Bulwark extends SimpleMeleeEnemy {
         if (this.x > this.spawnX + this.patrolRangePx) this.patrolDir = -1;
         if (this.x < this.spawnX - this.patrolRangePx) this.patrolDir = 1;
         this.facingRight = this.patrolDir > 0;
+        this.guardFacingRight = this.facingRight;
+        this.pendingFacingRight = null;
+        this.turnTimer = 0;
       },
     });
     this.fsm.addState({
       name: 'chase',
       enter: () => { this.guardActive = true; },
-      update: () => {
+      update: (dt) => {
         this.guardActive = true;
         if (!this.target || this.distToTarget() > this.detectRange * 1.4) {
           this.fsm.transition('patrol');
           return;
         }
-        this.facingRight = this.target.x >= this.x;
+        this.updateCombatFacing(this.target.x + this.target.width / 2 >= this.x + this.width / 2, dt);
         if (this.distToTarget() <= this.attackRange && this.cooldownTimer <= 0) {
           this.fsm.transition('detect');
           return;
         }
-        this.moveTowardTarget(this.moveSpeed);
+        const moveDir = this.target.x + this.target.width / 2 >= this.x + this.width / 2 ? 1 : -1;
+        this.vx = moveDir * this.moveSpeed;
       },
     });
     this.fsm.addState({
       name: 'detect',
       enter: () => {
         this.guardActive = true;
-        this.telegraphTimer = 500;
-        this.vulnerableTimer = 1500;
+        this.telegraphTimer = 250;
+        this.activeAttackTimer = 0;
+        this.vulnerableTimer = 0;
+        this.attackActive = false;
         this.vx = 0;
       },
       update: (dt) => {
         this.vx = 0;
-        if (this.target) this.facingRight = this.target.x >= this.x;
+        if (this.target) this.updateCombatFacing(this.target.x + this.target.width / 2 >= this.x + this.width / 2, dt);
 
         if (this.telegraphTimer > 0) {
           this.guardActive = true;
@@ -179,36 +196,36 @@ export class Bulwark extends SimpleMeleeEnemy {
           return;
         }
 
+        if (this.activeAttackTimer <= 0 && this.vulnerableTimer <= 0) {
+          this.guardActive = false;
+          this.attackActive = true;
+          this.activeAttackTimer = 260;
+        }
+
+        if (this.activeAttackTimer > 0) {
+          this.guardActive = false;
+          this.activeAttackTimer -= dt;
+          this.attackActive = this.activeAttackTimer > 0;
+          if (this.activeAttackTimer <= 0) {
+            this.attackActive = false;
+            this.vulnerableTimer = 1500;
+          }
+          return;
+        }
+
         this.guardActive = false;
         this.vulnerableTimer -= dt;
         this.sprite.alpha = this.vulnerableTimer % 180 < 90 ? 1 : 0.65;
         if (this.vulnerableTimer <= 0) {
           this.sprite.alpha = 1;
-          this.fsm.transition('attack');
-        }
-      },
-      exit: () => { this.sprite.alpha = 1; },
-    });
-    this.fsm.addState({
-      name: 'attack',
-      enter: () => {
-        this.guardActive = false;
-        this.attackTimer = 260;
-        this.attackActive = true;
-        if (this.target) this.facingRight = this.target.x >= this.x;
-      },
-      update: (dt) => {
-        this.attackTimer -= dt;
-        const dir = this.facingRight ? 1 : -1;
-        this.vx = dir * this.moveSpeed * 2.1;
-        this.attackActive = this.attackTimer > 70;
-        if (this.attackTimer <= 0) {
-          this.attackActive = false;
           this.cooldownTimer = this.attackCooldown;
           this.fsm.transition('cooldown');
         }
       },
-      exit: () => { this.attackActive = false; },
+      exit: () => {
+        this.sprite.alpha = 1;
+        this.attackActive = false;
+      },
     });
     this.fsm.addState({
       name: 'cooldown',
@@ -216,9 +233,9 @@ export class Bulwark extends SimpleMeleeEnemy {
         this.guardActive = true;
         this.vx = 0;
       },
-      update: () => {
+      update: (dt) => {
         this.guardActive = true;
-        if (this.target) this.facingRight = this.target.x >= this.x;
+        if (this.target) this.updateCombatFacing(this.target.x + this.target.width / 2 >= this.x + this.width / 2, dt);
         if (this.cooldownTimer <= 0) this.fsm.transition('chase');
       },
     });
@@ -228,7 +245,9 @@ export class Bulwark extends SimpleMeleeEnemy {
 
   override update(dt: number): void {
     super.update(dt);
-    if (this.shieldDrawnFacingRight !== this.facingRight || this.shieldDrawnGuarding !== this.guardActive) this.redrawShield();
+    this.facingRight = this.guardFacingRight;
+    if (this.shieldDrawnFacingRight !== this.guardFacingRight || this.shieldDrawnGuarding !== this.guardActive) this.redrawShield();
+    this.updateAttackBox();
     if (this.blockFlashTimer > 0) {
       this.blockFlashTimer -= dt;
       this.sprite.tint = this.blockFlashTimer % 80 < 40 ? 0x9fd6ff : 0xffffff;
@@ -240,7 +259,7 @@ export class Bulwark extends SimpleMeleeEnemy {
     if (!this.guardActive) {
       return damage;
     }
-    const shieldFacingRight = !this.facingRight;
+    const shieldFacingRight = this.guardFacingRight;
     const hitFront = (shieldFacingRight && dirX < 0) || (!shieldFacingRight && dirX > 0);
     if (hitFront) {
       this.blockFlashTimer = 180;
@@ -249,24 +268,65 @@ export class Bulwark extends SimpleMeleeEnemy {
     return damage;
   }
 
+  override getAttackAABB(): { x: number; y: number; width: number; height: number } | null {
+    if (!this.attackActive) return null;
+    return {
+      x: this.guardFacingRight ? this.x + this.width - 2 : this.x - 38,
+      y: this.y,
+      width: 40,
+      height: 32,
+    };
+  }
+
   private redrawShield(): void {
-    this.shieldDrawnFacingRight = this.facingRight;
+    this.shieldDrawnFacingRight = this.guardFacingRight;
     this.shieldDrawnGuarding = this.guardActive;
     this.sprite.clear();
     this.sprite.rect(3, 0, 16, 24).fill(0x6f7d84);
-    const shieldFacingRight = !this.facingRight;
-    if (this.guardActive && shieldFacingRight) {
+    if (this.guardActive) {
       this.sprite.rect(14, 1, 9, 22).fill(0xaab7bd);
       this.sprite.rect(18, 4, 2, 15).fill(0xd8e1e5);
-    } else if (this.guardActive) {
-      this.sprite.rect(-1, 1, 9, 22).fill(0xaab7bd);
-      this.sprite.rect(2, 4, 2, 15).fill(0xd8e1e5);
-    } else if (shieldFacingRight) {
+    } else {
       this.sprite.rect(11, 16, 10, 6).fill(0xaab7bd);
       this.sprite.rect(14, 18, 5, 2).fill(0xd8e1e5);
-    } else {
-      this.sprite.rect(1, 16, 10, 6).fill(0xaab7bd);
-      this.sprite.rect(3, 18, 5, 2).fill(0xd8e1e5);
+    }
+  }
+
+  private updateAttackBox(): void {
+    this.attackBox.clear();
+    if (!this.attackActive) {
+      this.attackBox.visible = false;
+      return;
+    }
+    this.attackBox.visible = true;
+    const x = this.guardFacingRight ? this.width - 2 : -38;
+    this.attackBox
+      .rect(x, 0, 40, 32)
+      .fill({ color: 0xffb347, alpha: 0.18 })
+      .stroke({ color: 0xffd166, alpha: 0.9, width: 1 });
+    const slashX = this.guardFacingRight ? x + 28 : x + 12;
+    this.attackBox
+      .moveTo(slashX - 14, 5)
+      .lineTo(slashX + 14, 27)
+      .stroke({ color: 0xffffff, alpha: 0.7, width: 2 });
+  }
+
+  private updateCombatFacing(wantsFacingRight: boolean, dt: number): void {
+    if (wantsFacingRight === this.guardFacingRight) {
+      this.pendingFacingRight = null;
+      this.turnTimer = 0;
+      return;
+    }
+    if (this.pendingFacingRight !== wantsFacingRight) {
+      this.pendingFacingRight = wantsFacingRight;
+      this.turnTimer = 1000;
+    }
+    this.turnTimer -= dt;
+    if (this.turnTimer <= 0 && this.pendingFacingRight !== null) {
+      this.guardFacingRight = this.pendingFacingRight;
+      this.facingRight = this.guardFacingRight;
+      this.pendingFacingRight = null;
+      this.turnTimer = 0;
     }
   }
 }
@@ -427,14 +487,44 @@ export class Lurker extends SimpleMeleeEnemy {
       exit: () => { this.sprite.alpha = 1; },
     });
     this.fsm.addState({
+      name: 'chase',
+      update: () => {
+        this.hidden = false;
+        this.sprite.alpha = 1;
+        const dist = this.distToTarget();
+        if (dist <= this.attackRange && this.cooldownTimer <= 0) {
+          this.fsm.transition('attack');
+          return;
+        }
+        this.moveTowardTarget(this.moveSpeed);
+      },
+    });
+    this.fsm.addState({
       name: 'attack',
       enter: () => {
+        if (this.ambushSpent) {
+          this.attackTimer = this.tellMs + this.activeMs;
+          this.attackActive = false;
+          this.vx = 0;
+          return;
+        }
         this.strikeTimer = 260;
         this.attackActive = true;
         if (this.target) this.strikeDir = this.target.x < this.x ? -1 : 1;
         this.facingRight = this.strikeDir > 0;
       },
       update: (dt) => {
+        if (this.ambushSpent) {
+          this.attackTimer -= dt;
+          this.vx = 0;
+          this.attackActive = this.attackTimer <= this.activeMs && this.attackTimer > 0;
+          if (this.attackTimer <= 0) {
+            this.attackActive = false;
+            this.cooldownTimer = this.attackCooldown;
+            this.fsm.transition('cooldown');
+          }
+          return;
+        }
         this.strikeTimer -= dt;
         this.vx = this.strikeDir * this.moveSpeed * 3.4;
         this.attackActive = this.strikeTimer > 60;
@@ -567,7 +657,7 @@ export class Sentry extends Enemy {
       name: 'idle',
       update: () => {
         this.vx = 0;
-        if (this.distToTarget() <= this.detectRange && this.cooldownTimer <= 0) this.fsm.transition('attack');
+        if (this.distToTarget() <= this.detectRange && this.cooldownTimer <= 0 && this.hasLineOfSightToTarget()) this.fsm.transition('attack');
       },
     });
     this.fsm.addState({
@@ -590,10 +680,15 @@ export class Sentry extends Enemy {
 
   private fire(): void {
     if (!this.target) return;
-    const dx = this.target.x - this.x;
-    const dy = this.target.y - this.y;
+    if (!this.hasLineOfSightToTarget()) return;
+    const startX = this.x + this.width / 2;
+    const startY = this.y + this.height / 2;
+    const targetX = this.target.x + this.target.width / 2;
+    const targetY = this.target.y + this.target.height / 2;
+    const dx = targetX - startX;
+    const dy = targetY - startY;
     const len = Math.max(1, Math.hypot(dx, dy));
-    this.pendingProjectiles.push(new Projectile(this.x + 4, this.y + 4, dx / len * 150, dy / len * 150, this.atk));
+    this.pendingProjectiles.push(new Projectile(startX - 4, startY - 4, dx / len * 150, dy / len * 150, this.atk));
   }
 
   isAttackActive(): boolean { return false; }
@@ -671,6 +766,7 @@ export class Lobber extends Enemy {
   private targetX = 0;
   private targetY = 0;
   private readonly aimMarker = new Graphics();
+  private readonly debugArc = new Graphics();
   private readonly minRange = 64;
   pendingProjectiles: Projectile[] = [];
 
@@ -683,6 +779,7 @@ export class Lobber extends Enemy {
     this.sprite.circle(10, 12, 4).fill(0x38251c);
     this.aimMarker.visible = false;
     this.container.addChild(this.aimMarker);
+    this.container.addChild(this.debugArc);
   }
 
   protected setupStates(): void {
@@ -698,7 +795,7 @@ export class Lobber extends Enemy {
       name: 'patrol',
       enter: () => { if (this.spawnX === 0) this.spawnX = this.x; },
       update: () => {
-        if (this.distToTarget() <= this.detectRange) {
+        if (this.distToTarget() <= this.detectRange && this.hasLineOfSightToTarget()) {
           this.fsm.transition('chase');
           return;
         }
@@ -715,7 +812,7 @@ export class Lobber extends Enemy {
           this.fsm.transition('retreat');
           return;
         }
-        if (dist <= this.attackRange && this.cooldownTimer <= 0) {
+        if (dist <= this.attackRange && this.cooldownTimer <= 0 && this.hasLineOfSightToTarget()) {
           this.fsm.transition('attack');
           return;
         }
@@ -779,6 +876,7 @@ export class Lobber extends Enemy {
     super.update(dt);
     if (!this.alive) return;
     if (this.fsm.currentState === 'patrol') this.facingRight = this.patrolDir > 0;
+    this.renderDebugArc();
   }
 
   private lockTargetPoint(): void {
@@ -809,6 +907,30 @@ export class Lobber extends Enemy {
     const startX = this.x + this.width / 2;
     const startY = this.y + 4;
     this.pendingProjectiles.push(new LobberBombProjectile(startX, startY, this.targetX, this.targetY, this.atk));
+  }
+
+  private renderDebugArc(): void {
+    this.debugArc.clear();
+    if (!Debug.infoVisible || !this.alive || !this.target || !this.aimMarker.visible) return;
+    const startX = this.width / 2;
+    const startY = 4;
+    const targetX = this.targetX - this.x;
+    const targetY = this.targetY - this.y;
+    this.debugArc.circle(startX, startY, 2).fill({ color: 0x9b5cff, alpha: 0.95 });
+    this.debugArc.circle(targetX, targetY, 2).fill({ color: 0xffc247, alpha: 0.95 });
+    let prevX = startX;
+    let prevY = startY;
+    for (let i = 1; i <= 24; i++) {
+      const t = i / 24;
+      const x = startX + (targetX - startX) * t;
+      const y = startY + (targetY - startY) * t - Math.sin(t * Math.PI) * 48;
+      this.debugArc
+        .moveTo(prevX, prevY)
+        .lineTo(x, y)
+        .stroke({ color: 0x9b5cff, alpha: 0.85, width: 1 });
+      prevX = x;
+      prevY = y;
+    }
   }
 }
 

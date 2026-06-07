@@ -84,7 +84,7 @@
 | 영문 키 | 한글명 | 정의 | 관련 문서 |
 | :--- | :--- | :--- | :--- |
 | i-frame | 무적 프레임 | Invincibility Frame. 피격 후 무적 시간 등 특정 상태에서 피격 판정이 일시 무효화되는 프레임. 기본 대시에는 i-frame이 없다 (2026-04-08 제거). | `Documents/System/System_3C_Character.md`, `Documents/System/System_Combat_Action.md` |
-| Indexed | 색인체 | 사적 등재단(인덱서 하위 분파) 의 종(從) 역할. 자기 자율 전부를 등재인에게 양도(사적 등재) 한 자 — 채워질 자아가 없는 "빈 그릇". 봉합 보존복 + 목/등의 탯줄 1가닥 실루엣. 구성원은 전원 젊은 성인 여성. | `Documents/Idea/Idea_WorldBuilding.md` |
+| Indexed | 색인체 | 사적 등재단(인덱서 하위 분파) 의 종(從) 역할. 자기 자율 전부를 등재인에게 양도(사적 등재) 한 자 — 채워질 자아가 없는 "빈 그릇". 봉합 보존복 + 목/등의 탯줄 1가닥 실루엣. 구성원은 전원 젊은 성인 여성. | `Documents/Narrative/Narrative_World_PrivateRegistration.md` |
 | Indexer | 인덱서 | 빌더에게 에코를 헌납하면 블루프린트에 다시 등재될 수 있다고 믿는 잔존자 집단. 그러나 빌더는 인지하지 않으므로 등재는 작동하지 않는다 — 거짓 신앙. 작품의 인격적 안타고니스트는 인덱서 지도자다. 하위 분파로 사적 등재단(등재인/색인체) 이 있다. | `Documents/Content/Content_Story_Synopsis.md`, `Documents/Content/Content_Characters.md` |
 | In-Combat | 전투 중 상태 | 적과 전투 상태에 있음을 나타내는 플레이어 상태. 이 상태에서는 MP 자동 회복이 중단되고 특정 아이템 사용이 제한된다. 마지막 전투 행동 이후 일정 시간 경과 시 Out-of-Combat으로 전환된다. | `Documents/System/System_Combat_Action.md` |
 | INT | 지력 스탯 | ATK/INT/HP 3스탯 체계의 원소/인챈트 데미지 스탯. 장비 INT + 캐릭터 기본 INT. 에코 인챈트 적용 시 원소 데미지가 INT에 비례하며, 상태이상 지속시간도 INT에 비례한다. INT 게이트(마법 봉인)의 해금 조건. | `Documents/System/System_Growth_Stats.md`, `Documents/System/System_Combat_Damage.md` |
@@ -113,7 +113,7 @@
 | :--- | :--- | :--- | :--- |
 | Out-of-Combat | 전투 외 상태 | 전투 상태(In-Combat)가 아닌 평상시 상태. MP 자동 회복이 활성화되고 아이템 사용 제한이 해제된다. | `Documents/System/System_Combat_Action.md` |
 | Pillar | 기둥 | ECHORIS의 3대 핵심 설계 기둥. 모든 시스템과 기능은 (1) 메트로베니아 탐험, (2) 아이템계 야리코미, (3) 온라인 멀티플레이 중 최소 하나에 정렬되어야 한다. 어느 기둥에도 해당하지 않는 기능은 채택하지 않는다. | `CLAUDE.md` |
-| Private Registration | 사적 등재 | 빌더(시스템) 가 아니라 살아있는 사람(등재인) 에게 자기를 등재하는 행위·의례. 인덱서 등재의 신체화·사적(私的) 변종으로, 사적 등재단(인덱서 하위 분파) 의 핵심 교리. "복종=해방" 의 거짓 신앙이 대인(對人) 으로 실연된 형태. | `Documents/Idea/Idea_WorldBuilding.md` |
+| Private Registration | 사적 등재 | 빌더(시스템) 가 아니라 살아있는 사람(등재인) 에게 자기를 등재하는 행위·의례. 인덱서 등재의 신체화·사적(私的) 변종으로, 사적 등재단(인덱서 하위 분파) 의 핵심 교리. "복종=해방" 의 거짓 신앙이 대인(對人) 으로 실연된 형태. | `Documents/Narrative/Narrative_World_PrivateRegistration.md` |
 | Procedural Generation | 절차적 생성 | 알고리즘과 시드를 사용하여 맵·룸·Chunk를 자동으로 생성하는 기법. 월드의 마이크로 계층과 아이템계 전 층에 적용된다. 스펠렁키의 Room Grid 방식을 레퍼런스로 사용한다. | `Documents/System/System_World_ProcGen.md`, `Documents/System/System_ItemWorld_FloorGen.md` |
 
 ---
@@ -131,7 +131,7 @@
 | :--- | :--- | :--- | :--- |
 | Rarity | 레어리티 | 장비 아이템의 등급 체계. Normal·Magic·Rare·Legendary·Ancient 5단계로 구성되며, 등급에 따라 스탯 배율·아이템계 지층 수가 결정된다. | `Reference/게임 기획 개요.md` |
 | ~~Recursive Entry~~ | ~~재귀적 진입~~ | ~~DEPRECATED. 아이템계 내부에서 다른 아이템의 아이템계에 중첩 진입하는 메커닉. 삭제됨. 아이템계에서 획득한 아이템은 월드 귀환 후 진입하는 순환 구조로 대체.~~ | — |
-| Registrar | 등재인 | 사적 등재단(인덱서 하위 분파) 의 주(主) 역할. 여러 색인체의 자율을 거두어 책임지는 자. 등·어깨의 계류 릴 + 모여 감기는 탯줄 실루엣. 자신도 모체동 출신 "빈 그릇" 이라 주인 행세 뒤에 동일한 공백을 숨긴다. | `Documents/Idea/Idea_WorldBuilding.md` |
+| Registrar | 등재인 | 사적 등재단(인덱서 하위 분파) 의 주(主) 역할. 여러 색인체의 자율을 거두어 책임지는 자. 등·어깨의 계류 릴 + 모여 감기는 탯줄 실루엣. 자신도 모체동 출신 "빈 그릇" 이라 주인 행세 뒤에 동일한 공백을 숨긴다. | `Documents/Narrative/Narrative_World_PrivateRegistration.md` |
 | Registration | 등재 | 빌더의 블루프린트 안에 한 항목으로 다시 기록되는 행위. 인덱서의 신앙이나 실제로는 작동하지 않는다(빌더가 인지하지 않으므로). 등재의 대가는 자기 음성의 상실. 결말 B(등재) 의 핵심. | `Documents/Content/Content_Story_Synopsis.md` |
 | Resident | 잔존자 | 단절(Cascade) 이후 블루프린트 바깥에 잔존하며 점점 사라져 가는 인간. 빈 공동에 흩어져 산다. 인덱서·솔로 잔존자 등으로 분화. | `Documents/Content/Content_Story_Synopsis.md` |
 | Rustborn | 러스트본 | "부식에서 태어난 자". 프롤로그의 실험 동료. Cascade 때 죽으며 에르다의 절개도(Scalpel) 안으로 의식이 응결 → 수천 년 부식하여 녹날(Rustedge, 시작 검) 의 에코가 됨. 시작 후 약 5분 첫 다이브에서 그녀에게 자기 이름을 가르친다. 에르다 이름을 아는 이유 = 동료(정체성 미스터리 아님). 시각 친연성(붉은 머리·청록 눈) = 같은 연구소 동료. | `Documents/Content/Content_Characters.md`, `Documents/Design/Design_Art_Direction.md` |

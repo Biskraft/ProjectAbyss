@@ -75,6 +75,7 @@ export function collectPendingGhostProjectiles(
   for (const enemy of enemies) {
     if (!enemy.alive || !hasPendingProjectiles(enemy)) continue;
     for (const projectile of enemy.pendingProjectiles) {
+      projectile.bindCollisionGrid(enemy.roomData);
       addProjectileToLayer(projectiles, projectile, entityLayer, options);
     }
     enemy.pendingProjectiles.length = 0;

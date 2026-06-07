@@ -6,7 +6,7 @@ status: decided
 # DEC-046: 사적 등재단 (the Bonded) — 인덱서 하위 분파 캐논화
 
 ## 맥락
-`Documents/Idea/Idea_WorldBuilding.md` 의 떠도는 권력교환(주종·복종=해방) 아이디어를 ECHORIS 캐논 안의 잔존자 분파로 정박하는 과정. 작품 중심 테마(복종=거짓 해방, 통제의 양도)의 한 변주로 정합. RES-PWX-01(복종=해방 거짓 신앙)·RES-PSY-01(보유/배출 통제 심리)·CNT-STR-001(등재·인덱서·반전)에 직접 결속.
+`Narrative_World_PrivateRegistration.md` (구 Idea_WorldBuilding) 의 권력교환(주종·복종=해방) 아이디어를 ECHORIS 캐논 안의 잔존자 분파로 정박하는 과정. 작품 중심 테마(복종=거짓 해방, 통제의 양도)의 한 변주로 정합. RES-PWX-01(복종=해방 거짓 신앙)·RES-PSY-01(보유/배출 통제 심리)·CNT-STR-001(등재·인덱서·반전)에 직접 결속.
 
 ## 결정
 사적 등재단(가칭 the Bonded) = **인덱서의 하위 분파**로 확정. 인덱서 본류가 "시스템(빌더)에 등재하라"면, 사적 등재단은 "사람에게 등재하라"로 신체화한 갈래. 같은 거짓의 더 친밀한 버전.
@@ -19,7 +19,7 @@ status: decided
 - **스타일 프레임:** "벽면 슬럼 + 탯줄 군집" 1컷 발주 대상 승격(의상 기준=§6.2). 선결=배치 구역 확정 후 구역 컬러 스크립트 정합. (거주=공중 현수 아님; 수직 벽면에 붙인 단순 규격 거처[IntGrid 격자 타일 친화] + 병적 청결[병동형 멸균, 다른 잔존자 구역과의 시각 분리점]; 탯줄=등재인에 묶인 예속·안전줄, IntGrid 지형 아닌 장식 오버레이. 2026-06-06 정정.)
 
 ## 영향
-- `Documents/Idea/Idea_WorldBuilding.md` → §1.1 기원, §2 명칭, §3 사적 등재, §6.1 시각 방향, §6.2 의상, §7 분파 역학, §8 게임 등장 확정, §9 결정 1·2·3 해소.
+- `Documents/Narrative/Narrative_World_PrivateRegistration.md` (NAR-WLD-001, 2026-06-06 IDEA-01 승격) → §1.1 기원, §2 명칭, §3 사적 등재, §6.1 시각 방향, §6.2 의상, §7 분파 역학, §8 게임 등장 확정, §9 결정 1·2·3 해소. 구 `Idea_WorldBuilding.md` 는 삭제됨 — SSoT는 NAR-WLD-001만.
 - `Documents/Design/Design_Art_Direction.md` §11.2 → 신앙 집단 3자 실루엣 분리 행 추가(인덱서=줄 없는 로브 / 등재인=줄 거두는 릴 / 색인체=줄에 묶임).
 - `Documents/Terms/Glossary.md` → Indexed(색인체)·Private Registration(사적 등재)·Registrar(등재인) 등록 + Indexer 항목에 하위 분파 명시.
 - **잔여(미해결):** ①배치 구역 D-20/SYS-WLD-02 정합(기원상 구역 6 안치소 계열 권장). ②노출 문자열 Content_Localization.csv 키 등록(등장 텍스트 확정 시). ③명시 디테일 층은 본 캐논 범위 밖(별도 관리).

@@ -1,4 +1,4 @@
-// Pre-load PixiJS browser environment statically to avoid
+﻿// Pre-load PixiJS browser environment statically to avoid
 // dynamic-import hang in Vite production builds
 import 'pixi.js/browser';
 
@@ -24,6 +24,7 @@ import { FpsCounter } from '@ui/FpsCounter';
 import { PerfMonitor } from '@utils/PerfMonitor';
 import { FeedbackPanel } from '@ui/FeedbackPanel';
 import { setDefaultUiScale } from '@ui/factories';
+import { TransitionDirector } from '@effects/TransitionDirector';
 import type { ControlsSettings, DisplayScale, DisplaySettings, ScaleFilter, SettingsData } from '@core/SettingsStore';
 import { setRumbleIntensityMultiplier } from '@utils/GamepadRumble';
 
@@ -41,7 +42,7 @@ export class Game {
   };
   sceneManager!: SceneManager;
   input!: InputManager;
-  /** W3C Gamepad API 폴링 — InputManager.setVirtualAction 으로 액션 주입. */
+  /** W3C Gamepad API ?대쭅 ??InputManager.setVirtualAction ?쇰줈 ?≪뀡 二쇱엯. */
   gamepad!: GamepadManager;
   assetLoader!: AssetLoader;
   camera!: Camera;
@@ -61,16 +62,18 @@ export class Game {
   legacyUIContainer!: Container;
 
   /**
-   * Top-most overlay (above HUD/minimap). Used by FeedbackPanel — its dim
+   * Top-most overlay (above HUD/minimap). Used by FeedbackPanel ??its dim
    * overlay covers EVERYTHING including the high-res UI layer.
    */
   feedbackOverlayContainer!: Container;
+  transitionLayer!: Container;
+  transitionDirector!: TransitionDirector;
 
   /** Integer pixel scale (1x=640, 2x=1280, 3x=1920). */
   uiScale = 1;
 
   hitstopFrames = 0;
-  /** Shift+I 로 모든 UI 레이어를 숨긴 상태. true 면 HUD/legacy/feedback overlay/FPS 모두 비표시. */
+  /** Shift+I 濡?紐⑤뱺 UI ?덉씠?대? ?④릿 ?곹깭. true 硫?HUD/legacy/feedback overlay/FPS 紐⑤몢 鍮꾪몴?? */
   uiHidden = false;
   /** Set true while FeedbackPanel is open. Scenes early-return on update. */
   feedbackOpen = false;
@@ -89,7 +92,7 @@ export class Game {
   };
   private accumulated = 0;
   renderer!: Renderer;
-  /** 현재 렌더러 백엔드. 디버그 / 추후 WGSL 포트 분기에 사용. */
+  /** ?꾩옱 ?뚮뜑??諛깆뿏?? ?붾쾭洹?/ 異뷀썑 WGSL ?ы듃 遺꾧린???ъ슜. */
   rendererType: 'webgl' | 'webgpu' = 'webgl';
   private backgroundRT!: RenderTexture;
   private backgroundSprite!: Sprite;
@@ -105,7 +108,7 @@ export class Game {
     // Compute integer pixel scale for native resolution
     const screenW = window.innerWidth;
     const screenH = window.innerHeight;
-    // Round up to maximize font quality — CSS scales down to fit window
+    // Round up to maximize font quality ??CSS scales down to fit window
     const requestedUiScale = Math.max(1, Math.round(Math.min(screenW / GAME_WIDTH, screenH / GAME_HEIGHT)));
     this.uiScale = requestedUiScale;
     // Plumb uiScale into the UI text factory so KO PIXI.Text nodes default to
@@ -114,14 +117,13 @@ export class Game {
     const nativeW = GAME_WIDTH * this.uiScale;
     const nativeH = GAME_HEIGHT * this.uiScale;
 
-    // Renderer at native resolution — UI renders crisp here.
+    // Renderer at native resolution ??UI renders crisp here.
     //
-    // WebGPU 옵트인: `?renderer=webgpu` 쿼리스트링으로만 활성. PaletteSwap /
-    // RimLight / GlowFilter 가 GLSL only 라 default 전환 시 시각 회귀가 발생.
-    // WGSL 포트 후 default 승격 예정 (pixijs-references.html roadmap P1).
+    // WebGPU ?듯듃?? `?renderer=webgpu` 荑쇰━?ㅽ듃留곸쑝濡쒕쭔 ?쒖꽦. PaletteSwap /
+    // RimLight / GlowFilter 媛 GLSL only ??default ?꾪솚 ???쒓컖 ?뚭?媛 諛쒖깮.
+    // WGSL ?ы듃 ??default ?밴꺽 ?덉젙 (pixijs-references.html roadmap P1).
     //
-    // 정적 임포트로 두 클래스를 모두 번들에 포함 — `autoDetectRenderer` 의
-    // 동적 임포트는 Vite production 에서 hang 을 유발한 전례가 있어 회피.
+    // ?뺤쟻 ?꾪룷?몃줈 ???대옒?ㅻ? 紐⑤몢 踰덈뱾???ы븿 ??`autoDetectRenderer` ??    // ?숈쟻 ?꾪룷?몃뒗 Vite production ?먯꽌 hang ???좊컻???꾨?媛 ?덉뼱 ?뚰뵾.
     const params = new URLSearchParams(window.location.search);
     const preferWebGpu = params.get('renderer') === 'webgpu';
     const initOpts = {
@@ -165,7 +167,7 @@ export class Game {
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
 
-    // Game world container — rendered to RT at 640x360
+    // Game world container ??rendered to RT at 640x360
     this.backgroundContainer = new Container();
 
     this.backgroundRT = RenderTexture.create({
@@ -197,29 +199,34 @@ export class Game {
     this.worldSprite.scale.set(this.uiScale);
     this.app.stage.addChild(this.worldSprite);
 
-    // Legacy UI layer — 640x360 coordinates, scaled up to native
+    // Legacy UI layer ??640x360 coordinates, scaled up to native
     this.legacyUIContainer = new Container();
     this.legacyUIContainer.scale.set(this.uiScale);
     this.app.stage.addChild(this.legacyUIContainer);
 
-    // Hi-res UI layer — native resolution coordinates (HUD, minimap)
+    // Hi-res UI layer ??native resolution coordinates (HUD, minimap)
     this.uiContainer = new Container();
     this.app.stage.addChild(this.uiContainer);
 
-    // Top-most overlay layer — used by FeedbackPanel so it covers HUD/minimap.
+    // Top-most overlay layer ??used by FeedbackPanel so it covers HUD/minimap.
     // 640x360 coords, scaled like legacyUIContainer.
     this.feedbackOverlayContainer = new Container();
     this.feedbackOverlayContainer.scale.set(this.uiScale);
     this.app.stage.addChild(this.feedbackOverlayContainer);
 
+    this.transitionLayer = new Container();
+    this.transitionLayer.scale.set(this.uiScale);
+    this.app.stage.addChild(this.transitionLayer);
+
     this.input = new InputManager();
     this.gamepad = new GamepadManager();
     this.assetLoader = new AssetLoader();
     this.camera = new Camera(GAME_WIDTH, GAME_HEIGHT);
+    this.transitionDirector = new TransitionDirector(this, this.transitionLayer);
     this.sceneManager = new SceneManager(this);
 
-    // DEV 전용 디버그 브리지 — Playwright/콘솔에서 현재 씬·세이브 introspection.
-    // (window.__inputTracker 와 동일한 패턴; 프로덕션 번들에는 포함되지 않음.)
+    // DEV ?꾩슜 ?붾쾭洹?釉뚮━吏 ??Playwright/肄섏넄?먯꽌 ?꾩옱 ??룹꽭?대툕 introspection.
+    // (window.__inputTracker ? ?숈씪???⑦꽩; ?꾨줈?뺤뀡 踰덈뱾?먮뒗 ?ы븿?섏? ?딆쓬.)
     if (import.meta.env.DEV) {
       void Promise.all([
         import('@save/PlayerSave'),
@@ -233,13 +240,13 @@ export class Game {
       });
     }
 
-    // Debug FPS / sprite count overlay — Shift+I 토글 (Debug.infoVisible).
-    // app.stage 직속 — ItemWorldScene 등 씬 전환 시 uiContainer.removeChildren()
-    // 의 영향을 받지 않도록 stage 의 가장 위 layer 로.
+    // Debug FPS / sprite count overlay ??Shift+I ?좉? (Debug.infoVisible).
+    // app.stage 吏곸냽 ??ItemWorldScene ?????꾪솚 ??uiContainer.removeChildren()
+    // ???곹뼢??諛쏆? ?딅룄濡?stage ??媛????layer 濡?
     this.fpsCounter = new FpsCounter(this.uiScale);
     this.app.stage.addChild(this.fpsCounter.container);
 
-    // F-key feedback panel — global, persists across scene changes.
+    // F-key feedback panel ??global, persists across scene changes.
     this.feedbackPanel = new FeedbackPanel(this);
 
     this.app.ticker.add((ticker) => {
@@ -253,17 +260,17 @@ export class Game {
         if (this.hitstopFrames > 0) {
           this.hitstopFrames--;
         } else {
-          // Gamepad 폴링 — sceneManager.update() 직전 + input.update() 전에 호출해야
-          // setVirtualAction 으로 주입된 keystate 가 isJustPressed 로 정확히 검출된다.
+          // Gamepad ?대쭅 ??sceneManager.update() 吏곸쟾 + input.update() ?꾩뿉 ?몄텧?댁빞
+          // setVirtualAction ?쇰줈 二쇱엯??keystate 媛 isJustPressed 濡??뺥솗??寃異쒕맂??
           this.gamepad.poll(this.input);
 
-          // `?debug` URL 플래그 게이트: Shift+I/U 등 디버그 콤보는 일반 유저에게 비활성.
-          // Shift+P (hard reset) 는 어떤 모드에서도 항상 동작해야 하므로 게이트 밖에 둔다.
+          // `?debug` URL ?뚮옒洹?寃뚯씠?? Shift+I/U ???붾쾭洹?肄ㅻ낫???쇰컲 ?좎??먭쾶 鍮꾪솢??
+          // Shift+P (hard reset) ???대뼡 紐⑤뱶?먯꽌????긽 ?숈옉?댁빞 ?섎?濡?寃뚯씠??諛뽰뿉 ?붾떎.
           if (new URLSearchParams(window.location.search).has('debug')) {
-            // Shift+I — debug renderer(FPS + HUD 디버그 텍스트 + 히트박스 박스 등) 토글.
-            // Debug.visible: Player.attackSprite (공격 hitbox debug rect) 등 인게임 디버그 시각요소.
-            // Debug.infoVisible: HUD/씬 단의 debug 라벨 / FpsCounter container.
-            // INVENTORY consume — 인벤토리 모달 열림 방지.
+            // Shift+I ??debug renderer(FPS + HUD ?붾쾭洹??띿뒪??+ ?덊듃諛뺤뒪 諛뺤뒪 ?? ?좉?.
+            // Debug.visible: Player.attackSprite (怨듦꺽 hitbox debug rect) ???멸쾶???붾쾭洹??쒓컖?붿냼.
+            // Debug.infoVisible: HUD/???⑥쓽 debug ?쇰꺼 / FpsCounter container.
+            // INVENTORY consume ???몃깽?좊━ 紐⑤떖 ?대┝ 諛⑹?.
             if (this.input.shiftDown && this.input.isJustPressed(GameAction.INVENTORY)) {
               this.input.consumeJustPressed(GameAction.INVENTORY);
               const next = !Debug.visible;
@@ -271,8 +278,8 @@ export class Game {
               Debug.infoVisible = next;
               this.fpsCounter.container.visible = next;
             }
-            // Shift+U — 모든 HUD/모달 레이어(uiContainer + legacyUIContainer + feedback overlay) 토글.
-            // DEBUG_UI_TOGGLE consume 해서 다른 핸들러가 같은 키를 두 번 처리하지 않도록.
+            // Shift+U ??紐⑤뱺 HUD/紐⑤떖 ?덉씠??uiContainer + legacyUIContainer + feedback overlay) ?좉?.
+            // DEBUG_UI_TOGGLE consume ?댁꽌 ?ㅻⅨ ?몃뱾?ш? 媛숈? ?ㅻ? ??踰?泥섎━?섏? ?딅룄濡?
             if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_UI_TOGGLE)) {
               this.input.consumeJustPressed(GameAction.DEBUG_UI_TOGGLE);
               this.uiHidden = !this.uiHidden;
@@ -281,11 +288,11 @@ export class Game {
               this.legacyUIContainer.visible = visible;
               this.feedbackOverlayContainer.visible = visible;
             }
-            // Shift+[ — zoom in (+0.1). Shift+] — zoom out (-0.1). Camera.setZoom
-            // 이 [0.01, 4.0] 으로 클램프. raw 키 코드를 쓰는 이유: [/] 는 GameAction
-            // 바인딩에 없고 즉석 디버그 목적이라 enum 등록을 피한다.
-            // 룸/씬 전환 시 기존 코드(LdtkWorldScene/ItemWorldScene)가 setZoom(1.0)
-            // 호출 → 다른 방 갔다오면 자동 리셋.
+            // Shift+[ ??zoom in (+0.1). Shift+] ??zoom out (-0.1). Camera.setZoom
+            // ??[0.01, 4.0] ?쇰줈 ?대옩?? raw ??肄붾뱶瑜??곕뒗 ?댁쑀: [/] ??GameAction
+            // 諛붿씤?⑹뿉 ?녾퀬 利됱꽍 ?붾쾭洹?紐⑹쟻?대씪 enum ?깅줉???쇳븳??
+            // 猷????꾪솚 ??湲곗〈 肄붾뱶(LdtkWorldScene/ItemWorldScene)媛 setZoom(1.0)
+            // ?몄텧 ???ㅻⅨ 諛?媛붾떎?ㅻ㈃ ?먮룞 由ъ뀑.
             const zoomIn = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketLeft');
             const zoomOut = this.input.shiftDown && this.input.isJustPressedKeyCode('BracketRight');
             if (zoomIn || zoomOut) {
@@ -294,9 +301,9 @@ export class Game {
               toast?.show(`Zoom ${this.camera.zoom.toFixed(1)}x`, 0xffa41b);
             }
           }
-          // Shift+P — 전역 hard reset. 세이브 + 키보드 preset(localStorage) 모두 삭제 후 reload.
-          // 어떤 씬에서도 작동하도록 Game.ts 단으로 일원화 (이전엔 LdtkWorldScene 만 처리).
-          // debug 게이트 밖 — 일반 유저도 망가진 세이브/키바인딩을 복구할 수 있어야 함.
+          // Shift+P ???꾩뿭 hard reset. ?몄씠釉?+ ?ㅻ낫??preset(localStorage) 紐⑤몢 ??젣 ??reload.
+          // ?대뼡 ?ъ뿉?쒕룄 ?묐룞?섎룄濡?Game.ts ?⑥쑝濡??쇱썝??(?댁쟾??LdtkWorldScene 留?泥섎━).
+          // debug 寃뚯씠??諛????쇰컲 ?좎???留앷?吏??몄씠釉??ㅻ컮?몃뵫??蹂듦뎄?????덉뼱????
           if (this.input.shiftDown && this.input.isJustPressed(GameAction.DEBUG_RESET)) {
             this.input.consumeJustPressed(GameAction.DEBUG_RESET);
             SaveManager.deleteSave();
@@ -304,10 +311,13 @@ export class Game {
             window.location.reload();
             return;
           }
+          this.transitionDirector.update(FIXED_STEP);
           this.stats.playTimeMs += FIXED_STEP;
-          PerfMonitor.begin('scene.update');
-          this.sceneManager.update(FIXED_STEP);
-          PerfMonitor.end('scene.update');
+          if (!this.transitionDirector.blocksSceneUpdate) {
+            PerfMonitor.begin('scene.update');
+            this.sceneManager.update(FIXED_STEP);
+            PerfMonitor.end('scene.update');
+          }
         }
         this.feedbackPanel?.update(FIXED_STEP);
         this.input.update();
@@ -371,7 +381,7 @@ export class Game {
       this.worldSprite.scale.x = (GAME_WIDTH / rtW) * this.uiScale;
       this.worldSprite.scale.y = (GAME_HEIGHT / rtH) * this.uiScale;
 
-      // Debug FPS / sprite count update — render 직전.
+      // Debug FPS / sprite count update ??render 吏곸쟾.
       this.fpsCounter.update(ticker.deltaMS, stage);
 
       // Render stage (worldSprite + uiContainer) to screen at native res
@@ -389,7 +399,7 @@ export class Game {
     const h = pseudoFullscreen ? Math.floor(vv?.height ?? window.innerHeight) : window.innerHeight;
     const canvas = this.app.canvas;
 
-    // uiScale is locked at init — renderer/fonts/HUD are all built for that scale.
+    // uiScale is locked at init ??renderer/fonts/HUD are all built for that scale.
     // Only CSS changes to fit the window.
     const fitScale = Math.min(w / GAME_WIDTH, h / GAME_HEIGHT);
     const requestedScale = this.displayScaleNumber();
@@ -459,3 +469,4 @@ function rumbleMultiplier(level: ControlsSettings['rumble']): number {
     default: return 4;
   }
 }
+

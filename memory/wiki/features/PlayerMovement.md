@@ -33,3 +33,8 @@
 - `game/src/level/ProceduralDecorator.ts` suppresses all procedural edge decorations on inferred 2x1 slope support cells. Grass/moss/surface-overlay/micro passes are grid-edge based and will produce right-angle artifacts if they are allowed on the low/low/high or high/low/low support cells.
 - `game/src/systems/BreakablePropSpawner.ts` excludes 2x1 slope support cells from procedural breakable prop floor candidates. Do not place breakable props on the virtual slope footprint.
 
+
+## 2026-06-06 Input-suppressed locks
+
+- Use `Player.updateWithSuppressedInput(dt)` for temporary gameplay/cutscene locks where the player should stop naturally. It makes movement/jump/dash/attack/flask input read as false while still running `Player.update()`, so velocity decelerates and animation can return to idle/fall normally.
+- Do not use `stopPlayerMotion()` as a general cutscene movement lock; keep it for placement/teleport/snap cases where velocity must be zeroed immediately.

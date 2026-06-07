@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container } from 'pixi.js';
 import { GameAction, actionKey } from '@core/InputManager';
 import type { ProximityInteraction, ProximityRouter } from '@core/ProximityRouter';
 import { EXP_PER_LEVEL, type ItemInstance } from '@items/ItemInstance';
@@ -7,7 +7,6 @@ import { createItemWorldLeaveConfirmPanel } from '@ui/ItemWorldLeaveConfirmPanel
 import type { UISkin } from '@ui/UISkin';
 import { t } from '@i18n';
 import {
-  destroyDisplayObject,
   destroyNullableDisplayObject,
   hideDisplayObject,
 } from '@scenes/shared/DisplayObjectLifecycleHelpers';
@@ -17,8 +16,8 @@ import {
 } from '@scenes/shared/InputPressHelpers';
 import { getDistanceSquared } from '@scenes/shared/DistanceHelpers';
 import { projectWorldToUi } from '@scenes/shared/WorldPromptProjection';
+import { TransitionTokens } from '@effects/TransitionDirector';
 import type { Game } from '../../Game';
-import { GAME_HEIGHT, GAME_WIDTH } from '../../Game';
 
 interface WorldFrozenReturnRuntimeDeps {
   game: Game;
@@ -34,9 +33,6 @@ interface WorldFrozenReturnRuntimeDeps {
 }
 
 const NEAR_DISTANCE_PX = 64;
-const RETURN_FADE_IN_MS = 600;
-const RETURN_FADE_OUT_MS = 600;
-const RETURN_FADE_PEAK_ALPHA = 0.85;
 const CONFIRM_CANCEL_ACTIONS = [
   GameAction.JUMP,
   GameAction.DASH,
@@ -51,8 +47,6 @@ export class WorldFrozenReturnRuntime {
   private interactionArmed = false;
   private transitionActive = false;
   private proximityHandler: ProximityInteraction | null = null;
-  private returnOverlay: Graphics | null = null;
-  private returnTicker: ((ticker: { deltaMS: number }) => void) | null = null;
 
   constructor(private readonly deps: WorldFrozenReturnRuntimeDeps) {}
 
@@ -149,7 +143,6 @@ export class WorldFrozenReturnRuntime {
 
   destroy(): void {
     this.clearInteraction();
-    this.clearReturnOverlay();
     this.transitionActive = false;
   }
 
@@ -196,47 +189,18 @@ export class WorldFrozenReturnRuntime {
     this.deps.restoreUi();
     this.hideConfirm();
     this.clearInteraction();
-
-    const overlay = new Graphics();
-    overlay.rect(0, 0, GAME_WIDTH * this.deps.game.uiScale, GAME_HEIGHT * this.deps.game.uiScale)
-      .fill({ color: 0xffffff, alpha: 1 });
-    overlay.alpha = 0;
-    this.deps.game.uiContainer.addChild(overlay);
-    this.returnOverlay = overlay;
-
-    let elapsed = 0;
-    let phase: 'in' | 'out' = 'in';
-
-    const onTick = (ticker: { deltaMS: number }) => {
-      elapsed += ticker.deltaMS;
-      if (phase === 'in') {
-        overlay.alpha = Math.min(RETURN_FADE_PEAK_ALPHA, (elapsed / RETURN_FADE_IN_MS) * RETURN_FADE_PEAK_ALPHA);
-        if (elapsed >= RETURN_FADE_IN_MS) {
-          phase = 'out';
-          elapsed = 0;
-          overlay.alpha = RETURN_FADE_PEAK_ALPHA;
-          this.deps.deactivateAtmosphere();
-          this.deps.cancelDeploymentState();
-        }
-        return;
-      }
-
-      overlay.alpha = RETURN_FADE_PEAK_ALPHA * (1 - elapsed / RETURN_FADE_OUT_MS);
-      if (elapsed >= RETURN_FADE_OUT_MS) {
-        this.clearReturnOverlay();
+    const started = this.deps.game.transitionDirector.startCoverSwapReveal({
+      cover: 'white',
+      durationOutMs: TransitionTokens.SCENE_SWAP,
+      durationInMs: TransitionTokens.SCENE_SWAP,
+      onSwap: () => {
+        this.deps.deactivateAtmosphere();
+        this.deps.cancelDeploymentState();
+      },
+      onComplete: () => {
         this.transitionActive = false;
-      }
-    };
-
-    this.returnTicker = onTick;
-    this.deps.game.app.ticker.add(onTick);
-  }
-
-  private clearReturnOverlay(): void {
-    if (this.returnTicker) {
-      this.deps.game.app.ticker.remove(this.returnTicker);
-      this.returnTicker = null;
-    }
-    this.returnOverlay = destroyNullableDisplayObject(this.returnOverlay);
+      },
+    });
+    if (!started) this.transitionActive = false;
   }
 }

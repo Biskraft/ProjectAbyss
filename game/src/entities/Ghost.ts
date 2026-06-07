@@ -98,7 +98,7 @@ export class Ghost extends Enemy {
       enter: () => { this.vx = 0; this.vy = 0; this.spawnX = this.x; this.spawnY = this.y; },
       update: () => {
         this.vx = 0; this.vy = 0;
-        if (this.distToTarget() <= this.detectRange) {
+        if (this.distToTarget() <= this.detectRange && this.hasLineOfSightToTarget()) {
           this.fsm.transition('detect');
           return;
         }
@@ -111,7 +111,7 @@ export class Ghost extends Enemy {
       name: 'patrol',
       enter: () => { if (this.spawnX === 0) { this.spawnX = this.x; this.spawnY = this.y; } },
       update: () => {
-        if (this.distToTarget() <= this.detectRange) {
+        if (this.distToTarget() <= this.detectRange && this.hasLineOfSightToTarget()) {
           this.fsm.transition('detect');
           return;
         }
@@ -130,7 +130,7 @@ export class Ghost extends Enemy {
       update: (dt) => {
         this.vx = 0; this.vy = 0;
         this.detectTimer -= dt;
-        if (this.distToTarget() > this.detectRange) {
+        if (this.distToTarget() > this.detectRange || !this.hasLineOfSightToTarget()) {
           this.fsm.transition('patrol');
           return;
         }
@@ -177,7 +177,7 @@ export class Ghost extends Enemy {
         }
 
         // Ready to shoot?
-        if (hDist <= this.attackRange && this.cooldownTimer <= 0) {
+        if (hDist <= this.attackRange && this.cooldownTimer <= 0 && this.hasLineOfSightToTarget()) {
           this.fsm.transition('attack');
         }
       },
@@ -220,6 +220,7 @@ export class Ghost extends Enemy {
 
   private shoot(): void {
     if (!this.target) return;
+    if (!this.hasLineOfSightToTarget()) return;
     const cx = this.x + this.width / 2;
     const cy = this.y + this.height / 2;
     const dir = this.target.x > this.x ? 1 : -1;

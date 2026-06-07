@@ -1,5 +1,5 @@
 import type { Graphics } from 'pixi.js';
-import { getFadeOutAlphaFromRemaining } from '@scenes/shared/TransitionFadeHelpers';
+import { getFadeOutAlphaFromRemaining } from '../shared/TransitionFadeHelpers';
 
 interface ItemWorldExitFadeRuntimeDeps {
   getFadeOverlay: () => Graphics;

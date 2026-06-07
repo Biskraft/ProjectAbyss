@@ -21,6 +21,7 @@ export class ItemWorldTemplatePickerRuntime {
     const requiredExitsText = required.length > 0 ? required.join('') : 'none';
     const placed = this.deps.getMemoryRoomPlacements().get(`${cell.col}:${cell.absoluteRow}`);
     if (placed) {
+      if (placed.identifier.startsWith('ItemStratum_Prologue_')) return placed;
       const placedExitsText = placed.exits.length > 0 ? placed.exits.join('') : 'none';
       if (this.sameExitSet(placed.exits, required)) return placed;
       console.warn(

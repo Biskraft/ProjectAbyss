@@ -2,7 +2,7 @@ import type { Graphics } from 'pixi.js';
 import {
   getFadeInAlphaFromRemaining,
   getFadeOutAlphaFromRemaining,
-} from '@scenes/shared/TransitionFadeHelpers';
+} from '../shared/TransitionFadeHelpers';
 
 export type WorldEdgeTransitionDirection = 'left' | 'right' | 'up' | 'down';
 

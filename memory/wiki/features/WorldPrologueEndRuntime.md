@@ -110,3 +110,9 @@ game/src/scenes/world/WorldPrologueEndRuntime.ts owns the Ch.0 -> Ch.1 prologue 
 - After cinema zoom/fade completes, `awaitWakeInput` and `wakeUp` no longer block the full `LdtkWorldScene.update()` loop. Environment runtimes continue updating while the player remains locked on the wake pose/animation.
 - `WorldPrologueEndRuntime.isPlayerLocked` gates only the Player update path in `LdtkWorldScene`; `shouldTickWakeUpAnimation` lets the wake-up frames advance without accepting movement input.
 - Player movement unlocks `1000ms` after the `900ms` wake-up animation completes.
+
+## 2026-06-06 Fix: wake-up unlock no longer leaves lying pose
+- Bug cause: after `Player.playWakeUpOverride()` finished, the extra movement-unlock delay still called `holdWakeUpPose()`, re-enabling frame-0 lying pose before control returned.
+- `WorldPrologueEndRuntime.shouldHoldWakeUpPose` now returns true only during `awaitWakeInput`; wake-up post-delay only zeroes player motion and does not touch the pose.
+- Playwright `tmp/prologue-cutscene/verify-wake-move.cjs` pressed Right to trigger wake, waited through unlock, then held Right. Player moved from x=248 to x=334, FSM changed to `run`, and screenshot confirmed standing/running pose.
+- `npm run build` from `game/` passes.

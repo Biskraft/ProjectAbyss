@@ -1,48 +1,50 @@
-import { Container, Graphics } from 'pixi.js';
+﻿import { Container, Graphics } from 'pixi.js';
 import type { LdtkEntity } from '@level/LdtkLoader';
 import type { Player } from '@entities/Player';
 import { detachDisplayObject } from '@scenes/shared/DisplayObjectLifecycleHelpers';
 import { getProgress01 } from '@scenes/shared/NumericHelpers';
+import type { Game } from '../../Game';
 
 /**
- * ItemWorldPrologueEndRuntime — Ch.0 프롤로그 종료 시퀀스(P2.1~P5).
+ * ItemWorldPrologueEndRuntime ??Ch.0 ?꾨·濡쒓렇 醫낅즺 ?쒗??P2.1~P5).
  *
- * 발동: scene='prologue' 의 4지층(`ItemStratum_Prologue_04`)에 배치된 LDtk
- * `Trigger` 엔티티(TriggerName="prologue_end") 존을 플레이어가 터치하면 1회.
+ * 諛쒕룞: scene='prologue' ??4吏痢?`ItemStratum_Prologue_04`)??諛곗튂??LDtk
+ * `Trigger` ?뷀떚??TriggerName="prologue_end") 議댁쓣 ?뚮젅?댁뼱媛 ?곗튂?섎㈃ 1??
  *
- * 시퀀스(블로킹 — 조작 잠금):
- *   malsoja   : 말소자 등장(P2.1). 흰색 언캐니 인간형 호러가 솟아오른다(비교전).
- *   threat    : 위상 찢김(P3 The Sin). 화면 암전·흔들림·플래시. 말소자가 위상을 찢는다.
- *   cinematic : 줌인/완전 암전(P4~P5 Cascade). 검은 화면으로 빨려든다.
- *   → onDone(): 씬이 아이템계를 빠져나가 Ch.1(Start_Room_01, 백업 복원)로 전환.
+ * ?쒗??釉붾줈????議곗옉 ?좉툑):
+ *   malsoja   : 留먯냼???깆옣(P2.1). ?곗깋 ?몄틦???멸컙???몃윭媛 ?잛븘?ㅻⅨ??鍮꾧탳??.
+ *   threat    : ?꾩긽 李??(P3 The Sin). ?붾㈃ ?붿쟾쨌?붾뱾由셋룻뵆?섏떆. 留먯냼?먭? ?꾩긽??李?뒗??
+ *   cinematic : 以뚯씤/?꾩쟾 ?붿쟾(P4~P5 Cascade). 寃? ?붾㈃?쇰줈 鍮⑤젮?좊떎.
+ *   ??onDone(): ?ъ씠 ?꾩씠?쒓퀎瑜?鍮좎졇?섍? Ch.1(Start_Room_01, 諛깆뾽 蹂듭썝)濡??꾪솚.
  *
- * 말소자 비주얼은 placeholder(Graphics) — 정식 스프라이트/와이드 컷신 아트 미정
- * (Design_Art_Direction §14.4 / Plan_Ch0 §7 잔여 작업).
+ * 留먯냼??鍮꾩＜?쇱? placeholder(Graphics) ???뺤떇 ?ㅽ봽?쇱씠????대뱶 而룹떊 ?꾪듃 誘몄젙
+ * (Design_Art_Direction 짠14.4 / Plan_Ch0 짠7 ?붿뿬 ?묒뾽).
  *
- * update() 가 시퀀스 중 true 를 반환 → 호출부가 early-return 하여 게임플레이를
- * 멈춘다(WorldEndingRuntime 와 동일 블로킹 패턴).
+ * update() 媛 ?쒗??以?true 瑜?諛섑솚 ???몄텧遺媛 early-return ?섏뿬 寃뚯엫?뚮젅?대?
+ * 硫덉텣??WorldEndingRuntime ? ?숈씪 釉붾줈???⑦꽩).
  */
 
 interface ItemWorldPrologueEndRuntimeDeps {
+  game: Game;
   getPlayer: () => Player;
-  /** 씬의 풀스크린 페이드 오버레이(검정). alpha 직접 제어. */
+  /** ?ъ쓽 ??ㅽ겕由??섏씠???ㅻ쾭?덉씠(寃??. alpha 吏곸젒 ?쒖뼱. */
   getFadeOverlay: () => Graphics;
-  /** 월드 좌표 레이어 — 말소자 placeholder 부착. */
+  /** ?붾뱶 醫뚰몴 ?덉씠????留먯냼??placeholder 遺李? */
   getEntityLayer: () => Container;
-  /** scene === 'prologue' 일 때만 발동. */
+  /** scene === 'prologue' ???뚮쭔 諛쒕룞. */
   isPrologue: () => boolean;
   shake: (intensity: number) => void;
   flash: () => void;
-  /** 시퀀스 종료 → Ch.1 전환. */
+  /** ?쒗??醫낅즺 ??Ch.1 ?꾪솚. */
   onDone: () => void;
 }
 
-type Phase = 'idle' | 'malsoja' | 'threat' | 'cinematic' | 'done';
+type Phase = 'idle' | 'malsoja' | 'whiteOut' | 'done';
 
 const MALSOJA_MS = 1800;
-const THREAT_MS = 2200;
-const CINEMATIC_MS = 1600;
-const THREAT_MAX_ALPHA = 0.55;
+const WHITE_OUT_MS = 1000;
+const FADE_W = 960;
+const FADE_H = 544;
 
 export class ItemWorldPrologueEndRuntime {
   private trigger: { x: number; y: number; w: number; h: number } | null = null;
@@ -51,10 +53,11 @@ export class ItemWorldPrologueEndRuntime {
   private malsoja: Container | null = null;
   private malsojaJitter = 0;
   private flashTimer = 0;
+  private directorHandoffStarted = false;
 
   constructor(private readonly deps: ItemWorldPrologueEndRuntimeDeps) {}
 
-  /** LDtk Trigger(TriggerName="prologue_end") 존을 월드 AABB 로 등록. pivot [0,1]=좌하단. */
+  /** LDtk Trigger(TriggerName="prologue_end") 議댁쓣 ?붾뱶 AABB 濡??깅줉. pivot [0,1]=醫뚰븯?? */
   register(entity: LdtkEntity, offX: number, offY: number): void {
     this.trigger = {
       x: offX + entity.px[0],
@@ -70,9 +73,10 @@ export class ItemWorldPrologueEndRuntime {
     this.trigger = null;
     this.phase = 'idle';
     this.timer = 0;
+    this.directorHandoffStarted = false;
   }
 
-  /** 시퀀스 진행 중이면 true (게임플레이 블록). */
+  /** ?쒗??吏꾪뻾 以묒씠硫?true (寃뚯엫?뚮젅??釉붾줉). */
   update(dt: number): boolean {
     if (this.phase === 'idle') {
       if (!this.trigger || !this.deps.isPrologue()) return false;
@@ -94,50 +98,60 @@ export class ItemWorldPrologueEndRuntime {
       const k = getProgress01(this.timer, MALSOJA_MS);
       if (this.malsoja) {
         this.malsoja.alpha = k;
-        // 천천히 솟아오르며 미세 진동(언캐니).
         this.malsojaJitter += dt;
         this.malsoja.x = this.malsojaBaseX + Math.sin(this.malsojaJitter * 0.013) * 1.5;
       }
       if (this.timer >= MALSOJA_MS) {
-        this.phase = 'threat';
+        this.phase = 'whiteOut';
         this.timer = 0;
       }
       return true;
     }
 
-    if (this.phase === 'threat') {
-      const k = getProgress01(this.timer, THREAT_MS);
-      fade.alpha = THREAT_MAX_ALPHA * k;
-      // 위상 찢김 — 흔들림 + 간헐 플래시 + 말소자 격한 진동.
-      this.deps.shake(2 + k * 4);
+    if (this.phase === 'whiteOut') {
+      const k = getProgress01(this.timer, WHITE_OUT_MS);
+      this.drawWhiteFade(fade);
+      fade.alpha = k;
+      this.deps.shake(1 + k * 2);
       this.flashTimer -= dt;
       if (this.flashTimer <= 0) {
-        this.flashTimer = 260 - k * 140;
+        this.flashTimer = 360;
         this.deps.flash();
       }
       if (this.malsoja) {
         this.malsojaJitter += dt;
-        const amp = 1.5 + k * 6;
+        const amp = 1.5 + k * 3;
         this.malsoja.x = this.malsojaBaseX + (Math.random() - 0.5) * amp;
         this.malsoja.y = this.malsojaBaseY + (Math.random() - 0.5) * amp;
+        this.malsoja.alpha = 1 - k;
       }
-      if (this.timer >= THREAT_MS) {
-        this.phase = 'cinematic';
-        this.timer = 0;
+      if (this.timer >= WHITE_OUT_MS) {
+        this.phase = 'done';
+        fade.alpha = 1;
+        this.startDirectorHandoff();
       }
       return true;
     }
-
-    // cinematic — 완전 암전으로 빨려든다.
-    const k = getProgress01(this.timer, CINEMATIC_MS);
-    fade.alpha = THREAT_MAX_ALPHA + (1 - THREAT_MAX_ALPHA) * k;
-    if (this.malsoja) this.malsoja.alpha = 1 - k;
-    if (this.timer >= CINEMATIC_MS) {
-      this.phase = 'done';
-      fade.alpha = 1;
-      this.deps.onDone();
-    }
     return true;
+  }
+
+  private startDirectorHandoff(): void {
+    if (this.directorHandoffStarted) return;
+    this.directorHandoffStarted = true;
+    const started = this.deps.game.transitionDirector.startCoverSwapReveal({
+      cover: 'white',
+      startCovered: true,
+      durationOutMs: 0,
+      durationInMs: 0,
+      holdFrames: 1,
+      onSwap: () => this.deps.onDone(),
+    });
+    if (!started) this.deps.onDone();
+  }
+
+  private drawWhiteFade(fade: Graphics): void {
+    fade.clear();
+    fade.rect(0, 0, FADE_W, FADE_H).fill(0xffffff);
   }
 
   private malsojaBaseX = 0;
@@ -147,7 +161,7 @@ export class ItemWorldPrologueEndRuntime {
     this.phase = 'malsoja';
     this.timer = 0;
     const p = this.deps.getPlayer();
-    // 플레이어 앞쪽(바라보는 방향)에 등장 — 화면 안에 들어오도록.
+    // ?뚮젅?댁뼱 ?욎そ(諛붾씪蹂대뒗 諛⑺뼢)???깆옣 ???붾㈃ ?덉뿉 ?ㅼ뼱?ㅻ룄濡?
     const dir = p.facingRight ? 1 : -1;
     this.malsojaBaseX = p.x + p.width / 2 + dir * 56;
     this.malsojaBaseY = p.y + p.height;
@@ -159,25 +173,26 @@ export class ItemWorldPrologueEndRuntime {
   }
 
   /**
-   * 말소자 placeholder — 흰색 언캐니 인간형 실루엣(32px 폭). 길게 늘어난 몸,
-   * 형체를 다 드러내지 않는 공허(불가지·고독 원칙). 정식 아트 교체 예정.
+   * 留먯냼??placeholder ???곗깋 ?몄틦???멸컙???ㅻ（??32px ??. 湲멸쾶 ?섏뼱??紐?
+   * ?뺤껜瑜????쒕윭?댁? ?딅뒗 怨듯뿀(遺덇?吏쨌怨좊룆 ?먯튃). ?뺤떇 ?꾪듃 援먯껜 ?덉젙.
    */
   private buildMalsojaPlaceholder(): Container {
     const c = new Container();
     const g = new Graphics();
-    // 발치 그림자.
+    // 諛쒖튂 洹몃┝??
     g.ellipse(0, 0, 16, 5).fill({ color: 0x000000, alpha: 0.35 });
-    // 길게 늘어난 흰 몸통(pivot=발치, 위로 솟음).
+    // 湲멸쾶 ?섏뼱????紐명넻(pivot=諛쒖튂, ?꾨줈 ?잛쓬).
     g.moveTo(-10, -2);
     g.bezierCurveTo(-13, -34, -7, -64, 0, -76);
     g.bezierCurveTo(7, -64, 13, -34, 10, -2);
     g.closePath();
     g.fill({ color: 0xf4f4f8, alpha: 0.92 });
-    // 머리(형체 불명확) — 살짝 기운 타원.
+    // 癒몃━(?뺤껜 遺덈챸?? ???댁쭩 湲곗슫 ???
     g.ellipse(0, -80, 8, 11).fill({ color: 0xfafaff, alpha: 0.95 });
-    // 공허(얼굴 자리) — 이해 불가능성.
+    // 怨듯뿀(?쇨뎬 ?먮━) ???댄빐 遺덇??μ꽦.
     g.ellipse(1, -80, 3.5, 6).fill({ color: 0x05060a, alpha: 0.9 });
     c.addChild(g);
     return c;
   }
 }
+

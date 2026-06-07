@@ -154,6 +154,7 @@ export class Player extends Entity implements CombatEntity {
   private wakeUpOverrideTimer = 0;
   private wakeUpOverrideDuration = 0;
   private wakeUpHoldPose = false;
+  private playerInputSuppressed = false;
   /**
    * ?†ÎãàÎ©îÏù¥???úÎ∏å ?§ÌÖå?¥Ìä∏:
    *   - idle   : ?ÑÎ†à??0..3 Î£®ÌîÑ (400ms/frame)
@@ -297,6 +298,27 @@ export class Player extends Entity implements CombatEntity {
     this.updateErdaAnimation(dt);
     this.vx = 0;
     this.vy = 0;
+  }
+  updateWithSuppressedInput(dt: number): void {
+    const previous = this.playerInputSuppressed;
+    this.playerInputSuppressed = true;
+    try {
+      this.update(dt);
+    } finally {
+      this.playerInputSuppressed = previous;
+    }
+  }
+
+  private isPlayerInputDown(action: GameAction): boolean {
+    return !this.playerInputSuppressed && this.game.input.isDown(action);
+  }
+
+  private isPlayerInputJustPressed(action: GameAction): boolean {
+    return !this.playerInputSuppressed && this.game.input.isJustPressed(action);
+  }
+
+  private isPlayerInputJustReleased(action: GameAction): boolean {
+    return !this.playerInputSuppressed && this.game.input.isJustReleased(action);
   }
 
   // ============================================================
@@ -740,9 +762,9 @@ export class Player extends Entity implements CombatEntity {
     this.wasGrounded = this.grounded;
 
     // Jump buffer: register press
-    if (this.game.input.isJustPressed(GameAction.JUMP)) {
+    if (this.isPlayerInputJustPressed(GameAction.JUMP)) {
       // Down + Jump = drop through one-way platform (no jump)
-      if (this.game.input.isDown(GameAction.LOOK_DOWN) && this.isOnOneWayPlatform()) {
+      if (this.isPlayerInputDown(GameAction.LOOK_DOWN) && this.isOnOneWayPlatform()) {
         this.dropThroughTimer = Player.DROP_THROUGH_MS;
         this.y += 2;
         this.grounded = false;
@@ -755,7 +777,7 @@ export class Player extends Entity implements CombatEntity {
       //  - DOWN ???åÎ¶∞ ?ÅÌÉú??JUMP ??buffer ?òÏ? ?äÎäî??(?òÎèÑ=?úÎûç, not jump).
       //  - drop-through ÏßÅÌõÑ short window (dropThroughTimer ?úÏÑ± Ï§? ??JUMP ??Î¨¥Ïãú.
       // ?????ÅÏö©??(a) DOWN ?†Ï? mash ?Ä (b) DOWN ?ºÍ≥† JUMP ?∞Ì? Î™®Îëê Ï∞®Îã®.
-      if (this.game.input.isDown(GameAction.LOOK_DOWN) || this.dropThroughTimer > 0) {
+      if (this.isPlayerInputDown(GameAction.LOOK_DOWN) || this.dropThroughTimer > 0) {
         return;
       }
       // Wall Jump: touching wall + jump ??kick off opposite direction
@@ -784,8 +806,8 @@ export class Player extends Entity implements CombatEntity {
     const state = this.fsm.currentState;
 
     // Surge input ????+ C on ground or wall
-    if (!this.isLifting && this.abilities.surge && this.game.input.isJustPressed(GameAction.DASH) &&
-        this.game.input.isDown(GameAction.LOOK_UP) &&
+    if (!this.isLifting && this.abilities.surge && this.isPlayerInputJustPressed(GameAction.DASH) &&
+        this.isPlayerInputDown(GameAction.LOOK_UP) &&
         (this.grounded || this.wallSliding) &&
         state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       this.fsm.transition('surge_charge');
@@ -793,7 +815,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Dash input (requires dash ability, available from most states, cancels 3?Ä end lag)
-    if (!this.isLifting && this.abilities.dash && this.game.input.isJustPressed(GameAction.DASH) &&
+    if (!this.isLifting && this.abilities.dash && this.isPlayerInputJustPressed(GameAction.DASH) &&
         state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
       if (canDash) {
@@ -805,8 +827,8 @@ export class Player extends Entity implements CombatEntity {
 
     // Dive attack input ??air + ??+ C
     if (!this.isLifting && this.abilities.diveAttack && !this.grounded &&
-        this.attackInputEnabled && this.game.input.isDown(GameAction.LOOK_DOWN) &&
-        this.game.input.isJustPressed(GameAction.ATTACK) &&
+        this.attackInputEnabled && this.isPlayerInputDown(GameAction.LOOK_DOWN) &&
+        this.isPlayerInputJustPressed(GameAction.ATTACK) &&
         state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
       this.fsm.transition('dive');
       return;
@@ -821,7 +843,7 @@ export class Player extends Entity implements CombatEntity {
     // Suppress the swing when an interaction prompt is up (or a dialogue is
     // open) ??the same key press is claimed by the interaction. Not consumed
     // here, so the interaction runtime (which runs later) still receives it.
-    const attackPressedThisFrame = this.game.input.isJustPressed(GameAction.ATTACK)
+    const attackPressedThisFrame = this.isPlayerInputJustPressed(GameAction.ATTACK)
       && this.attackInputEnabled
       && !this.game.input.interactionPromptActive;
     const attackStateAllowed =
@@ -881,7 +903,7 @@ export class Player extends Entity implements CombatEntity {
       // Skip FSM + movement while casting
     } else {
       // Buffer R key press for 200ms so it doesn't get swallowed during attack/dash
-      if (this.game.input.isJustPressed(GameAction.FLASK)) {
+      if (this.isPlayerInputJustPressed(GameAction.FLASK)) {
         this.flaskBufferTimer = Player.FLASK_BUFFER_MS;
       }
       if (this.flaskBufferTimer > 0) {
@@ -978,7 +1000,7 @@ export class Player extends Entity implements CombatEntity {
     // tap = short hop, hold = full height. dash/surge Ï§ëÏóî ÎπÑÌôú??(varJumpTimer=0 ?†Ï?).
     if (this.varJumpTimer > 0) {
       this.varJumpTimer -= dt;
-      if (this.vy < 0 && this.game.input.isJustReleased(GameAction.JUMP)) {
+      if (this.vy < 0 && this.isPlayerInputJustReleased(GameAction.JUMP)) {
         this.vy *= VAR_JUMP_CUT_MULT;
         this.varJumpTimer = 0;
       } else if (this.vy >= 0) {
@@ -1099,9 +1121,9 @@ export class Player extends Entity implements CombatEntity {
       const leftSolid = isSolid(this.roomData[midRow]?.[leftCol] ?? 1);
       const rightSolid = isSolid(this.roomData[midRow]?.[rightCol] ?? 1);
 
-      if (leftSolid && this.game.input.isDown(GameAction.MOVE_LEFT)) {
+      if (leftSolid && this.isPlayerInputDown(GameAction.MOVE_LEFT)) {
         this.touchingWallDir = -1;
-      } else if (rightSolid && this.game.input.isDown(GameAction.MOVE_RIGHT)) {
+      } else if (rightSolid && this.isPlayerInputDown(GameAction.MOVE_RIGHT)) {
         this.touchingWallDir = 1;
       }
 
@@ -1128,9 +1150,8 @@ export class Player extends Entity implements CombatEntity {
 
     // Facing direction: input takes priority, then velocity
     if (state !== 'attack' && state !== 'hit') {
-      const input = this.game.input;
-      if (input.isDown(GameAction.MOVE_RIGHT)) this.facingRight = true;
-      else if (input.isDown(GameAction.MOVE_LEFT)) this.facingRight = false;
+        if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.facingRight = true;
+      else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.facingRight = false;
       else if (this.vx > 10) this.facingRight = true;
       else if (this.vx < -10) this.facingRight = false;
     }
@@ -1150,6 +1171,7 @@ export class Player extends Entity implements CombatEntity {
   // --- CombatEntity interface ---
 
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void {
+    const wasFacingRight = this.facingRight;
     // Flask cancel on hit: abort cast, do NOT consume charge (mercy rule GDD HEL-01)
     if (this.flaskCasting) {
       this.flaskCasting = false;
@@ -1160,8 +1182,9 @@ export class Player extends Entity implements CombatEntity {
     this._hitstunDuration = hitstun;
     // VFX: player took damage this frame
     this._justHitThisFrame = true;
-    this._hitKnockDir = knockbackX >= 0 ? 1 : -1;
+    this._hitKnockDir = wasFacingRight ? 1 : -1;
     this.fsm.transition('hit');
+    this.facingRight = wasFacingRight;
   }
 
   onDeath(): void {
@@ -1187,10 +1210,9 @@ export class Player extends Entity implements CombatEntity {
   // --- Ground states ---
 
   private getHorizontalInputDirection(): number {
-    const input = this.game.input;
     let inputX = 0;
-    if (input.isDown(GameAction.MOVE_LEFT)) inputX -= 1;
-    if (input.isDown(GameAction.MOVE_RIGHT)) inputX += 1;
+    if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) inputX -= 1;
+    if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) inputX += 1;
     return inputX;
   }
 
@@ -1355,9 +1377,8 @@ export class Player extends Entity implements CombatEntity {
     // Variable jump ?Ä?¥Î®∏???Ä?úÎ°ú ??ñ¥?∞Ïù∏ ?êÌîÑ ?ÅÏäπÍ≥?Î¨¥Í? ??Ï¶âÏãú Ï¢ÖÎ£å.
     this.varJumpTimer = 0;
 
-    const input = this.game.input;
-    if (input.isDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
-    else if (input.isDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
+    if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
+    else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
     else this.dashDirX = this.facingRight ? 1 : -1;
 
     // ?ôÍ≤∞ Íµ¨Í∞Ñ ?ôÏïà?Ä ?ïÏ?. Î∞©Ìñ•?Ä freeze ?¥Ï†ú ?úÍ∞Ñ ?¨ÏÉò??
@@ -1373,9 +1394,8 @@ export class Player extends Entity implements CombatEntity {
     // Freeze Íµ¨Í∞Ñ ??Î∞©Ìñ•Îß??§ÏãúÍ∞??¨ÏÉò?? ?¥Îèô?Ä Î©àÏ∂§.
     if (this.dashFreezeTimer > 0) {
       this.dashFreezeTimer -= dt;
-      const input = this.game.input;
-      if (input.isDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
-      else if (input.isDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
+        if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
+      else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
       // ?ÖÎ†• ?ÜÏúºÎ©?Í∏∞Ï°¥ dashDirX ?†Ï? (startDash ?êÏÑú facing Í∏∞Î∞ò ?§Ï†ï).
       this.vx = 0;
       this.vy = 0;

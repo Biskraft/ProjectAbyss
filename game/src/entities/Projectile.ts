@@ -1,10 +1,13 @@
 import { Container, Graphics } from 'pixi.js';
 import { GlowFilter } from '@effects/GlowFilter';
+import { getTile, isSolid, TILE_SIZE } from '@core/Physics';
 import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
+import { Debug } from '@core/Debug';
 
 /**
  * Simple projectile entity used by Ghost enemies.
- * Flies in a straight line, ignores terrain, and is destroyed on timeout or hit.
+ * Flies in a straight line and is destroyed by IntGrid wall tiles.
+ * Platforms, fluids, hazards, and air are pass-through.
  */
 export class Projectile {
   x: number;
@@ -19,6 +22,8 @@ export class Projectile {
 
   private lifetime: number;
   private sprite: Graphics;
+  private readonly debugPoint = new Graphics();
+  private collisionGrid: number[][] | null = null;
 
   constructor(x: number, y: number, vx: number, vy: number, atk: number, lifetime = 3000) {
     this.x = x;
@@ -42,9 +47,14 @@ export class Projectile {
       coreBoost: 1.4,
     })];
     this.container.addChild(this.sprite);
+    this.container.addChild(this.debugPoint);
 
     this.container.x = this.x;
     this.container.y = this.y;
+  }
+
+  bindCollisionGrid(collisionGrid: number[][]): void {
+    this.collisionGrid = collisionGrid;
   }
 
   update(dt: number): void {
@@ -56,11 +66,37 @@ export class Projectile {
     if (this.lifetime <= 0) {
       this.alive = false;
     }
+    if (this.collisionGrid && this.overlapsWallTile()) {
+      this.alive = false;
+    }
 
     // Pulse alpha for ghostly effect
     this.sprite.alpha = 0.7 + 0.3 * Math.sin(Date.now() * 0.01);
+    this.renderDebugPoint();
     this.container.x = Math.round(this.x);
     this.container.y = Math.round(this.y);
+  }
+
+  private renderDebugPoint(): void {
+    this.debugPoint.clear();
+    if (!Debug.infoVisible || !this.alive) return;
+    this.debugPoint
+      .circle(this.width / 2, this.height / 2, 2)
+      .fill({ color: 0x00e5ff, alpha: 0.95 });
+    this.debugPoint
+      .moveTo(this.width / 2 - 5, this.height / 2)
+      .lineTo(this.width / 2 + 5, this.height / 2)
+      .moveTo(this.width / 2, this.height / 2 - 5)
+      .lineTo(this.width / 2, this.height / 2 + 5)
+      .stroke({ color: 0x00e5ff, alpha: 0.9, width: 1 });
+  }
+
+  private overlapsWallTile(): boolean {
+    const grid = this.collisionGrid;
+    if (!grid) return false;
+    const centerCol = Math.floor((this.x + this.width / 2) / TILE_SIZE);
+    const centerRow = Math.floor((this.y + this.height / 2) / TILE_SIZE);
+    return isSolid(getTile(grid, centerCol, centerRow));
   }
 
   destroy(): void {

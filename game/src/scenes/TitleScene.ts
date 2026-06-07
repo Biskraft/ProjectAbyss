@@ -24,7 +24,6 @@ import { getInputDevice } from '@core/input/InputDeviceTracker';
 import { GP } from '@core/input/gamepadStandard';
 import { createLdtkSceneSaveAccess } from './shared/SceneSaveAccess';
 import { destroyDisplayObject } from './shared/DisplayObjectLifecycleHelpers';
-import { TITLE_FADE_OVERLAY_LABEL } from './shared/TitleHandoffLabels';
 
 // Logo asset path — synced with ui-components.html §title-screen spec.
 // assets/ui/ui_title_01.png is the official ECHORIS title logo:
@@ -40,6 +39,7 @@ const COL_WHITE = 0xf0f0f0;
 const COL_DIM = 0x3a3a48;
 
 const FADE_OUT_MS = 500;
+const TITLE_REVEAL_MS = 1400;
 
 type TitlePhase = 'logo' | 'presskey' | 'presets' | 'confirm' | 'fadeout';
 
@@ -48,8 +48,6 @@ export class TitleScene extends Scene {
   private transitioning = false;
   private elapsed = 0;
   private uiRoot!: Container;
-  private fadeOverlay!: Graphics;
-  private fadeTimer = 0;
 
   // Logo elements
   private hintText!: Text;
@@ -412,13 +410,6 @@ export class TitleScene extends Scene {
     modalHint.anchor.set(0.5, 0);
     this.confirmModal.addChild(modalHint);
 
-    // Fade overlay
-    this.fadeOverlay = new Graphics();
-    this.fadeOverlay.rect(0, 0, sw, sh).fill(COL_VOID);
-    this.fadeOverlay.alpha = 0;
-    this.fadeOverlay.label = TITLE_FADE_OVERLAY_LABEL;
-    this.game.uiContainer.addChild(this.fadeOverlay);
-
     // Set initial preset index to current
     const curIdx = PRESET_NAMES.indexOf(this.game.input.currentPreset);
     this.presetIndex = curIdx >= 0 ? curIdx : 0;
@@ -609,12 +600,6 @@ export class TitleScene extends Scene {
         break;
 
       case 'fadeout':
-        this.fadeTimer += dt;
-        const t = Math.min(1, this.fadeTimer / FADE_OUT_MS);
-        this.fadeOverlay.alpha = t;
-        if (t >= 1) {
-          this.game.sceneManager.replace(new LdtkWorldScene(this.game, createLdtkSceneSaveAccess()));
-        }
         break;
     }
   }
@@ -679,10 +664,22 @@ export class TitleScene extends Scene {
   }
 
   private startFadeOut(): void {
+    if (this.transitioning) return;
+    this.transitioning = true;
     this.phase = 'fadeout';
-    this.fadeTimer = 0;
     this.hintText.visible = false;
     this.presetContainer.visible = false;
+    this.uiRoot.visible = false;
+
+    const started = this.game.transitionDirector.startCoverSwapReveal({
+      cover: 'black',
+      durationOutMs: FADE_OUT_MS,
+      durationInMs: TITLE_REVEAL_MS,
+      onSwap: () => this.game.sceneManager.replace(new LdtkWorldScene(this.game, createLdtkSceneSaveAccess())),
+    });
+    if (!started) {
+      void this.game.sceneManager.replace(new LdtkWorldScene(this.game, createLdtkSceneSaveAccess()));
+    }
   }
 
   private updatePresetCards(): void {

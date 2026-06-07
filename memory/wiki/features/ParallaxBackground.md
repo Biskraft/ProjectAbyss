@@ -19,6 +19,7 @@ last_updated: 2026-06-03
 - Shipping builds can expose opaque square artifacts on the `TilingSprite`/repeat-sampler path for transparent parallax PNGs.
 - Keep parallax textures in `clamp-to-edge`; repeat behavior should come from manually repositioned Sprites.
 - Preserve the screen-space layer size so palette filter framebuffers stay small on large LDtk maps.
+- When `TransitionDirector` is covering a scene swap, scene `update()` is blocked but `render()` still runs. LDtk world parallax must stay synchronized from `render()` during an active director transition, otherwise the first uncovered frame can show a parallax position pop.
 
 ## Verification
 

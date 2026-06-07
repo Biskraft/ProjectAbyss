@@ -414,6 +414,11 @@ export class InputManager {
       && !this.consumed.has(code);
   }
 
+  /** Raw key-code down check that bypasses inputLocked. Use only for cutscene wake/debug gates. */
+  isRawKeyDown(code: string): boolean {
+    return this.keyState.get(code) === true;
+  }
+
   // Interaction-prompt gate. When an interaction prompt is on screen (or a
   // dialogue is open), the Player ignores its ATTACK press so the same key is
   // claimed by the interaction instead of swinging the weapon.

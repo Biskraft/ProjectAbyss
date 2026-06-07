@@ -1,17 +1,17 @@
-import { Container, Graphics } from 'pixi.js';
-import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
+import { Container } from 'pixi.js';
+import { type Game } from '../Game';
 import type { Player } from '@entities/Player';
 import type { GiantBuilder } from '@entities/GiantBuilder';
 import { WallGate } from '@entities/WallGate';
 import { aabbOverlap, type AABB } from '@core/Physics';
 import { BgmController } from '@audio/BgmController';
-import { destroyDisplayObject } from '../scenes/shared/DisplayObjectLifecycleHelpers';
 import type { ItemInstance } from '@items/ItemInstance';
 import type {
   ItemDeploymentStreamWorldOptions,
   ItemDeploymentTunnelOpenOptions,
 } from '@effects/ItemDeploymentTypes';
 import { clampEffect01 } from './EffectNumeric';
+import { TransitionTokens } from './TransitionDirector';
 
 type GrowthDeployState =
   | 'Idle'
@@ -50,8 +50,6 @@ function lerp(a: number, b: number, t: number): number {
 export class ItemWorldEntrySequence {
   private state: GrowthDeployState = 'Idle';
   private elapsed = 0;
-  private fadeOverlay: Graphics | null = null;
-  private fadeElapsed = 0;
   private wallGate: WallGate | null = null;
   private tunnelOpened = false;
   private itemAbsorbed = false;
@@ -122,7 +120,6 @@ export class ItemWorldEntrySequence {
 
   start(anvilX: number, anvilY: number): void {
     this.elapsed = 0;
-    this.fadeElapsed = 0;
     this.tunnelOpened = false;
     this.itemAbsorbed = false;
     this.anvilX = anvilX;
@@ -179,19 +176,6 @@ export class ItemWorldEntrySequence {
         break;
 
       case 'EnteringWorld':
-        this.fadeElapsed += dt;
-        if (this.fadeOverlay) {
-          this.fadeOverlay.alpha = Math.min(1, this.fadeElapsed / 240);
-        }
-        if (this.fadeElapsed >= 240) {
-          this.player.container.alpha = 1;
-          this.cleanupVisuals();
-          this.state = 'Idle';
-          this.game.camera.unlockZoom();
-          this.game.camera.setZoom(1.0);
-          this.game.input.inputLocked = false;
-          this.onPushScene();
-        }
         break;
     }
   }
@@ -240,12 +224,21 @@ export class ItemWorldEntrySequence {
 
       case 'EnteringWorld':
         this.player.vx = 0;
-        this.game.input.inputLocked = true;
-        this.fadeElapsed = 0;
-        this.fadeOverlay = new Graphics();
-        this.fadeOverlay.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(0x000000);
-        this.fadeOverlay.alpha = 0;
-        this.game.legacyUIContainer.addChild(this.fadeOverlay);
+        this.game.input.inputLocked = false;
+        this.game.transitionDirector.startCoverSwapReveal({
+          cover: 'black',
+          durationOutMs: TransitionTokens.SCENE_SWAP,
+          durationInMs: 0,
+          onSwap: () => {
+            this.player.container.alpha = 1;
+            this.cleanupVisuals();
+            this.state = 'Idle';
+            this.game.camera.unlockZoom();
+            this.game.camera.setZoom(1.0);
+            this.game.input.inputLocked = false;
+            this.onPushScene();
+          },
+        });
         break;
     }
   }
@@ -348,10 +341,6 @@ export class ItemWorldEntrySequence {
   }
 
   private cleanupVisuals(): void {
-    if (this.fadeOverlay?.parent) {
-      destroyDisplayObject(this.fadeOverlay);
-      this.fadeOverlay = null;
-    }
     this.wallGate?.destroy();
     this.wallGate = null;
   }

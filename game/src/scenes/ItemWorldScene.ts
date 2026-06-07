@@ -467,6 +467,8 @@ export class ItemWorldScene extends Scene {
   private wallPaletteFilter!: PaletteSwapFilter;
   /** Palette-swap filter for natural decorations (reduced strength). */
   private naturalPaletteFilter!: PaletteSwapFilter;
+  /** Palette-swap filter for interior tiles (bg palette, dimmed — recessed look). */
+  private interiorPaletteFilter!: PaletteSwapFilter;
   /**
    * Aggregate layer containers sitting INSIDE fullMapContainer. All rooms'
    * bg/wall/shadow sub-layers are re-parented into these so the palette
@@ -780,6 +782,7 @@ export class ItemWorldScene extends Scene {
       getLoreDisplay: () => this.loreDisplay,
     });
     this.prologueEndRuntime = new ItemWorldPrologueEndRuntime({
+      game: this.game,
       getPlayer: () => this.player,
       getFadeOverlay: () => this.fadeOverlay,
       getEntityLayer: () => this.entityLayer,
@@ -1317,6 +1320,19 @@ export class ItemWorldScene extends Scene {
         tint: wallEntry.tint,
       });
 
+      // Interior tiles use the BG palette dimmed to ~0.65 brightness so they
+      // read as recessed (mirrors WorldTerrainPaletteRuntime's interior filter).
+      this.interiorPaletteFilter = new PaletteSwapFilter({
+        paletteTex: atlas.texture,
+        rowCount: atlas.rowCount,
+        row: getAreaPaletteRow(bgEntry.id),
+        strength: 1.0,
+        depthBias: bgEntry.depthBias,
+        depthCenter: bgEntry.depthCenter,
+        brightness: (bgEntry.brightness ?? 1.0) * 0.65,
+        tint: bgEntry.tint,
+      });
+
       // VisualSeed micro-variation ? same theme, different weapon = subtly different feel
       const visualRng = new PRNG(hashString(this.item.def.id));
       const brightnessShift = visualRng.nextFloat(-0.08, 0.08);
@@ -1324,6 +1340,8 @@ export class ItemWorldScene extends Scene {
       this.bgPaletteFilter.setBrightness((bgEntry.brightness ?? 1.0) + brightnessShift);
       this.bgPaletteFilter.setDepthBias((bgEntry.depthBias ?? 0.35) + depthBiasShift);
       this.wallPaletteFilter.setBrightness((wallEntry.brightness ?? 1.0) + brightnessShift * 0.5);
+      this.interiorPaletteFilter.setBrightness(((bgEntry.brightness ?? 1.0) + brightnessShift) * 0.65);
+      this.interiorPaletteFilter.setDepthBias((bgEntry.depthBias ?? 0.35) + depthBiasShift);
     }
 
     // Parallax background (behind everything ? index 0)
@@ -1936,6 +1954,7 @@ export class ItemWorldScene extends Scene {
       bgPaletteFilter: this.bgPaletteFilter,
       wallPaletteFilter: this.wallPaletteFilter,
       naturalPaletteFilter: this.naturalPaletteFilter,
+      interiorPaletteFilter: this.interiorPaletteFilter,
       depthRatio,
     });
     this.fullMapContainer = layers.fullMapContainer;
@@ -2578,7 +2597,13 @@ export class ItemWorldScene extends Scene {
       this.neighborPreSpawnRuntime.preSpawn(playerRoomCol, playerAbsRow);
     }
 
-    // HUD, damage numbers, toast & Sakurai effects
+    // HUD, damage numbers, toast & Sakurai effects.
+    // The Item World shows the gameplay HUD (the overworld hides it). Entry/exit
+    // cinematics hide the HUD and early-return above this point, so forcing it
+    // visible here only takes effect during active gameplay — restoring it after
+    // the entry-corridor reveal (which has no symmetric show-HUD) and after every
+    // stratum-clear/descent cinematic.
+    this.hud.container.visible = true;
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);

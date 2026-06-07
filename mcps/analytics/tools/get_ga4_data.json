@@ -1,0 +1,68 @@
+{
+  "name": "get_ga4_data",
+  "description": "\n    Retrieve GA4 data with built-in intelligence for better and safer results.\n\n    This tool is a powerful wrapper around the Google Analytics Data API. It not only\n    fetches data but also includes \"smart\" features to protect against context window\n    overloads and to provide more relevant results by default.\n\n    **Smart Features:**\n    - **Data Volume Protection:** Before running a query that could produce a huge\n      number of rows, the tool runs a quick estimate. If the row count exceeds a\n      safe threshold (2500 rows), it will return a warning with suggestions instead\n      of the data. You can override this by setting `proceed_with_large_dataset=True`.\n    - **Automatic Server-Side Aggregation:** If your query does not involve a time\n      dimension (like 'date'), the tool automatically asks the GA4 API to return\n      aggregated totals. This is more efficient and provides cleaner results. You\n      can disable this by setting `enable_aggregation=False`.\n    - **Intelligent Sorting:** Results are automatically sorted by date (most recent\n      first) and the primary metric (highest value first) to show the most\n      relevant data at the top.\n\n    Args:\n        dimensions: List of GA4 dimensions (e.g., [\"date\", \"city\"]).\n        metrics: List of GA4 metrics (e.g., [\"totalUsers\", \"sessions\"]).\n        date_range_start: Start date in YYYY-MM-DD format or relative date ('7daysAgo').\n        date_range_end: End date in YYYY-MM-DD format or relative date ('yesterday').\n        dimension_filter: (Optional) A dictionary representing a GA4 FilterExpression\n                          to apply to the dimensions. See GA4 API docs for structure.\n        limit: (Optional) Maximum number of rows to return. Defaults to 1000.\n        estimate_only: (Optional) If True, returns only the estimated row count\n                       without fetching the full dataset.\n        proceed_with_large_dataset: (Optional) Set to True to bypass the data volume\n                                    warning and execute the query anyway.\n        enable_aggregation: (Optional) If True, uses server-side aggregation when\n                            beneficial. Defaults to True.\n    ",
+  "inputSchema": {
+    "properties": {
+      "dimensions": {
+        "default": [
+          "date"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "title": "Dimensions",
+        "type": "array"
+      },
+      "metrics": {
+        "default": [
+          "totalUsers",
+          "newUsers",
+          "sessions"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "title": "Metrics",
+        "type": "array"
+      },
+      "date_range_start": {
+        "default": "7daysAgo",
+        "title": "Date Range Start",
+        "type": "string"
+      },
+      "date_range_end": {
+        "default": "yesterday",
+        "title": "Date Range End",
+        "type": "string"
+      },
+      "dimension_filter": {
+        "additionalProperties": true,
+        "default": null,
+        "title": "Dimension Filter",
+        "type": "object"
+      },
+      "limit": {
+        "default": 1000,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "estimate_only": {
+        "default": false,
+        "title": "Estimate Only",
+        "type": "boolean"
+      },
+      "proceed_with_large_dataset": {
+        "default": false,
+        "title": "Proceed With Large Dataset",
+        "type": "boolean"
+      },
+      "enable_aggregation": {
+        "default": true,
+        "title": "Enable Aggregation",
+        "type": "boolean"
+      }
+    },
+    "title": "get_ga4_dataArguments",
+    "type": "object"
+  }
+}
