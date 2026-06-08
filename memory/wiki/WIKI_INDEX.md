@@ -2,6 +2,10 @@
 
 ## Decisions
 
+- [DEC-055-WallCeiling-Flagship-Gated](decisions/DEC-055-WallCeiling-Flagship-Gated.md) — 벽/천장 이동 모드 = 선결조건부 플래그십 (체감 최고·비용 최고)
+- [DEC-054-Monster-Expansion-Ceiling](decisions/DEC-054-Monster-Expansion-Ceiling.md) — 몬스터 확장 천장: 기능 25 / 실용 40~48 / Phase 2 타깃 24~30
+- [DEC-053-Neutral-Base-Behavior-Branching](decisions/DEC-053-Neutral-Base-Behavior-Branching.md) — 중립 베이스 권속별 거동 분기 (필수 신규 6→1)
+- [DEC-052-ItemWorld-Spawn-TwoAxis-Model](decisions/DEC-052-ItemWorld-Spawn-TwoAxis-Model.md) — 스폰 2축 분리: 강도(레어리티) ⟂ 정체성(무기 기질→5권속)
 - [DEC-051-Transition-Consistency](decisions/DEC-051-Transition-Consistency.md) — 화면 전환 단일 권위 (구 DEC-048, 번호 충돌 해소 2026-06-09)
 - [DEC-050-ItemWorld-Minimap-Fog-Recanon](decisions/DEC-050-ItemWorld-Minimap-Fog-Recanon.md) — ⚠️ SUPERSEDED (2026-06-08 단일 통합·fog 폐기, SSoT=UI_Minimap.md)
 - [DEC-049-Mob-Damage-Uniform-20pct](decisions/DEC-049-Mob-Damage-Uniform-20pct.md)
@@ -117,6 +121,7 @@
 - [ItemWorldMemoryRoomPlacementRuntime](features/ItemWorldMemoryRoomPlacementRuntime.md)
 - [ItemWorldMemoryShardSpawnRuntime](features/ItemWorldMemoryShardSpawnRuntime.md)
 - [ItemWorldMemoryTriggerRuntime](features/ItemWorldMemoryTriggerRuntime.md)
+- [ItemWorldMonsterSpawn](features/ItemWorldMonsterSpawn.md) — 아이템계 몬스터 스폰 & 밸런싱 2축 모델 (planning)
 - [ItemWorldMovementVfxRuntime](features/ItemWorldMovementVfxRuntime.md)
 - [ItemWorldNeighborPreSpawnRuntime](features/ItemWorldNeighborPreSpawnRuntime.md)
 - [ItemWorldOnboardingRuntime](features/ItemWorldOnboardingRuntime.md)
