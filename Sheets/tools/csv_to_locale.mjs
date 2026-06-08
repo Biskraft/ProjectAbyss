@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * Sheets/tools/csv_to_locale.mjs
  *
@@ -60,6 +60,22 @@ function parseCsv(text) {
   return { header, rows };
 }
 
+function looksLikeBrokenKo(value) {
+  if (!value) return false;
+  if (value.includes('\uFFFD') || value.includes('�')) return true;
+  if (/[ìíëê媛吏留紐癤]/.test(value) && /[?�?]/.test(value)) return true;
+  return false;
+}
+function looksLikeQuestionMarkDamagedKo(value, englishValue) {
+  if (!value) return false;
+  const questionCount = value.match(/\?/g)?.length ?? 0;
+  if (questionCount < 2) return false;
+  if (/^\?+$/.test(value.trim()) && /^\?+$/.test((englishValue ?? '').trim())) return false;
+  const compactLength = value.replace(/\s/g, '').length;
+  if (compactLength === 0 || questionCount / compactLength < 0.25) return false;
+  if (!/[A-Za-z0-9\uAC00-\uD7A3]/.test(value)) return false;
+  return true;
+}
 // ---------------------------------------------------------------------------
 // Build
 // ---------------------------------------------------------------------------
@@ -82,6 +98,7 @@ const en = {};
 const ko = {};
 const seenKeys = new Set();
 let dupCount = 0;
+let omittedBrokenKo = 0;
 for (const row of rows) {
   const key = row.Key;
   if (!key || key.startsWith('#')) continue;
@@ -92,7 +109,13 @@ for (const row of rows) {
   }
   seenKeys.add(key);
   if (row.en) en[key] = row.en;
-  if (row.ko) ko[key] = row.ko;
+  if (row.ko) {
+    if (looksLikeBrokenKo(row.ko) || looksLikeQuestionMarkDamagedKo(row.ko, row.en)) {
+      omittedBrokenKo++;
+    } else {
+      ko[key] = row.ko;
+    }
+  }
 }
 
 if (dupCount > 0) {
@@ -108,3 +131,9 @@ const total = seenKeys.size;
 const missingKo = total - Object.keys(ko).length;
 const missingEn = total - Object.keys(en).length;
 console.log(`[i18n] ${total} keys → en (${Object.keys(en).length}, ${missingEn} missing), ko (${Object.keys(ko).length}, ${missingKo} missing)`);
+if (omittedBrokenKo > 0) {
+  console.log(`[i18n] ${omittedBrokenKo} mojibake ko value(s) omitted; runtime will fall back to en`);
+}
+
+
+

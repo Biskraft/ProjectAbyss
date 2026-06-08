@@ -216,6 +216,70 @@ function collectKeysFromCsv(path, columns) {
   return refs;
 }
 
+const EN_TEXT_FORBIDDEN_CHARS = [
+  { re: /\uFFFD/, label: 'replacement character U+FFFD' },
+  { re: /[\u2018\u2019]/, label: 'smart apostrophe' },
+  { re: /[\u201C\u201D]/, label: 'smart quote' },
+  { re: /\u2026/, label: 'ellipsis character' },
+  { re: /[\u2013\u2014]/, label: 'en/em dash' },
+];
+
+function validateLocalizationNotes(rows) {
+  let brokenCount = 0;
+  for (const row of rows) {
+    const key = row.Key;
+    if (!key || key.startsWith('#')) continue;
+    const note = row.Note ?? '';
+    if (note.includes('\uFFFD') || note.includes('??')) brokenCount++;
+  }
+  if (brokenCount > 0) {
+    pushWarn('V4', `Content_Localization.csv has ${brokenCount} suspicious Note value(s) containing replacement/question artifacts`);
+  }
+}
+
+function validateEnglishLocalizationText(rows) {
+  for (const row of rows) {
+    const key = row.Key;
+    if (!key || key.startsWith('#')) continue;
+    const value = row.en ?? '';
+    for (const rule of EN_TEXT_FORBIDDEN_CHARS) {
+      if (rule.re.test(value)) {
+        pushErr('V4', `Content_Localization.csv en "${key}" contains forbidden ${rule.label}; use ASCII punctuation`);
+      }
+    }
+  }
+}
+
+function looksLikeBrokenKoreanLocalization(value) {
+  if (!value) return false;
+  if (value.includes('\uFFFD') || value.includes('�')) return true;
+  if (/[ìíëê媛吏留紐癤]/.test(value) && /[?�?]/.test(value)) return true;
+  return false;
+}
+
+function looksLikeQuestionMarkDamagedKo(value, englishValue) {
+  if (!value) return false;
+  const questionCount = value.match(/\?/g)?.length ?? 0;
+  if (questionCount < 2) return false;
+  if (/^\?+$/.test(value.trim()) && /^\?+$/.test((englishValue ?? '').trim())) return false;
+  const compactLength = value.replace(/\s/g, '').length;
+  if (compactLength === 0 || questionCount / compactLength < 0.25) return false;
+  if (!/[A-Za-z0-9\uAC00-\uD7A3]/.test(value)) return false;
+  return true;
+}
+
+function validateKoreanLocalizationText(rows) {
+  let brokenCount = 0;
+  for (const row of rows) {
+    const key = row.Key;
+    if (!key || key.startsWith('#')) continue;
+    if (looksLikeBrokenKoreanLocalization(row.ko ?? '') || looksLikeQuestionMarkDamagedKo(row.ko ?? '', row.en ?? '')) brokenCount++;
+  }
+  if (brokenCount > 0) {
+    pushWarn('V4', `Content_Localization.csv has ${brokenCount} mojibake ko value(s); csv_to_locale omits them so runtime falls back to en`);
+  }
+}
+
 if (!existsSync(LOCALIZATION_CSV)) {
   pushErr('V4', `Content_Localization.csv not found: ${LOCALIZATION_CSV}`);
 } else {
@@ -224,6 +288,9 @@ if (!existsSync(LOCALIZATION_CSV)) {
   if (!locHeader.includes('Key')) {
     pushErr('V4', 'Content_Localization.csv missing "Key" column');
   } else {
+    validateEnglishLocalizationText(locRows);
+    validateKoreanLocalizationText(locRows);
+    validateLocalizationNotes(locRows);
     const definedKeys = new Set();
     for (const row of locRows) {
       const k = row.Key;

@@ -65,6 +65,12 @@ export class InventoryTutorialHintRuntime {
     this.deps.hud.setItemKeyHighlight(false);
   }
 
+  clearTransientState(): void {
+    this.pendingHint = null;
+    this.pendingHintDelayMs = 0;
+    this.pendingFirstIwReturnHintHadFirstBossClear = null;
+  }
+
   update(dt: number, cutsceneBlocking: boolean): void {
     if (!this.pendingHint) return;
 

@@ -88,6 +88,23 @@ export class TutorialHint {
     return [...this.shown];
   }
 
+  hasCompleted(id: string): boolean {
+    return this.shown.has(id);
+  }
+
+  clearTransientState(): void {
+    if (this.panel) {
+      detachDisplayObject(this.panel);
+    }
+    this.panel = null;
+    this.panelHalo = null;
+    this.panelId = null;
+    this.panelPersistent = false;
+    this.timer = 0;
+    this.pulseTimer = 0;
+    this.fading = false;
+  }
+
   /**
    * Show a hint by id. Each id fires at most once per session unless dismissed.
    * If `persistent: true`, the panel stays visible until `dismiss(id)` is called

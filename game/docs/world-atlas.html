@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHORIS — 세계 진실 · 7얼굴 · 공간 매핑 아틀라스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#080a0d;
+    --void2:#0d1014;
+    --panel:#11151b;
+    --panel2:#161b22;
+    --line:#242c36;
+    --line2:#323c48;
+    --ash:#697585;
+    --ash2:#8a96a6;
+    --ivory:#e9e4d6;
+    --bone:#cfc6b2;
+
+    /* 절 코드 */
+    --ga:#e3a64d;     /* (가) 부재 — 가장 깊은 진실, 호박빛 */
+    --na:#c8bda2;     /* (나) 빈 그릇 — 뼈빛 */
+    --da:#6fa0ac;     /* (다) 기다림으로 돈다 — 강철청 */
+
+    --ga-dim:rgba(227,166,77,.14);
+    --na-dim:rgba(200,189,162,.12);
+    --da-dim:rgba(111,160,172,.13);
+
+    --warn:#d9a441;   /* 🟡 제안 */
+    --ok:#5fae7e;     /* 🟢 확정 */
+    --maxw:1180px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--void);
+    color:var(--ivory);
+    font-family:"IBM Plex Sans KR",sans-serif;
+    font-weight:300;
+    line-height:1.7;
+    word-break:keep-all;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* 격자 배경 — 메가 스트럭처 */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(54,66,80,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(54,66,80,.05) 1px,transparent 1px);
+    background-size:46px 46px;
+    mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 35%,transparent 100%);
+  }
+  /* 그레인 + 비네트 */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 0%,transparent 50%,rgba(0,0,0,.55) 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+  }
+  .wrap{position:relative;z-index:2;max-width:var(--maxw);margin:0 auto;padding:0 28px}
+
+  /* 진입 애니메이션 */
+  @keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+  @keyframes glow{from{opacity:.3}to{opacity:1}}
+  .rise{opacity:0;animation:up .9s cubic-bezier(.2,.7,.2,1) forwards}
+
+  /* 모노 라벨 */
+  .mono{font-family:"JetBrains Mono",monospace;font-weight:500;letter-spacing:.04em}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--ash);
+  }
+
+  /* ───── HERO ───── */
+  header{position:relative;padding:120px 0 80px;border-bottom:1px solid var(--line)}
+  .kicker{display:flex;align-items:center;gap:14px;margin-bottom:46px}
+  .kicker .dec{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.2em;
+    color:var(--ga);border:1px solid rgba(227,166,77,.4);padding:5px 12px;border-radius:2px;
+    background:var(--ga-dim);
+  }
+  .kicker .line{flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+  .kicker .meta{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;color:var(--ash)}
+
+  h1.truth{
+    font-family:"Gowun Batang",serif;font-weight:400;
+    font-size:clamp(26px,4.6vw,52px);line-height:1.5;letter-spacing:-.01em;
+    color:var(--bone);max-width:18ch;
+  }
+  h1.truth .ga{color:var(--ga);font-weight:700}
+  h1.truth .na{color:var(--na);font-weight:700}
+  h1.truth .da{color:var(--da);font-weight:700}
+  h1.truth .q{color:var(--ash);font-weight:400}
+  .truth-sub{margin-top:36px;color:var(--ash2);font-size:15px;max-width:60ch;font-weight:300}
+  .truth-sub b{color:var(--ivory);font-weight:500}
+
+  /* 절 레전드 */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:42px}
+  .leg{
+    display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ash2);
+    border:1px solid var(--line);padding:8px 14px;border-radius:3px;background:var(--panel);
+  }
+  .leg .dot{width:9px;height:9px;border-radius:50%}
+  .leg .ko{color:var(--ivory);font-weight:500}
+
+  /* ───── 섹션 공통 ───── */
+  section{padding:84px 0;border-bottom:1px solid var(--line)}
+  .shead{display:flex;align-items:baseline;gap:18px;margin-bottom:48px;flex-wrap:wrap}
+  .shead .num{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ga);letter-spacing:.1em}
+  .shead h2{
+    font-family:"Gowun Batang",serif;font-weight:700;font-size:clamp(24px,3vw,34px);
+    color:var(--ivory);letter-spacing:-.01em;
+  }
+  .shead p{color:var(--ash);font-size:14px;flex-basis:100%;max-width:74ch;margin-top:4px}
+
+  /* ───── 3절 카드 ───── */
+  .clauses{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .clause{
+    position:relative;padding:30px 26px 32px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--void2));border-radius:4px;overflow:hidden;
+    transition:transform .4s cubic-bezier(.2,.7,.2,1),border-color .4s;
+  }
+  .clause:hover{transform:translateY(-5px)}
+  .clause::before{content:"";position:absolute;top:0;left:0;width:100%;height:3px}
+  .clause.c-ga::before{background:var(--ga)}.clause.c-ga:hover{border-color:rgba(227,166,77,.45)}
+  .clause.c-na::before{background:var(--na)}.clause.c-na:hover{border-color:rgba(200,189,162,.4)}
+  .clause.c-da::before{background:var(--da)}.clause.c-da:hover{border-color:rgba(111,160,172,.45)}
+  .clause .glyph{font-family:"Gowun Batang",serif;font-size:60px;line-height:1;opacity:.18;position:absolute;top:18px;right:22px}
+  .clause.c-ga .glyph{color:var(--ga)}.clause.c-na .glyph{color:var(--na)}.clause.c-da .glyph{color:var(--da)}
+  .clause .clab{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.15em;margin-bottom:14px}
+  .clause.c-ga .clab{color:var(--ga)}.clause.c-na .clab{color:var(--na)}.clause.c-da .clab{color:var(--da)}
+  .clause h3{font-family:"Gowun Batang",serif;font-weight:700;font-size:19px;color:var(--ivory);margin-bottom:12px;line-height:1.45}
+  .clause .depth{font-size:13.5px;color:var(--ash2)}
+  .clause .hide{margin-top:16px;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;color:var(--ash);text-transform:uppercase}
+
+  /* ───── 수직 스파인 (구역) ───── */
+  .spine-note{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:30px;font-size:13px;color:var(--ash)}
+  .spine-note span{display:flex;align-items:center;gap:8px}
+  .spine{position:relative;padding-left:0}
+  .zone{
+    position:relative;display:grid;grid-template-columns:128px 1fr 300px;gap:0;
+    border:1px solid var(--line);border-radius:4px;margin-bottom:14px;overflow:hidden;
+    background:var(--panel);transition:border-color .4s,transform .4s;
+  }
+  .zone:hover{border-color:var(--line2);transform:translateX(4px)}
+  .zone .zalt{
+    padding:22px 18px;border-right:1px solid var(--line);
+    display:flex;flex-direction:column;justify-content:center;gap:6px;
+    background:linear-gradient(180deg,var(--panel2),var(--void2));
+  }
+  .zone .zcode{font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700;color:var(--ivory);letter-spacing:.02em}
+  .zone .zrole{font-size:11px;color:var(--ash);font-family:"JetBrains Mono",monospace;letter-spacing:.08em}
+  .zone .zmid{padding:22px 24px;display:flex;flex-direction:column;justify-content:center}
+  .zone .zname{font-family:"Gowun Batang",serif;font-weight:700;font-size:20px;color:var(--ivory);margin-bottom:3px}
+  .zone .zen{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ash);letter-spacing:.08em;margin-bottom:12px}
+  .zone .zmood{display:inline-block;font-size:12px;color:var(--ash2);margin-bottom:8px}
+  .zone .zboss{font-size:12.5px;color:var(--bone);opacity:.85}
+  .zone .zboss b{color:var(--ivory);font-weight:500}
+  .zone .zfac{
+    padding:20px 22px;border-left:1px solid var(--line);
+    display:flex;flex-direction:column;gap:8px;justify-content:center;
+    background:rgba(0,0,0,.18);
+  }
+  .chip{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ivory)}
+  .chip .cd{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .chip .role{color:var(--ash);font-size:11px;font-family:"JetBrains Mono",monospace;margin-left:auto;letter-spacing:.05em}
+  .chip.prop{color:var(--ash2)}
+  .chip .pin{font-size:10px;color:var(--warn)}
+
+  .zone.climax{border-color:rgba(227,166,77,.4)}
+  .zone.climax .zalt{background:linear-gradient(180deg,rgba(227,166,77,.1),var(--void2))}
+  .zone.hub{border-color:rgba(111,160,172,.32)}
+  .zone.start .zalt{background:linear-gradient(180deg,rgba(200,189,162,.08),var(--void2))}
+
+  /* 급강하 러프처 */
+  .plunge{
+    position:relative;margin:6px 0 18px;padding:16px 24px;border-radius:4px;
+    border:1px dashed var(--line2);background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(227,166,77,.04) 8px,rgba(227,166,77,.04) 16px);
+    display:flex;align-items:center;gap:18px;
+  }
+  .plunge .arrow{font-size:26px;color:var(--ga);line-height:1;animation:glow 1.8s ease-in-out infinite alternate}
+  .plunge .ptxt{font-size:13px;color:var(--ash2)}
+  .plunge .ptxt b{color:var(--ga);font-weight:500;font-family:"JetBrains Mono",monospace;letter-spacing:.05em}
+
+  .ascent-marker{
+    position:absolute;left:-2px;top:0;bottom:0;width:2px;
+    background:linear-gradient(180deg,var(--ga),var(--da));opacity:.25;
+  }
+
+  /* ───── 7얼굴 카드 ───── */
+  .faces{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .face{
+    position:relative;padding:24px 22px 22px;border:1px solid var(--line);border-radius:4px;
+    background:var(--panel);transition:transform .4s cubic-bezier(.2,.7,.2,1),border-color .4s;overflow:hidden;
+  }
+  .face::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+  .face.f-ga::after{background:var(--ga)}.face.f-na::after{background:var(--na)}.face.f-da::after{background:var(--da)}
+  .face.f-mix::after{background:linear-gradient(180deg,var(--ga),var(--na),var(--da))}
+  .face:hover{transform:translateY(-5px);border-color:var(--line2)}
+  .face .fhead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .face .fnum{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--void);background:var(--ash2);width:26px;height:26px;border-radius:3px;display:grid;place-items:center}
+  .face.f-ga .fnum{background:var(--ga)}.face.f-na .fnum{background:var(--na)}.face.f-da .fnum{background:var(--da)}
+  .face.f-mix .fnum{background:linear-gradient(135deg,var(--ga),var(--da))}
+  .face .fname{font-family:"Gowun Batang",serif;font-weight:700;font-size:18px;color:var(--ivory)}
+  .face .fid{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ash);letter-spacing:.08em;margin-left:auto}
+  .face .frow{display:flex;gap:10px;font-size:13px;margin-bottom:7px;color:var(--ash2)}
+  .face .frow .k{flex:0 0 64px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--ash);text-transform:uppercase;padding-top:3px}
+  .face .frow .v{color:var(--bone)}
+  .face .frow .v b{color:var(--ivory);font-weight:500}
+  .face .zpin{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ivory);background:rgba(0,0,0,.3);border:1px solid var(--line);padding:3px 9px;border-radius:3px;margin-top:2px}
+  .face .zpin.prop{color:var(--warn);border-color:rgba(217,164,65,.35)}
+  .satellite{border-style:dashed}
+
+  /* ───── hide/reveal 계단 ───── */
+  .stairs{display:flex;flex-direction:column;gap:0}
+  .step{
+    position:relative;border:1px solid var(--line);border-radius:4px;padding:24px 28px;margin-bottom:12px;
+    background:var(--panel);transition:transform .4s,border-color .4s;
+  }
+  .step:hover{transform:translateX(6px);border-color:var(--line2)}
+  .step:nth-child(1){margin-left:0}
+  .step:nth-child(2){margin-left:48px}
+  .step:nth-child(3){margin-left:96px;border-color:rgba(200,189,162,.3)}
+  .step:nth-child(4){margin-left:144px;border-color:rgba(227,166,77,.35);background:linear-gradient(120deg,var(--panel),rgba(227,166,77,.05))}
+  .step .slab{display:flex;align-items:center;gap:14px;margin-bottom:8px;flex-wrap:wrap}
+  .step .stier{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--ivory)}
+  .step .swhere{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ga);border:1px solid rgba(227,166,77,.3);padding:3px 10px;border-radius:3px;letter-spacing:.05em}
+  .step .seff{font-size:11px;color:var(--ash);font-family:"JetBrains Mono",monospace;letter-spacing:.06em;margin-left:auto;text-transform:uppercase}
+  .step .sbody{font-size:14.5px;color:var(--bone)}
+  .step .sbody b{color:var(--ivory);font-weight:500}
+  .stair-note{margin-top:20px;font-size:13px;color:var(--ash);border-left:2px solid var(--ga);padding:8px 0 8px 16px}
+  .stair-note b{color:var(--ga);font-weight:500}
+
+  /* ───── 아이러니 거리 ───── */
+  .irony{position:relative;margin-top:8px}
+  .irony .track{position:relative;height:2px;background:linear-gradient(90deg,var(--da),var(--ga));margin:60px 0 0;border-radius:2px}
+  .inodes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:-58px}
+  .inode{text-align:center;position:relative}
+  .inode .pt{width:13px;height:13px;border-radius:50%;background:var(--void);border:2px solid var(--ash2);margin:46px auto 14px;position:relative;z-index:2}
+  .inode:nth-child(1) .pt{border-color:var(--da)}
+  .inode:nth-child(4) .pt{border-color:var(--ga);box-shadow:0 0 14px rgba(227,166,77,.5)}
+  .inode .iname{font-family:"Gowun Batang",serif;font-weight:700;font-size:16px;color:var(--ivory);margin-bottom:6px}
+  .inode .idist{font-size:12.5px;color:var(--ash2)}
+  .inode .iknow{margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--ash);text-transform:uppercase}
+  .irony .ends{display:flex;justify-content:space-between;margin-top:24px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ash);letter-spacing:.1em}
+
+  /* ───── footer ───── */
+  footer{padding:64px 0 90px}
+  .srcs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:30px}
+  .src{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ash);border:1px solid var(--line);padding:6px 12px;border-radius:3px;background:var(--panel)}
+  .src b{color:var(--bone);font-weight:500}
+  .foot-truth{font-family:"Gowun Batang",serif;font-size:17px;color:var(--ash2);font-style:italic;max-width:50ch;line-height:1.6}
+  .foot-meta{margin-top:22px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--line2);letter-spacing:.1em}
+
+  @media(max-width:860px){
+    .clauses{grid-template-columns:1fr}
+    .zone{grid-template-columns:1fr}
+    .zone .zalt{flex-direction:row;align-items:center;gap:14px;border-right:none;border-bottom:1px solid var(--line)}
+    .zone .zfac{border-left:none;border-top:1px solid var(--line)}
+    .step:nth-child(2),.step:nth-child(3),.step:nth-child(4){margin-left:0}
+    .inodes{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header>
+    <div class="kicker rise" style="animation-delay:.05s">
+      <span class="dec">DEC-048</span>
+      <span class="line"></span>
+      <span class="meta">ECHORIS · NARRATIVE SSoT · §13</span>
+    </div>
+    <h1 class="truth rise" style="animation-delay:.2s">
+      <span class="ga">주인은 처음부터 없었고</span><span class="q">,</span>
+      우리는 오지 않을 주인을 기다리도록 만들어진 <span class="na">빈 그릇</span>이며<span class="q">,</span>
+      세계는 <span class="da">그 기다림만으로</span> 아직 돌아간다.
+    </h1>
+    <p class="truth-sub rise" style="animation-delay:.4s">
+      세계의 단일 진실. 7구역은 7개의 사건이 아니라 <b>한 진실을 7각도에서 재는 삼각측량</b>이다 —
+      순서 무관 · 깊이 누적. 톤은 코스믹 호러가 아니라 <b>응답 없는 기다림 = 고독</b>(DEC-047).
+    </p>
+    <div class="legend rise" style="animation-delay:.55s">
+      <span class="leg"><span class="dot" style="background:var(--ga)"></span><span class="ko">(가) 부재</span>&nbsp;— 가장 깊이 숨김</span>
+      <span class="leg"><span class="dot" style="background:var(--na)"></span><span class="ko">(나) 빈 그릇</span>&nbsp;— 정체성 · 플레이어 포함</span>
+      <span class="leg"><span class="dot" style="background:var(--da)"></span><span class="ko">(다) 기다림으로 돈다</span>&nbsp;— 눈앞에 보임</span>
+    </div>
+  </header>
+
+  <!-- 3절 -->
+  <section>
+    <div class="shead">
+      <span class="num">01</span>
+      <h2>세 절 — 그림자가 걸리는 못</h2>
+      <p>하나의 문장이 세 깊이로 갈라진다. 무엇을 보이고, 무엇을 가장 깊이 숨기는가가 hide/reveal 계단(§13.3)을 결정한다.</p>
+    </div>
+    <div class="clauses">
+      <div class="clause c-ga rise" style="animation-delay:.1s">
+        <span class="glyph">無</span>
+        <div class="clab">(가) · ABSENCE</div>
+        <h3>주인은 처음부터 없었다</h3>
+        <div class="depth">부재의 진실. 기다린 대상이 지금 떠난 게 아니라, 애초에 존재한 적이 없다.</div>
+        <div class="hide">HIDE — 가장 깊이 / 절정 불가 · 질문 점화 엔진</div>
+      </div>
+      <div class="clause c-na rise" style="animation-delay:.22s">
+        <span class="glyph">器</span>
+        <div class="clab">(나) · VESSEL</div>
+        <h3>우리는 기다리도록 만들어진 빈 그릇이다</h3>
+        <div class="depth">정체성의 진실. 에르다와 플레이어 자신을 포함한다 — 진짜 절정이 여기서 내려앉는다.</div>
+        <div class="hide">REVEAL — 자기 적용 시 절정 (L2)</div>
+      </div>
+      <div class="clause c-da rise" style="animation-delay:.34s">
+        <span class="glyph">環</span>
+        <div class="clab">(다) · CYCLE</div>
+        <h3>세계는 기다림만으로 돈다</h3>
+        <div class="depth">작동 원리. 의례 · 절차 · 잠 · 망각 · 절멸 — 모든 견딤의 양식이 곧 기다림의 변주다.</div>
+        <div class="hide">SHOW — 입장 즉시 · 전역</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 수직 스파인 -->
+  <section>
+    <div class="shead">
+      <span class="num">02</span>
+      <h2>공간 매핑 — 메가 스트럭처 상승 동선</h2>
+      <p>월드는 수직 상승(가장 깊은 바닥 Z1 → 정상 Z7). 진행 순으로 읽되 중반 1회 <b>급강하</b>로 곡선을 꺾는다. 각 구역에 어느 얼굴이 거주하는가 = 세력↔공간 매핑(D-20 / SYS-WLD-02).</p>
+    </div>
+    <div class="spine-note">
+      <span><span style="font-family:'JetBrains Mono',monospace;color:var(--ok)">🟢</span> D-20 §3.2 핸드크래프트 전 배치 확정 (잔여 0)</span>
+      <span class="mono" style="color:var(--ash)">↑ 위로 읽기 = 플레이어 상승 동선</span>
+    </div>
+    <div class="spine">
+      <span class="ascent-marker"></span>
+
+      <!-- Z1 -->
+      <div class="zone start rise" style="animation-delay:.05s">
+        <div class="zalt"><span class="zcode">Z1</span><span class="zrole">깊은 바닥 · 시작</span></div>
+        <div class="zmid">
+          <div class="zname">침수 바닥층</div><div class="zen">the Drowned Floor</div>
+          <span class="zmood">고립 · 혼란 — 백업으로 깨어나는 곳</span>
+          <div class="zboss"><b>랜드마크</b> 복원 모체동 잔해(시체 더미) · 첫 포지 다이브</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--na)"></span>안치소·모체동 <span class="role">깨어남</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">부패형</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>드론 <span class="role">환경</span></div>
+        </div>
+      </div>
+
+      <!-- Z2 -->
+      <div class="zone rise" style="animation-delay:.1s">
+        <div class="zalt"><span class="zcode">Z2</span><span class="zrole">거점</span></div>
+        <div class="zmid">
+          <div class="zname">무너진 거주 구역</div><div class="zen">the Collapsed Wards</div>
+          <span class="zmood">정 · 향수 — 잔존자 마을(단조소)</span>
+          <div class="zboss"><b>NPC</b> 노다 · 율 (세력 아님) · 세이브/상점</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">수호형</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>드론 <span class="role">환경</span></div>
+        </div>
+      </div>
+
+      <!-- Z3 -->
+      <div class="zone rise" style="animation-delay:.15s">
+        <div class="zalt"><span class="zcode">Z3</span><span class="zrole">상승</span></div>
+        <div class="zmid">
+          <div class="zname">거대 공장층</div><div class="zen">the Great Works</div>
+          <span class="zmood">경외 · 긴장 — 빌더 작업장</span>
+          <div class="zboss"><b>보스</b> 침입형 메카 · ATK 스탯 게이트(아이템계 순환 시작)</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--ga)"></span>빌더 시공물 <span class="role">(가) 흔적</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">메카</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>드론 <span class="role">환경</span></div>
+        </div>
+      </div>
+
+      <!-- Z4 -->
+      <div class="zone rise" style="animation-delay:.2s">
+        <div class="zalt"><span class="zcode">Z4</span><span class="zrole">상승 정점</span></div>
+        <div class="zmid">
+          <div class="zname">무너진 환승역</div><div class="zen">the Broken Concourse</div>
+          <span class="zmood">광활 · 불안 — 상승의 정점</span>
+          <div class="zboss"><b>보스</b> 대형 말소자 · <b>에코</b> 이리(Midpoint "낯선 검")</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">대형</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>드론 <span class="role">환경</span></div>
+        </div>
+      </div>
+
+      <!-- 급강하 -->
+      <div class="plunge rise" style="animation-delay:.25s">
+        <span class="arrow">⤓</span>
+        <span class="ptxt"><b>급강하 — ALL IS LOST</b> · 환승역 붕괴로 미답 심부로 추락 · 렐릭 획득 <b>추락의 영혼(diveAttack)</b> · 정서적 바닥</span>
+      </div>
+
+      <!-- Z5 -->
+      <div class="zone rise" style="animation-delay:.3s">
+        <div class="zalt"><span class="zcode">Z5</span><span class="zrole">최저점 · L1</span></div>
+        <div class="zmid">
+          <div class="zname">봉인된 하부</div><div class="zen">the Sealed Underworks</div>
+          <span class="zmood">무력 · 공포 — 한번도 못 간 심부</span>
+          <div class="zboss"><b>(가) 점화</b> 가장 오래된 빌더 핵 = 불가지 단서 · <b>보스</b> 망각형(고독 절정) · 이단 점프 보상</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--ga)"></span>빈 옥좌 단서 <span class="role">(가) L1</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">망각형</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>봉인 의례 길드 <span class="role">봉인 분소</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>드론 <span class="role">글리치</span></div>
+        </div>
+      </div>
+
+      <!-- Z6 -->
+      <div class="zone hub rise" style="animation-delay:.35s">
+        <div class="zalt"><span class="zcode">Z6</span><span class="zrole">성소 · 집결지</span></div>
+        <div class="zmid">
+          <div class="zname">대 안치소</div><div class="zen">the Great Internment · Registry Sanctum</div>
+          <span class="zmood">신비 · 섬뜩 — 인덱서의 가짜 송신소</span>
+          <div class="zboss"><b>보스</b> 묵정(인격 빌런) — Finale "듣기"로 반전 · 수직 안치 포드 열(산 얼굴)</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>인덱서 본류 <span class="role">송신소</span></div>
+          <div class="chip"><span class="cd" style="background:var(--na)"></span>안치소·모체동 <span class="role">포드</span></div>
+          <div class="chip"><span class="cd" style="background:var(--na)"></span>사적 등재단(교단) <span class="role">벽면 슬럼</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>봉인 의례 길드 <span class="role">정렬의 방</span></div>
+        </div>
+      </div>
+
+      <!-- Z7 -->
+      <div class="zone climax rise" style="animation-delay:.4s">
+        <div class="zalt"><span class="zcode">Z7</span><span class="zrole">정상 · L2·L3</span></div>
+        <div class="zmid">
+          <div class="zname">정상 — 관제정</div><div class="zen">the Crown · Empty Throne</div>
+          <span class="zmood">불가지 · 종착 — 진짜 권위의 자리, 텅 빔</span>
+          <div class="zboss"><b>(가) 확정 + (나) 절정 + (다) 위로</b> · 빌더/말소자 prime · 결말 분기 · 닳지 않은 옥좌</div>
+        </div>
+        <div class="zfac">
+          <div class="chip"><span class="cd" style="background:var(--ga)"></span>빈 옥좌 <span class="role">(가) 확정</span></div>
+          <div class="chip"><span class="cd" style="background:linear-gradient(135deg,var(--ga),var(--na),var(--da))"></span>에르다 <span class="role">L2·L3</span></div>
+          <div class="chip"><span class="cd" style="background:var(--da)"></span>말소자 <span class="role">prime</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7얼굴 -->
+  <section>
+    <div class="shead">
+      <span class="num">03</span>
+      <h2>7얼굴 — 한 진실의 일곱 각도</h2>
+      <p>각 세력은 같은 진실을 다른 절로 비춘다. 이름 = 자기 음성의 양(§14). 봉인 의례 길드는 인덱서의 계약 위성.</p>
+    </div>
+    <div class="faces">
+
+      <div class="face f-na rise" style="animation-delay:.05s">
+        <div class="fhead"><span class="fnum">1</span><span class="fname">교단 · 사적 등재단</span><span class="fid">NAR-WLD-001</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(나)</b> 빈 그릇</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">서로가 주인을 <b>대신</b>해 견딤</span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">근접하나 갇힘 — 진실에 제일 가까운 자가 제일 못 빠져나옴</span></div>
+        <span class="zpin">🟢 Z6 안치소 인근 벽면 슬럼</span>
+      </div>
+
+      <div class="face f-na rise" style="animation-delay:.11s">
+        <div class="fhead"><span class="fnum">2</span><span class="fname">안치소 · 모체동</span><span class="fid">NAR-WLD-002</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(나)</b> 빈 그릇의 물리적 원본</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v"><b>잠</b>으로 견딤 — 응답 없는 평안</span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">(나) 근접 — 모든 정지를 "복원 대기"로 재봉인</span></div>
+        <span class="zpin">🟢 Z1 깨어남 + Z6 안치 포드</span>
+      </div>
+
+      <div class="face f-ga rise" style="animation-delay:.17s">
+        <div class="fhead"><span class="fnum">3</span><span class="fname">빈 옥좌</span><span class="fid">NAR-WLD-003</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(가)</b> 부재의 진실</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">대상이 <b>원래 없었다</b>는 증거</span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">L1 점화 엔진 — 절정 아닌 개인적 질문</span></div>
+        <span class="zpin">🟢 Z7 정상 관제정</span>
+      </div>
+
+      <div class="face f-da rise" style="animation-delay:.23s">
+        <div class="fhead"><span class="fnum">4</span><span class="fname">인덱서 본류</span><span class="fid">NAR-WLD-004</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(다)</b> 절차로 견딤</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">읽는 자 없는 장부에 <b>영원히 쓰기</b></span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">가장 멈 — 빌더를 믿고 (가) 모름. 끝내 균열 없음</span></div>
+        <span class="zpin">🟢 Z6 송신탑 제단부 · 묵정</span>
+      </div>
+
+      <div class="face f-da rise" style="animation-delay:.29s">
+        <div class="fhead"><span class="fnum">5</span><span class="fname">말소자</span><span class="fid">NAR-WLD-005</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(다) 종착</b> 절멸</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">기다림을 <b>끝내는</b> 유일한 힘 — 무명·무면</span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">(다)의 끝 — 길드 G15(닫지 않는 등록부)의 어두운 거울</span></div>
+        <span class="zpin">🟢 전 구역 · 절정 Z5 / Z7 prime</span>
+      </div>
+
+      <div class="face f-da rise" style="animation-delay:.35s">
+        <div class="fhead"><span class="fnum">6</span><span class="fname">드론 · 잔존 생태</span><span class="fid">NAR-WLD-006</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(다)</b> 망각으로 견딤</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">주인 사라진 줄도 모르고 <b>루틴을 그냥 돌림</b></span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">태도 없음 · 기억 0 — 가장 무해한 진실 (귀엽지 않음)</span></div>
+        <span class="zpin">🟢 전 구역 · 환경 상수</span>
+      </div>
+
+      <div class="face f-mix rise" style="animation-delay:.41s">
+        <div class="fhead"><span class="fnum">7</span><span class="fname">에르다 · 플레이어</span><span class="fid">§13.3</span></div>
+        <div class="frow"><span class="k">절</span><span class="v"><b>(나)→반전</b></span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v">끝내되 <b>절멸 않는</b> 길 — 그릇인데 이름을 가진 예외</span></div>
+        <div class="frow"><span class="k">아이러니</span><span class="v">반전 도달 가능한 유일 — L2에서 자각</span></div>
+        <span class="zpin">🟢 Z1 → Z7 상승 동선 전체</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 지원 세력 -->
+  <section>
+    <div class="shead">
+      <span class="num">+</span>
+      <h2>지원 세력 — 틀 D · E · F</h2>
+      <p>7얼굴을 떠받치는 (다)축 지원 기구. 봉인 길드(D)는 인덱서 계약 위성, 검역 의료단(E)은 측정 SSoT, 경계 순찰대(F)는 감시·발각. 모두 환경·단서 한도(§8) · 명시 묘사는 Idea_Lore 레인.</p>
+    </div>
+    <div class="faces">
+
+      <div class="face f-da satellite rise" style="animation-delay:.05s">
+        <div class="fhead"><span class="fnum">D</span><span class="fname">봉인 의례 길드</span><span class="fid">NAR-FAC-003</span></div>
+        <div class="frow"><span class="k">틀</span><span class="v"><b>D</b> 거짓 신앙 의례 — 연례·관람</span></div>
+        <div class="frow"><span class="k">기다림</span><span class="v"><b>다음 봉인제</b> — 한 겹 더 멀리(인덱서 동급)</span></div>
+        <div class="frow"><span class="k">줄거리</span><span class="v">G01~G15 — 보존이 응답 없는 기다림임을 발견하나 교리로 재봉인</span></div>
+        <span class="zpin">🟢 Z6 정렬의 방 (봉인 분소 Z5)</span>
+      </div>
+
+      <div class="face f-da satellite rise" style="animation-delay:.11s">
+        <div class="fhead"><span class="fnum">E</span><span class="fname">검역 의료단</span><span class="fid">NAR-FAC-002</span></div>
+        <div class="frow"><span class="k">틀</span><span class="v"><b>E</b> Medical — 차트·합격번호</span></div>
+        <div class="frow"><span class="k">기능</span><span class="v">측정·압력 수치 <b>SSoT</b> · 안치소·길드 공급</span></div>
+        <div class="frow"><span class="k">결속</span><span class="v">(다) — 측정이 곧 복원 대기의 정당화, 합격은 도착 안 함</span></div>
+        <span class="zpin">🟢 Z6 병동 + Z1 모체동</span>
+      </div>
+
+      <div class="face f-da satellite rise" style="animation-delay:.17s">
+        <div class="fhead"><span class="fnum">F</span><span class="fname">경계 순찰대</span><span class="fid">NAR-FAC-004</span></div>
+        <div class="frow"><span class="k">틀</span><span class="v"><b>F</b> Exhibition/risk — 발각·복도</span></div>
+        <div class="frow"><span class="k">기능</span><span class="v">감시·불심검문·관람각 — 교단·길드 규율 집행</span></div>
+        <div class="frow"><span class="k">결속</span><span class="v">(다) — 경계만 지키고 경계 너머(부재)는 안 봄</span></div>
+        <span class="zpin">🟢 Z2 복도 + Z6 인근</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- hide/reveal 계단 -->
+  <section>
+    <div class="shead">
+      <span class="num">04</span>
+      <h2>hide / reveal — 의미 계단</h2>
+      <p>충격 크기 순서로 폭로하지 않는다. (가) 부재는 <b>절정이 될 수 없다</b> — 추상 사실이라 "그래서?"가 남는다. 진짜 절정은 (나)를 자기 자신에게 적용하는 순간. 위로는 거기서만 닿는다.</p>
+    </div>
+    <div class="stairs">
+      <div class="step rise" style="animation-delay:.05s">
+        <div class="slab"><span class="stier">표면 — 오독</span><span class="swhere">입장 즉시 · 전역</span><span class="seff">MISREAD</span></div>
+        <div class="sbody">"모두가 주인을 섬기고 기다린다" → <b>신앙과 괴물의 몰락 세계</b>로 오독 유도.</div>
+      </div>
+      <div class="step rise" style="animation-delay:.15s">
+        <div class="slab"><span class="stier">L1 점화 — (가)</span><span class="swhere">Z5 봉인된 하부</span><span class="seff">IGNITE · NOT CLIMAX</span></div>
+        <div class="sbody">가장 오래된 빌더 핵 = 불가지 단서. 섬길 주인은 처음부터 없었다 — 앞의 충성이 <b>망상으로 재칠</b>. 공허만 남겨 개인적 질문을 켠다.</div>
+      </div>
+      <div class="step rise" style="animation-delay:.25s">
+        <div class="slab"><span class="stier">L2 절정 — (나)</span><span class="swhere">Z7 정상 관제정</span><span class="seff">CLIMAX</span></div>
+        <div class="sbody"><b>나도 백업 그릇이다</b>(에르다). 빈 옥좌가 (가)를 배경으로 확정 — 절정은 (나) 자기적용. 능력 = 복원된 백업 기능으로 조작 체감.</div>
+      </div>
+      <div class="step rise" style="animation-delay:.35s">
+        <div class="slab"><span class="stier">L3 해소 — 위로</span><span class="swhere">엔딩 · Z7 결말 분기</span><span class="seff">SOLACE</span></div>
+        <div class="sbody">기다림을 끝낸 자는 전부 말소(얼굴 5) — <b>스스로 응답하는 길만 절멸 아님</b>. 명시하지 않고 동선으로만. 통하는지 끝까지 안 말함 = 씁쓸한 위로.</div>
+      </div>
+    </div>
+    <div class="stair-note">
+      <b>정합(Q2):</b> 빈 옥좌는 D-20 Z7(정상=결말). (가) 폭로를 빈 옥좌에 두면 절정에 와 원칙과 충돌하므로,
+      <b>(가) 점화를 Z5로 선행</b>시키고 Z7은 (가)확정+(나)절정+(다)위로의 종착으로 둔다. 후반(Z5→Z7)이 "그럼 나는?"으로 굴러가 Z7의 (가)확정은 충격이 아닌 <b>내려앉음</b>이 된다.
+    </div>
+  </section>
+
+  <!-- 아이러니 거리 -->
+  <section>
+    <div class="shead">
+      <span class="num">05</span>
+      <h2>드라마틱 아이러니 — 앎의 거리</h2>
+      <p>누가 무엇을 아는가 = 구역 동선의 심리적 깊이. (가)에서 멀수록 의심도 멀다.</p>
+    </div>
+    <div class="irony">
+      <div class="inodes">
+        <div class="inode rise" style="animation-delay:.1s">
+          <div class="iname">인덱서 본류</div>
+          <div class="pt"></div>
+          <div class="idist">가장 멈 — 빌더를 믿고 시스템에 등재</div>
+          <div class="iknow">(가) 모름</div>
+        </div>
+        <div class="inode rise" style="animation-delay:.2s">
+          <div class="iname">교단</div>
+          <div class="pt"></div>
+          <div class="idist">빌더 단념, 서로를 대체 주인 삼음</div>
+          <div class="iknow">근접하나 갇힘</div>
+        </div>
+        <div class="inode rise" style="animation-delay:.3s">
+          <div class="iname">말소자</div>
+          <div class="pt"></div>
+          <div class="idist">기다리지 않고 지움 — 기다림의 끝</div>
+          <div class="iknow">(다)의 종착</div>
+        </div>
+        <div class="inode rise" style="animation-delay:.4s">
+          <div class="iname">에르다</div>
+          <div class="pt"></div>
+          <div class="idist">반전 도달 가능한 유일</div>
+          <div class="iknow">L2 자각</div>
+        </div>
+      </div>
+      <div class="track"></div>
+      <div class="ends"><span>진실에서 멈 · (다)</span><span>(가) 근처 · 자각</span></div>
+    </div>
+  </section>
+
+  <!-- footer -->
+  <footer>
+    <div class="srcs">
+      <span class="src"><b>DEC-048</b> 세계 단일 진실 + 7각도 삼각측량</span>
+      <span class="src"><b>Narrative_SSOT</b> §13 · §14</span>
+      <span class="src"><b>D-20</b> 월드 마스터</span>
+      <span class="src"><b>SYS-WLD-02</b> 구역 설계</span>
+      <span class="src"><b>NAR-WLD-001~006</b> · <b>NAR-FAC-003</b></span>
+    </div>
+    <p class="foot-truth">"세계는 그 기다림만으로 아직 돌아간다."</p>
+    <p class="foot-meta">ECHORIS · NARRATIVE ATLAS · 2026-06 · 톤: 고독 (DEC-047) · 코스믹 호러 폐기</p>
+  </footer>
+
+</div>
+</body>
+</html>

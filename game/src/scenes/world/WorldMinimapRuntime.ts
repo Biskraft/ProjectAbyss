@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+﻿import { Container, Graphics } from 'pixi.js';
 import type { Game } from '../../Game';
 import { isOneWay, isSolid, TILE_SIZE, TILE_SPIKE, TILE_WATER } from '@core/Physics';
 import type { LdtkLevel, LdtkLoader } from '@level/LdtkLoader';
@@ -30,6 +30,7 @@ interface WorldMinimapEnemy {
 interface WorldMinimapRuntimeDeps {
   game: Game;
   loader: LdtkLoader;
+  getParentContainer?: () => Container;
   getCurrentLevel: () => LdtkLevel | null;
   getPlayer: () => WorldMinimapPlayer;
   getVisitedLevels: () => Set<string>;
@@ -86,7 +87,7 @@ export class WorldMinimapRuntime {
 
   attachIfPresent(): void {
     if (this.minimap && !this.minimap.parent) {
-      this.deps.game.uiContainer.addChild(this.minimap);
+      (this.deps.getParentContainer?.() ?? this.deps.game.uiContainer).addChild(this.minimap);
     }
   }
 
@@ -199,7 +200,7 @@ export class WorldMinimapRuntime {
     this.minimap.alpha = this.deps.getEnemies().some((enemy) => enemy.hp > 0 && !enemy.shouldRemove) ? 0.4 : 0.7;
     if (this.deps.isIntroHidden()) this.minimap.visible = false;
 
-    this.deps.game.uiContainer.addChild(this.minimap);
+    (this.deps.getParentContainer?.() ?? this.deps.game.uiContainer).addChild(this.minimap);
   }
 
   update(dt: number): void {

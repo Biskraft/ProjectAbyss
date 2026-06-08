@@ -9,6 +9,33 @@ This repository uses `memory/wiki/` as shared long-term project memory for Claud
 - Treat the current worktree as authoritative when wiki notes and code disagree.
 - Prefer existing project patterns, data sources, and UI components over new abstractions.
 
+## Systematize Recurrent State Bugs
+
+When the user asks to fix a bug, first state the recommended fix mode before editing:
+
+- `one-shot fix`: use when there is one clear owner, one mutation path, a small isolated mistake, a simple numeric/timing adjustment, or a narrow regression.
+- `systemic fix`: use when the bug involves repeated state transitions, multiple writers, scene/cinematic/modal/debug timing, prior failed local fixes, or unclear ownership.
+
+Briefly explain why the chosen mode fits. If a systemic fix is recommended, outline the owner/state/reconcile plan before changing code.
+
+When a bug involves repeated on/off, lock/unlock, spawn/despawn, enable/disable, or similar state transitions, prefer a systemic fix over another local toggle if any of these are true:
+
+- Multiple files, callbacks, runtimes, or UI components directly mutate the same state.
+- A previous local fix was overridden by another path or the same symptom reappeared.
+- The bug depends on timing, scene transitions, modal overlays, cinematics, debug modes, or async handoffs.
+- It is unclear which component owns the final state.
+- New exceptions keep being added to hide or force a state.
+
+In those cases, define a single owner and a single reconciliation path:
+
+- Represent the durable permission separately from the temporary desire/block state.
+- Route all callers through named methods such as `setXWanted()`, `setXBlocked(reason, blocked)`, or `reconcileXState()`.
+- Keep final `visible`, `enabled`, `active`, or equivalent mutation in one place.
+- Remove or replace direct scattered mutations instead of adding another exception.
+- Document the prevention rule in `memory/wiki/` when the system behavior becomes durable project knowledge.
+
+Do not over-systematize simple numeric tuning, isolated one-line mistakes, text-only changes, or a bug with exactly one clear owner and one mutation path.
+
 ## Cross-Agent Wiki Access
 
 - Other LLM coding agents may search, read, and update `memory/wiki/` as part of normal project work.

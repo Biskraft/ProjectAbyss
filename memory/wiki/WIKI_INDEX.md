@@ -2,6 +2,8 @@
 
 ## Decisions
 
+- [DEC-050-ItemWorld-Minimap-Fog-Recanon](decisions/DEC-050-ItemWorld-Minimap-Fog-Recanon.md) — ⚠️ SUPERSEDED (2026-06-08 단일 통합·fog 폐기, SSoT=UI_Minimap.md)
+- [DEC-049-Mob-Damage-Uniform-20pct](decisions/DEC-049-Mob-Damage-Uniform-20pct.md)
 - [DEC-048-World-Truth-Triangulation](decisions/DEC-048-World-Truth-Triangulation.md)
 - [DEC-047-Tone-Solitude-Over-CosmicHorror](decisions/DEC-047-Tone-Solitude-Over-CosmicHorror.md)
 - [DEC-046-Bonded-Subfaction](decisions/DEC-046-Bonded-Subfaction.md)
@@ -332,5 +334,8 @@
 - [2026-06-07](daily/2026-06-07.md)
 - [2026-06-08](daily/2026-06-08.md)
 - [WorldPrologueEndRuntime](features/WorldPrologueEndRuntime.md)
+
+
+
 
 

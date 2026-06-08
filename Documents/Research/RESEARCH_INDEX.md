@@ -1,7 +1,7 @@
 # Research Document Index — 1줄 요약
 
-> 최근 업데이트: 2026-06-06
-> 총 59개 리서치 문서
+> 최근 업데이트: 2026-06-09
+> 총 61개 리서치 문서
 
 ---
 
@@ -46,7 +46,7 @@
 | **Multiplayer_Social** | 아이템 오너 귀속 + 동행자 보상 → 역할 분담과 공정성 동시 달성 |
 | **Narrative_Worldbuilding** | 기억 단편 = "아이템의 기억이 응결된 의지". 디스가이아 경쾌함 → PA 고딕 톤 재해석 |
 
-## Game Systems Research (15)
+## Game Systems Research (14)
 
 | 문서 | 핵심 인사이트 |
 |:-----|:-----|
@@ -63,6 +63,7 @@
 | **ItemWorld_DepthReward_RiskBalance** | 지수 HP + 구간별 데미지 스케일링, 손실회피(λ=2.25) 보정 기대값, 톱니파 긴장곡선 |
 | **ItemWorld_EntryTransition** | 아이템 다이브 연출 시퀀스, 14종 픽셀아트 전환 기법(GLSL), 레어리티별 차별화 |
 | **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |
+| **Research_ItemWorld_MonsterSpawn_Balancing** (RES-IWS-01) | D3 Greater Rift·D4 Pit/NMD/Monster Family·로그라이크 전수조사 → 2축 분리 모델(강도=레어리티×지층 ⟂ 정체성=무기기질→5권속). 같은 NORMAL 다른 몬스터=기질→권속 매핑. 방당 기능예산 조성, enemyCountBonus 활성화, 무기종류→조성편향 매트릭스 |
 | **SkillSystem_ActionRPG** | 7종 게임 분석, "무기별 분기+공용 트리" 하이브리드 구조, 4슬롯 깊이 확보 6방안 |
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
 | **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0-2 우선순위) |
@@ -84,7 +85,8 @@
 | 시스템 | 리서치 문서 | 설계 문서 |
 |:------|:----------|:---|
 | 아이템계 보스 | BossDesign | System_ItemWorld_Boss.md ✅ |
-| 미니맵 | Research_Minimap_Systems | System_UI_Minimap.md ✅ |
+| 미니맵(월드) | Research_Minimap_Systems | UI_Minimap.md (UI-07) ✅ + 코드(WorldMinimapRuntime) |
+| 미니맵(아이템계) | Research_Minimap_Systems | UI_Minimap.md (UI-07) ✅ — 월드와 단일 통합 (동일 미니맵, 지층 전이 시 리셋) |
 | 타일 체계 | ElementalSystem_Comparison | System_World_TileSystem.md ✅ |
 | 레벨 디자인 흐름 | LevelDesign 시리즈 4개 | System_ItemWorld_FloorGen.md ✅ |
 | 수직 이동 렐릭 | Vertical_Movement_Relics | System_World_AbilityGating.md ✅ |

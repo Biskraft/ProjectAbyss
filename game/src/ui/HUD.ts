@@ -241,6 +241,7 @@ export class HUD {
   private skinLayer: Container | null = null;
   private skinMapFrame: Sprite | null = null;
   private minimapFrameVisible = true;
+  private minimapContentContainer: Container | null = null;
   private skinHpFrame: Sprite | null = null;
   private skinHpFill: Sprite | null = null;
   private skinHpFillMask: Graphics | null = null;
@@ -482,6 +483,16 @@ export class HUD {
   /**
    * ?ÄÏ≤¥Î†• Í¥Ä???úÍ∞Å ?®Í≥º(Flask R pulse, glow, HP bar pulse, ?∞Î?ÏßÄ vignette)Î•?   * Ï¶âÏãú Ï¥àÍ∏∞?? ?¨Îßù ??Î¶¨Ïä§???ÑÏù¥?úÍ≥Ñ?êÏÑú ?îÎìú Î≥µÍ? ???∏Ï∂ú?òÏó¨ ?îÏÉÅ??   * ???ÑÎ†à?ÑÍπåÏßÄ ?®Ï? ?äÎèÑÎ°?Î≥¥Ïû•?úÎã§.
    */
+  private isHudElementEnabled(id: string, layout: HudLayout | null = cachedHudLayout): boolean {
+    return layout?.elements?.[id]?.visible !== false;
+  }
+
+  private setHudElementVisible(id: string, visible: boolean): boolean {
+    const enabled = this.isHudElementEnabled(id);
+    const wrapper = this.layoutWrappers.get(id);
+    if (wrapper) wrapper.visible = visible && enabled;
+    return visible && enabled;
+  }
   resetLowHpEffects(): void {
     this.lowHpTimer = 0;
     this.flaskPulseTimer = 0;
@@ -654,9 +665,19 @@ export class HUD {
     // in two different spots. Position gold once in the HUD tool instead.
   }
 
+  getMinimapContentContainer(): Container {
+    if (!this.minimapContentContainer) {
+      this.minimapContentContainer = new Container();
+      this.minimapContentContainer.label = 'minimapContent';
+      this.container.addChild(this.minimapContentContainer);
+    }
+    return this.minimapContentContainer;
+  }
+
   setMinimapFrameVisible(visible: boolean): void {
     this.minimapFrameVisible = visible;
     if (this.skinMapFrame) this.skinMapFrame.visible = visible;
+    if (this.minimapContentContainer) this.minimapContentContainer.visible = visible;
   }
 
   // --- Boss HP bar ---
@@ -697,11 +718,12 @@ export class HUD {
     this.depthTotal = totalStrata;
     this.depthCurrent = currentStratum;
     this.depthCleared = [...clearedStrata];
-    this.depthGauge.visible = !this.hasSkin;
+    const depthVisible = this.setHudElementVisible('depthFrame', true);
+    this.depthGauge.visible = depthVisible && !this.hasSkin;
     this.depthPulseTimer = 0;
-    if (this.skinDepthFrame) this.skinDepthFrame.visible = true;
-    if (this.skinDepthFill) this.skinDepthFill.visible = true;
-    if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = true;
+    if (this.skinDepthFrame) this.skinDepthFrame.visible = depthVisible;
+    if (this.skinDepthFill) this.skinDepthFill.visible = depthVisible;
+    if (this.skinDepthTickContainer) this.skinDepthTickContainer.visible = depthVisible;
     this.depthLabels = drawHudDepthGauge({
       s: this.s,
       total: this.depthTotal,
@@ -746,6 +768,7 @@ export class HUD {
 
   /** Hide when leaving item world. */
   hideDepthGauge(): void {
+    this.setHudElementVisible('depthFrame', false);
     this.depthGauge.visible = false;
     if (this.skinDepthFrame) this.skinDepthFrame.visible = false;
     if (this.skinDepthFill) this.skinDepthFill.visible = false;
@@ -766,8 +789,8 @@ export class HUD {
     this.expDisplayRatio = this.expTargetRatio;
     this.expLerpTimer = 0;
     this.expLevelUpFlash = 0;
-    this.expBarContainer.visible = true;
-    this.itemExitHintContainer.visible = true;
+    this.setHudElementVisible('expBar', true);
+    this.setHudElementVisible('itemExitHint', true);
     redrawHudItemExpBar(this.expDisplayParts, {
       s: this.s,
       expFont: this.EXP_FONT,
@@ -812,8 +835,8 @@ export class HUD {
 
   /** Hide item EXP bar (call on leaving item world). */
   hideItemExp(): void {
-    this.expBarContainer.visible = false;
-    this.itemExitHintContainer.visible = false;
+    this.setHudElementVisible('expBar', false);
+    this.setHudElementVisible('itemExitHint', false);
   }
 
   /**

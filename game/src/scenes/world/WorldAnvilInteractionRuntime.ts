@@ -9,7 +9,9 @@ interface WorldAnvilInteractionRuntimeDeps {
   getPlayer: () => Player;
   getPrompts: () => AnvilPromptController | null;
   isRetiredByBossClear: (anvil: Anvil | null) => boolean;
-  isDeploymentActive: () => boolean;
+  getInteractionBlockReason: () => string | null;
+  ensureSharedUiVisible: () => void;
+  reportInteractionBlockReason?: (reason: string | null) => void;
   triggerFloorCollapse: () => void;
 }
 
@@ -46,16 +48,12 @@ export class WorldAnvilInteractionRuntime {
       void anvil.setDisabled(true);
     }
 
-    if (this.deps.isDeploymentActive()) {
-      anvil.update(dt);
-      prompts?.hideAll();
-      return;
-    }
-
-    if ((anvil.used || anvil.disabled) && !anvil.hasItem()) {
+    const blockReason = this.deps.getInteractionBlockReason();
+    this.deps.reportInteractionBlockReason?.(blockReason);
+    if (blockReason) {
       anvil.update(dt);
       prompts?.hideAction();
-      if (anvil.disabled && this.isPlayerNearAnvil()) {
+      if (blockReason === 'anvilDisabled' && this.isPlayerNearAnvil()) {
         prompts?.showDisabled(anvil);
       } else {
         prompts?.hideDisabled();
@@ -69,6 +67,7 @@ export class WorldAnvilInteractionRuntime {
     anvil.setShowHint(false);
     const isPromptSuppressed = prompts?.isSuppressed ?? false;
     if (this.isPlayerNearAnvil() && !isPromptSuppressed) {
+      this.deps.ensureSharedUiVisible();
       const promptKey = anvil.hasItem() ? 'prompt.acquire_item' : 'prompt.place_weapon';
       prompts?.showAction(anvil, promptKey);
     } else {

@@ -3,7 +3,7 @@
 > **준거 상위 (Authority):** T-03
 > **최근 업데이트:** 2026-04-14
 > **문서 상태:** Draft
-> **관련:** `UI/UI_Minimap.md` (아이템계 미니맵 없음 — Spelunky 모델)
+> **관련:** `UI/UI_Minimap.md` (아이템계 미니맵 = 월드와 단일 통합. 깊이 표시기는 미니맵과 병행)
 > **기둥:** 탐험
 
 ---
@@ -138,7 +138,7 @@
 
 ## 7. 참고
 
-- `UI/UI_Minimap.md` — 아이템계 미니맵 없음 선언
+- `UI/UI_Minimap.md` — 아이템계 미니맵(월드와 단일 통합)
 - `System_ItemWorld_Core.md` — 지층 구조, 재사이클
 - `UI/UI_Healing_HUD.md` — HP bar, Flask 배치 (같은 좌측 열)
 - `game/src/ui/HUD.ts` — 구현 위치

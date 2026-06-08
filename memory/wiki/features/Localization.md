@@ -48,3 +48,11 @@ ECHORIS의 모든 게임 텍스트를 SSoT 기반 KR/EN 양국어로 분리. SSo
 - 2026-06-05: 100-damage milestone combat VFX uses `ui.combat.milestone_100_damage`; do not hardcode `100 DMG!` in scene/runtime damage-number calls.
 
 - 2026-06-05: Legacy WorldAltarController draw path uses existing ui.world.offer_item; do not reintroduce hardcoded altar title strings.
+
+- 2026-06-08: English localization text now rejects replacement characters and smart punctuation in Sheets/tools/validate.mjs. Fixed mojibake EN values including ego.inventory_locked.0 so Rustborn dialogue displays Not now. Let's see it at the Forge. without ??. 
+pm run build from game/ passed; remaining warning is the known LDtk tlas/prologue_01.png CSV warning.
+
+- 2026-06-08: KO localization mojibake mitigation added. Sheets/tools/csv_to_locale.mjs now omits detected broken KO values so 	() falls back to EN instead of rendering ?? text. Sheets/tools/validate.mjs reports the broken KO count as a warning while EN forbidden punctuation remains an error. Current generation omits 603 KO values and keeps 91 valid KO values. 
+pm run build from game/ passed; warnings are the known tlas/prologue_01.png row and KO mojibake warning.
+
+- 2026-06-08: KO localization recovery completed. Restored most Korean strings from git commit e4c299a5f7bd87240356aa9dcea4dc9781d4eec1, then manually restored the remaining 15 broken KO dialogue/UI keys in `Sheets/Content_Localization.csv`. `Sheets/tools/csv_to_locale.mjs` now generates en=694 and ko=694 with 0 missing, and `Sheets/tools/validate.mjs` no longer reports KO mojibake warnings. `npm run build` from `game/` passed; only the known LDtk `atlas/prologue_01.png` CSV warning remains. Prevention rule: do not add or keep player-facing KO text containing mojibake/replacement-question artifacts; repair the CSV SSoT or let KO fall back to EN until a real translation exists.

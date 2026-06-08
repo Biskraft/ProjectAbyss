@@ -286,6 +286,7 @@ const BUILDER_WORLD_ID = 'Builder';
 // column drives which atlases get loaded for this scene.
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall', 'world_prologue_bg', 'world_prologue_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
+const WORLD_DEATH_RESPAWN_LEVEL_ID = 'Start_Room_01';
 
 // Parallax BG area per level. The prologue levels use their own pre-colored
 // near art (world_prologue_bg in Content_System_Area_Palette.csv); every other
@@ -409,6 +410,8 @@ export class LdtkWorldScene extends Scene {
   /** DEC-046 Identity Archive (??? ??u?? ??? ????). JUMP ??? ????. */
   private identityArchive!: IdentityArchive;
   private hud!: HUD;
+  private gameplayHudWanted = false;
+  private readonly gameplayHudBlocks = new Set<string>();
   private areaTitle!: AreaTitle;
   private introHandoffRuntime!: WorldIntroHandoffRuntime;
   private uiSkin: UISkin | null = null;
@@ -532,6 +535,7 @@ export class LdtkWorldScene extends Scene {
   private anvilReturnFlowRuntime!: WorldAnvilReturnFlowRuntime;
   private portalItemWorldFlowRuntime!: WorldPortalItemWorldFlowRuntime;
   private anvilDiveUiRuntime!: WorldAnvilDiveUiRuntime;
+  private lastAnvilInteractionDebugReason: string | null | undefined;
 
   // Sacred Pickup ? weapon pickup cutscene + lore popup + dive preview.
   private lorePopup: LorePopup | null = null;
@@ -727,7 +731,9 @@ export class LdtkWorldScene extends Scene {
       getPlayer: () => this.player,
       getPrompts: () => this.anvilPrompts ?? null,
       isRetiredByBossClear: (anvil) => this.anvilRetirementRuntime.isRetiredByBossClear(anvil),
-      isDeploymentActive: () => this.itemWorldEntryState.isDeploymentActive(),
+      getInteractionBlockReason: () => this.getWorldAnvilInteractionBlockReason(),
+      ensureSharedUiVisible: () => this.ensureSharedUiVisibleForWorldAnvil(),
+      reportInteractionBlockReason: (reason) => this.reportWorldAnvilInteractionBlockReason(reason),
       triggerFloorCollapse: () => this.anvilDeploymentRuntime.triggerFloorCollapse(),
     });
     this.anvilSpawnRuntime = new WorldAnvilSpawnRuntime({
@@ -1190,7 +1196,10 @@ export class LdtkWorldScene extends Scene {
         this.itemWorldReturnFade.start();
       },
       preparePush: () => this.itemWorldSceneTransitionRuntime.preparePush(),
-      restoreWorldAtAnvilReturnPoint: (resetAnvil) => this.anvilReturnFlowRuntime.restoreWorldAtReturnPoint(resetAnvil),
+      restoreWorldAtAnvilReturnPoint: (resetAnvil) => {
+        this.anvilReturnFlowRuntime.restoreWorldAtReturnPoint(resetAnvil);
+        this.restoreWorldMinimapAfterReturn();
+      },
       updatePlayerAtk: () => this.worldPlayerStatRuntime.sync(),
       isFirstItemWorldBossDefeated: () => this.saveAccess.isFirstItemWorldBossDefeated(),
       showFirstItemWorldReturnInventoryHint: (hadFirstBossClear) => {
@@ -1258,9 +1267,10 @@ export class LdtkWorldScene extends Scene {
       },
       setInTunnel: (inTunnel) => {
         this.itemWorldEntryState.setInTunnel(inTunnel);
+        this.setGameplayHudBlock('itemWorldTunnel', inTunnel);
       },
       hideMinimap: () => {
-        this.worldMinimap.setVisible(false);
+        this.setGameplayHudBlock('itemWorldTunnel', true);
       },
       hasLevel: (levelId) => !!this.loader.getLevel(levelId),
       loadLevel: (levelId, enterFrom) => {
@@ -1426,8 +1436,7 @@ export class LdtkWorldScene extends Scene {
       setCinematicUiVisible: (visible) => {
         this.game.uiContainer.visible = visible;
         this.game.feedbackOverlayContainer.visible = visible;
-        this.hud.container.visible = visible && this.game.hudReady;
-        this.worldMinimap.setVisible(visible && this.game.hudReady);
+        this.setGameplayHudBlock('cinematicUi', !visible);
       },
       unlockInput: () => {
         this.game.input.inputLocked = false;
@@ -1521,7 +1530,7 @@ export class LdtkWorldScene extends Scene {
       game: this.game,
       isInItemTunnel: () => this.itemWorldEntryState.isInTunnel(),
       setMinimapVisible: (visible) => {
-        this.worldMinimap?.setVisible(visible);
+        this.setGameplayHudBlock('introMinimap', !visible);
       },
     });
     this.itemWorldGhostCollision = new ItemWorldGhostCollisionRuntime({
@@ -1712,21 +1721,18 @@ export class LdtkWorldScene extends Scene {
     const anvil: ProximityInteraction = {
       label: 'Anvil',
       priority: 20,
-      canInteract: () => {
-        if (!this.anvil || this.altarController.isSelectActive || !this.anvilInteractionRuntime.isPlayerNearAnvil()) return false;
-        if (this.itemWorldEntryState.isDeploymentActive()) return false;
-        // Step 5 (2026-05-25): anvil ?? ???????? ??? ?????? *??? ?????? ????* ?? ???????(IW ?????? ??????)
-        // ?? ????? ??? ???ï¿½ï¿½? ??????. retire(disabled)/used ?? ?????.
-        if (this.anvil.hasItem()) return true;
-        const prompts = this.anvilPrompts;
-        if (prompts?.isSuppressed) return false;
-        return !this.anvil.used && !this.anvil.disabled;
-      },
+      canInteract: () => this.getWorldAnvilInteractionBlockReason() === null,
       onInteract: () => {
+        const blockReason = this.getWorldAnvilInteractionBlockReason();
+        if (blockReason) {
+          this.reportWorldAnvilInteractionBlockReason(blockReason);
+          return;
+        }
         if (this.anvil?.hasItem()) {
           this.anvilItemRuntime.reclaimItem();
           return;
         }
+        this.ensureSharedUiVisibleForWorldAnvil();
         this.anvilItemRuntime.openInventory();
       },
     };
@@ -1955,10 +1961,10 @@ export class LdtkWorldScene extends Scene {
     this.hud = new HUD(this.game.uiScale);
     this.hud.setDebugInfoVisible(Debug.infoVisible);
     this.game.uiContainer.addChild(this.hud.container);
-    // Overworld is intentionally HUD-free â€” the gameplay HUD (HP/ATK/gold/flask/
+    // Overworld is intentionally HUD-free ??the gameplay HUD (HP/ATK/gold/flask/
     // minimap) only appears inside the Item World. Start hidden; enforced each
     // frame in update() so no overlay-close/intro/revive toggle can re-show it.
-    this.hud.container.visible = false;
+    this.setGameplayHudWanted(false);
     this.introHandoffRuntime.bindHud(this.hud);
     this.introHandoffRuntime.applyInitialHudGate(startHidden && !saveData);
 
@@ -2072,8 +2078,7 @@ export class LdtkWorldScene extends Scene {
     // Character stats overlay (opened from pause menu STATUS) ? uiContainer(native)
     this.characterStats = new CharacterStats(this.uiSkin, this.game.uiScale);
     this.characterStats.onVisibilityChanged = (vis) => {
-      this.hud.container.visible = !vis && this.game.hudReady;
-      this.worldMinimap.setVisible(!vis && this.game.hudReady);
+      this.setGameplayHudBlock('characterStats', vis);
     };
     this.game.uiContainer.addChild(this.characterStats.container);
 
@@ -2123,8 +2128,7 @@ export class LdtkWorldScene extends Scene {
     this.game.uiContainer.addChild(this.inventoryUI.container);
     // ?ï¿½ï¿½??? ????/?????? ???? Anvil UI o?? HUD + minimap ??? (??? ??? 2026-05-24).
     this.inventoryUI.onVisibilityChange = (vis: boolean) => {
-      this.hud.container.visible = !vis && this.game.hudReady;
-      this.worldMinimap.setVisible(!vis && this.game.hudReady);
+      this.setGameplayHudBlock('inventory', vis);
     };
 
     // DEC-046 Identity Archive ? ?ï¿½ï¿½????? ????. JUMP ??? ????.
@@ -2152,6 +2156,7 @@ export class LdtkWorldScene extends Scene {
     this.worldMinimap = new WorldMinimapRuntime({
       game: this.game,
       loader: this.loader,
+      getParentContainer: () => this.hud.getMinimapContentContainer(),
       getCurrentLevel: () => this.currentLevel ?? null,
       getPlayer: () => this.player,
       getVisitedLevels: () => this.worldProgressState.visitedLevels,
@@ -2165,46 +2170,7 @@ export class LdtkWorldScene extends Scene {
       hud: this.hud,
       getMinimap: () => this.worldMinimap.container,
       onRespawn: () => {
-        this.gameOverRuntime.clear();
-
-        // Clear fixed item world / tunnel state
-        this.fixedItemWorldFlowRuntime.clear();
-        this.itemWorldEntryState.setInTunnel(false);
-        this.itemWorldEntryState.clearItem();
-
-        // Load save data ? return to last save point
-        const saveData = SaveManager.load();
-        if (saveData) {
-          // Restore inventory and progress from save
-          this.inventory = SaveManager.loadInventory(saveData);
-          this.inventoryUI.setInventory(this.inventory);
-          this.worldProgressState.replaceFromSave(saveData);
-          this.player.abilities.dash = saveData.abilities.dash;
-          this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
-          this.player.abilities.surge = saveData.abilities.surge ?? false;
-          this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
-          this.player.abilities.wallJump = saveData.abilities.wallJump;
-          this.player.abilities.doubleJump = saveData.abilities.doubleJump;
-          this.worldPlayerProgressionState.setHealthShardBonus(saveData.healthShardBonus ?? 0);
-          const respawnLevelId = this.worldSpawnState.resolveLevelId(saveData.levelId);
-          this.worldSpawnState.setCurrentLevelId(respawnLevelId);
-          this.loadLevel(respawnLevelId, 'down');
-        } else {
-          // No save ? return to spawn level
-          this.worldPlayerProgressionState.setHealthShardBonus(0);
-          const respawnLevelId = this.worldSpawnState.resolveLevelId(this.worldSpawnState.currentLevelId);
-          this.worldSpawnState.setCurrentLevelId(respawnLevelId);
-          this.loadLevel(respawnLevelId, 'down');
-        }
-
-        // Full HP restore + snap to save point
-        this.player.respawn();
-        this.worldPlayerStatRuntime.sync();
-        this.player.hp = this.player.maxHp;
-        this.savePointRuntime.snapPlayerToNearest();
-        // ???? ?? HP VFX(Flask R pulse, glow, HP bar pulse, vignette) ?? ???????.
-        this.hud.resetLowHpEffects();
-        this.hud.updateHP(this.player.hp, this.player.maxHp);
+        this.respawnWorldPlayerAtStartRoom();
       },
     });
     this.debugWarpRuntime = new WorldDebugWarpRuntime({
@@ -2216,16 +2182,11 @@ export class LdtkWorldScene extends Scene {
       isInItemTunnel: () => this.itemWorldEntryState.isInTunnel(),
       isGameOverActive: () => this.gameOverRuntime.isActive,
       reviveFromGameOver: () => {
-        this.gameOverRuntime.clear();
-        this.player.hp = this.player.maxHp;
-        this.player.isDead = false;
-        this.player.drowned = false;
-        this.hud.container.visible = this.game.hudReady;
-        this.worldMinimap.setVisible(this.game.hudReady);
+        this.respawnWorldPlayerAtStartRoom();
       },
       loadLevel: (roomId) => { this.loadLevel(roomId, 'down'); },
-      setHudVisible: (visible) => { this.hud.container.visible = visible && this.game.hudReady; },
-      setMinimapVisible: (visible) => { this.worldMinimap.setVisible(visible && this.game.hudReady); },
+      setHudVisible: (visible) => { this.setGameplayHudBlock('debugWarp', !visible); },
+      setMinimapVisible: (visible) => { this.setGameplayHudBlock('debugWarp', !visible); },
     });
 
     this.transitionController = new WorldTransitionController();
@@ -2301,11 +2262,12 @@ export class LdtkWorldScene extends Scene {
     // If loading from save, snap player to save point
     if (saveData && this.savePointRuntime.hasAny) {
       this.savePointRuntime.snapPlayerToNearest();
+      this.restoreWorldGameplayAfterSaveLoad('saveLoad');
     }
 
     this.initialized = true;
 
-    // Tier 3 ambient bed demo (Plan_Audio_Demo ??-1 #1A + #1C, DEC-040 ??3-2.4 ï§žï¿½??ï¿½?
+    // Tier 3 ambient bed demo (Plan_Audio_Demo ??-1 #1A + #1C, DEC-040 ??3-2.4 ï§žï¿½??ï¿?
     AmbientLayer.startWorldTier3Demo();
 
     // Controls guidance handled by tutorialHint.tryShow('hint_combat') in
@@ -3017,17 +2979,14 @@ export class LdtkWorldScene extends Scene {
     // Hide minimap + adjust gold in item tunnel and in the fixed item world
     // (prologue stratum is an item world ? no overworld minimap).
     const hideMinimap = this.itemWorldEntryState.isInTunnel() || this.fixedItemWorld.isActive;
-    if (hideMinimap) this.worldMinimap.setVisible(false);
+    this.setGameplayHudBlock('itemWorldTunnel', this.itemWorldEntryState.isInTunnel());
+    this.setGameplayHudBlock('fixedItemWorld', this.fixedItemWorld.isActive);
+    this.setGameplayHudBlock('worldMap', this.worldMapRuntime.overlay.visible);
     this.hud.setGoldBelowMinimap(!hideMinimap && this.worldMinimap.isVisible);
 
     // Minimap: real-time dot tracking + blink + combat opacity
     this.worldMinimap.update(dt);
-
-    // Overworld is HUD-free by design â€” keep every overworld HUD element hidden
-    // regardless of the overlay/intro/revive toggles above. The gameplay HUD
-    // only appears inside the Item World (ItemWorldScene shows its own HUD).
-    this.hud.container.visible = false;
-    this.worldMinimap.setVisible(false);
+    this.reconcileGameplayHudVisibility();
 
     // Damage numbers & Sakurai hit effects
     this.combatFeedbackRuntime.update(dt);
@@ -3321,7 +3280,7 @@ export class LdtkWorldScene extends Scene {
     this.worldFluidRuntime.attachLevel(level);
     this.worldWeatherRuntime.configureForLevel(level);
     // ???? HP ??? ?????. ?? ?? ???? ?? ???? ???? ???? ?? ???ï¿½ï¿½? ???
-    // ???? ?????? ?ï¿½?? activateBossLock ?? update ?? ??? ????? ???.
+    // ???? ?????? ?ï¿?? activateBossLock ?? update ?? ??? ????? ???.
     this.hud.hideBossHP();
 
     // Render tiles ? filter wall tiles by collision grid (destroyed tiles stay gone).
@@ -3469,7 +3428,7 @@ export class LdtkWorldScene extends Scene {
 
     this.worldHandPlacedItemRuntime.loadLevel(level);
 
-    // Exit Light Bleed ? ?? ???? ?? ???? ????? ???? ?ï¿½ ?ï¿½ï¿½? ?ï¿½ï¿½????.
+    // Exit Light Bleed ? ?? ???? ?? ???? ????? ???? ?ï¿??ï¿½ï¿½? ?ï¿½ï¿½????.
     // ??? ???????? *????* ??????: loadLevel() ???? clearAll() ?? ??? ??ï¿½ï®œ
     // ?????, ??? ????? ??ï¿½ï¿½?(spawnBuilderEntities)?? ?? *????* ???????
     // ?????ï¿½ï¿½?. (?????? ????? ????? ??ï¿½ï¿½ï¿½ï¿½ ??? ?????? ??o??? ????.)
@@ -3480,18 +3439,21 @@ export class LdtkWorldScene extends Scene {
       this.builderFlowRuntime.spawnBuilderFromSpawner(level, builderSpawner);
     }
 
+    if (level.identifier === 'Start_Room_01') {
+      this.revealGameplayHud();
+    }
+
     // HUD/minimap visibility ? Shaft_DemoEnd ?????? ????? (????
     // ???? 2026-05-17). ?? ????? ?????? ???? hudReady ?? ??? intro ????
     // ??? ??????.
     if (level.identifier === 'Shaft_DemoEnd') {
-      this.hud.container.visible = false;
-      this.worldMinimap.setVisible(false);
+      this.setGameplayHudWanted(false);
+    } else if (level.identifier === 'Start_Room_01') {
+      this.setGameplayHudWanted(true);
     } else if (this.game.hudReady && !this.introHandoffRuntime.isHudSuppressed) {
-      this.hud.container.visible = true;
-      this.worldMinimap.setVisible(true);
+      this.setGameplayHudWanted(true);
     } else {
-      this.hud.container.visible = false;
-      this.worldMinimap.setVisible(false);
+      this.setGameplayHudWanted(false);
     }
 
     // Settle player physics (gravity snap to floor) before camera snap
@@ -3511,15 +3473,13 @@ export class LdtkWorldScene extends Scene {
 
     // Update minimap + world map (skip in item tunnel AND in the fixed item
     // world ? the prologue stratum is an item world, not the overworld map).
+    this.setGameplayHudBlock('itemWorldTunnel', this.itemWorldEntryState.isInTunnel());
+    this.setGameplayHudBlock('fixedItemWorld', this.fixedItemWorld.isActive);
     if (!this.itemWorldEntryState.isInTunnel() && !this.fixedItemWorld.isActive) {
       this.worldMinimap.draw();
-    } else {
-      this.worldMinimap.setVisible(false);
     }
     // When the world map is open, the freshly-drawn minimap must stay hidden.
-    if (this.worldMapRuntime.overlay.visible) {
-      this.worldMinimap.setVisible(false);
-    }
+    this.setGameplayHudBlock('worldMap', this.worldMapRuntime.overlay.visible);
     this.worldMapRuntime.syncVisibleRedraw();
 
     this.saveRoomAudioRuntime.syncForLevel(this.savePointRuntime.hasAny);
@@ -3527,6 +3487,143 @@ export class LdtkWorldScene extends Scene {
     return true;
   }
 
+  private getWorldAnvilInteractionBlockReason(): string | null {
+    const anvil = this.anvil;
+    if (!anvil) return 'noAnvil';
+    if (this.gameOverRuntime?.isActive) return 'gameOver';
+    if (this.game.input.inputLocked) return 'inputLocked';
+    if (this.altarController?.isSelectActive) return 'altarSelect';
+    if (this.inventoryUI?.visible) return 'inventoryOpen';
+    if (this.worldMapRuntime?.overlay.visible) return 'worldMap';
+    if (
+      this.itemWorldTransitionRuntime?.isActive
+      || this.itemWorldEntryTransition?.isActive
+      || this.edgeTransitionRuntime?.isActive
+      || this.game.transitionDirector?.isActive
+    ) return 'transition';
+    if (this.itemWorldEntryState.isDeploymentActive()) return 'deploymentActive';
+    if (this.itemWorldEntryState.isInTunnel()) return 'inTunnel';
+    if (!this.anvilInteractionRuntime.isPlayerNearAnvil()) return 'notNearAnvil';
+
+    if (anvil.hasItem()) return null;
+    if (this.anvilPrompts?.isSuppressed) return 'promptSuppressed';
+    if (anvil.disabled) return 'anvilDisabled';
+    if (this.anvilRetirementRuntime?.isRetiredByBossClear(anvil)) return 'retiredByBossClear';
+    if (anvil.used) return 'anvilUsed';
+    return null;
+  }
+
+  private ensureSharedUiVisibleForWorldAnvil(): void {
+    if (this.game.input.inputLocked) return;
+    this.anvilDiveUiRuntime.restore();
+    this.game.uiContainer.visible = true;
+  }
+
+  private reportWorldAnvilInteractionBlockReason(reason: string | null): void {
+    if (!LdtkWorldScene.debugMode) return;
+    if (this.lastAnvilInteractionDebugReason === reason) return;
+    this.lastAnvilInteractionDebugReason = reason;
+    const anvil = this.anvil;
+    console.debug('[WorldAnvil]', {
+      state: reason ?? 'ready',
+      level: this.currentLevel?.identifier ?? null,
+      uiVisible: this.game.uiContainer.visible,
+      inTunnel: this.itemWorldEntryState.isInTunnel(),
+      deploymentActive: this.itemWorldEntryState.isDeploymentActive(),
+      anvil: anvil ? {
+        x: anvil.x,
+        y: anvil.y,
+        used: anvil.used,
+        disabled: anvil.disabled,
+        hasItem: anvil.hasItem(),
+      } : null,
+    });
+  }
+  private respawnWorldPlayerAtStartRoom(): void {
+    this.restoreWorldGameplayAfterSaveLoad('deathRespawn');
+
+    const saveData = SaveManager.load();
+    if (saveData) {
+      this.inventory = SaveManager.loadInventory(saveData);
+      this.inventoryUI.setInventory(this.inventory);
+      this.worldProgressState.replaceFromSave(saveData);
+      this.player.abilities.dash = saveData.abilities.dash;
+      this.player.abilities.diveAttack = saveData.abilities.diveAttack ?? false;
+      this.player.abilities.surge = saveData.abilities.surge ?? false;
+      this.player.abilities.waterBreathing = saveData.abilities.waterBreathing ?? false;
+      this.player.abilities.wallJump = saveData.abilities.wallJump;
+      this.player.abilities.doubleJump = saveData.abilities.doubleJump;
+      this.worldPlayerProgressionState.setHealthShardBonus(saveData.healthShardBonus ?? 0);
+    } else {
+      this.worldPlayerProgressionState.setHealthShardBonus(0);
+    }
+
+    this.saveAccess.setScene('chapter_01');
+    this.worldSpawnState.setCurrentLevelId(WORLD_DEATH_RESPAWN_LEVEL_ID);
+    this.loadLevel(WORLD_DEATH_RESPAWN_LEVEL_ID, 'down');
+
+    this.player.respawn();
+    this.worldPlayerStatRuntime.sync();
+    this.player.hp = this.player.maxHp;
+    this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.restoreWorldGameplayAfterSaveLoad('deathRespawnLoaded');
+  }
+
+  private restoreWorldGameplayAfterSaveLoad(reason: string): void {
+    this.game.input.inputLocked = false;
+    this.player.attackInputEnabled = true;
+    this.player.isDead = false;
+    this.player.drowned = false;
+    this.player.forceMovementControlReady();
+
+    this.gameOverRuntime?.clear();
+    this.fixedItemWorldFlowRuntime?.clear();
+    this.itemWorldEntryState.destroyDeployment();
+    this.itemWorldEntryState.setInTunnel(false);
+    this.itemWorldEntryState.clearItem();
+    this.itemWorldEntryState.clearPreTunnelLevelId();
+    this.itemDeploymentAtmosphereFlowRuntime.deactivateDungeonAtmosphere();
+    this.itemDeploymentTunnelFlowRuntime.destroyGhostOverlay(true);
+    this.itemDeploymentTunnelFlowRuntime.restoreDeploymentTunnel(true);
+    this.deployBlurRuntime.clear();
+    this.anvilDiveUiRuntime.restore();
+
+    this.inventoryUI.close();
+    this.altarController.destroyUi();
+    this.anvilInteractionRuntime.hidePrompts();
+    this.tutorialHint.clearTransientState();
+    this.inventoryTutorialHint.clearTransientState();
+    this.worldMapRuntime.overlay.visible = false;
+
+    this.setGameplayHudBlock('itemWorldTunnel', false);
+    this.setGameplayHudBlock('fixedItemWorld', false);
+    this.setGameplayHudBlock('worldMap', false);
+    this.setGameplayHudBlock('inventory', false);
+    this.setGameplayHudBlock('characterStats', false);
+    this.setGameplayHudBlock('debugWarp', false);
+    this.setGameplayHudBlock('cinematicUi', false);
+
+    this.hud.resetLowHpEffects();
+    this.hud.updateHP(this.player.hp, this.player.maxHp);
+    this.revealGameplayHud();
+    this.restoreWorldMinimapAfterReturn();
+
+    if (LdtkWorldScene.debugMode) {
+      console.debug('[WorldRestore]', {
+        reason,
+        level: this.currentLevel?.identifier ?? null,
+        inputLocked: this.game.input.inputLocked,
+        attackInputEnabled: this.player.attackInputEnabled,
+        hudReady: this.game.hudReady,
+        hudWanted: this.gameplayHudWanted,
+        hudBlocks: Array.from(this.gameplayHudBlocks),
+        inTunnel: this.itemWorldEntryState.isInTunnel(),
+        deploymentActive: this.itemWorldEntryState.isDeploymentActive(),
+        gameOverActive: this.gameOverRuntime?.isActive ?? false,
+        inventoryVisible: this.inventoryUI.visible,
+      });
+    }
+  }
   private keepOnlyRustbornEquipped(): void {
     const rustbornDef = SWORD_DEFS.find(d => d.id === 'sword_rustborn') ?? SWORD_DEFS[0];
     this.inventory = new Inventory();
@@ -3545,6 +3642,58 @@ export class LdtkWorldScene extends Scene {
     this.keepOnlyRustbornEquipped();
   }
 
+  private revealGameplayHud(): void {
+    this.game.hudReady = true;
+    this.setGameplayHudWanted(true);
+  }
+
+  private setGameplayHudWanted(wanted: boolean): void {
+    this.gameplayHudWanted = wanted;
+    this.reconcileGameplayHudVisibility();
+  }
+
+  private setGameplayHudBlock(reason: string, blocked: boolean): void {
+    if (blocked) this.gameplayHudBlocks.add(reason);
+    else this.gameplayHudBlocks.delete(reason);
+    this.reconcileGameplayHudVisibility();
+  }
+
+  private reconcileGameplayHudVisibility(): void {
+    if (!this.hud) return;
+
+    const currentLevelId = this.currentLevel?.identifier ?? '';
+    const canShowHud =
+      this.game.hudReady
+      && this.gameplayHudWanted
+      && this.gameplayHudBlocks.size === 0
+      && currentLevelId !== 'Shaft_DemoEnd';
+
+    this.hud.container.visible = canShowHud;
+
+    if (!this.worldMinimap) return;
+    const canShowMinimap =
+      canShowHud
+      && !this.itemWorldEntryState.isInTunnel()
+      && !this.fixedItemWorld.isActive
+      && !this.worldMapRuntime?.overlay.visible;
+    if (canShowMinimap && !this.worldMinimap.container) {
+      this.restoreWorldMinimapAfterReturn();
+    }
+    this.worldMinimap.setVisible(canShowMinimap);
+  }
+
+  private restoreWorldMinimapAfterReturn(): void {
+    if (!this.worldMinimap) return;
+    if (!this.currentLevel) return;
+    if (this.itemWorldEntryState.isInTunnel()) return;
+    if (this.fixedItemWorld.isActive) return;
+    if (this.worldMapRuntime?.overlay.visible) return;
+
+    const minimapSlot = this.hud.getMinimapContentContainer();
+    minimapSlot.removeChildren();
+    this.worldMinimap.draw();
+    this.worldMinimap.attachIfPresent();
+  }
   // ---------------------------------------------------------------------------
   // Enemy spawning
   // ---------------------------------------------------------------------------

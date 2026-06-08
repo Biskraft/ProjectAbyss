@@ -1148,12 +1148,18 @@ export class Player extends Entity implements CombatEntity {
       }
     }
 
-    // Facing direction: input takes priority, then velocity
+    if (this.externalFacingLockMs > 0) {
+      this.externalFacingLockMs = Math.max(0, this.externalFacingLockMs - dt);
+    }
+
+    // Facing direction: player intent takes priority. Velocity fallback is
+    // allowed only when no external force recently drove movement; knockback
+    // must not flip the character after hitstun ends with residual vx.
     if (state !== 'attack' && state !== 'hit') {
-        if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.facingRight = true;
+      if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.facingRight = true;
       else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.facingRight = false;
-      else if (this.vx > 10) this.facingRight = true;
-      else if (this.vx < -10) this.facingRight = false;
+      else if (this.externalFacingLockMs <= 0 && this.vx > 10) this.facingRight = true;
+      else if (this.externalFacingLockMs <= 0 && this.vx < -10) this.facingRight = false;
     }
 
     // Update camera facing
@@ -1180,6 +1186,7 @@ export class Player extends Entity implements CombatEntity {
     this.vx = knockbackX;
     this.vy = knockbackY;
     this._hitstunDuration = hitstun;
+    this.externalFacingLockMs = Math.max(this.externalFacingLockMs, hitstun + 250);
     // VFX: player took damage this frame
     this._justHitThisFrame = true;
     this._hitKnockDir = wasFacingRight ? 1 : -1;
@@ -1929,6 +1936,7 @@ export class Player extends Entity implements CombatEntity {
 
   private _hitstunDuration = 0;
   private _hitstunTimer = 0;
+  private externalFacingLockMs = 0;
 
   private startHit(): void {
     this._hitstunTimer = this._hitstunDuration;

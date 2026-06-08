@@ -25,7 +25,8 @@ export class BossHpRuntime {
     const state = activeBoss.fsm.currentState;
     const fsmEngaged = state !== null && state !== 'idle' && state !== 'death';
     const wasHit = activeBoss.hp < activeBoss.maxHp;
-    const engaged = fsmEngaged || wasHit || (this.deps.isExtraEngaged?.() ?? false);
+    const extraEngaged = this.deps.isExtraEngaged?.() ?? false;
+    const engaged = fsmEngaged || wasHit || extraEngaged;
     if (!engaged) return;
 
     const hud = this.deps.getHud();

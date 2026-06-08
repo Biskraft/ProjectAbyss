@@ -34,6 +34,7 @@ import {
 } from '@data/EgoDialogue';
 import { Trapdoor } from '@entities/Trapdoor';
 import { FloatingItemDrop } from '@entities/FloatingItemDrop';
+import { isBossEnemy } from '@entities/EnemyMetadata';
 import { HitManager } from '@combat/HitManager';
 import { HUD } from '@ui/HUD';
 import { AreaTitle } from '@ui/AreaTitle';
@@ -100,6 +101,7 @@ import {
   ensureAreaTilesetsLoaded,
 } from '@data/areaPalettes';
 import { GAME_WIDTH, GAME_HEIGHT, type Game } from '../Game';
+import { TransitionTokens } from '@effects/TransitionDirector';
 import {
   trackItemWorldEnter,
   trackItemWorldExit,
@@ -502,6 +504,7 @@ export class ItemWorldScene extends Scene {
   private cameraZoneRuntime!: CameraZoneRuntime;
   private bossHpRuntime!: BossHpRuntime;
   private readonly roomSpawnState = new ItemWorldRoomSpawnState();
+  private readonly gameplayHudBlocks = new Set<string>();
 
   private loreDisplay: LoreDisplay | null = null;
 
@@ -532,6 +535,7 @@ export class ItemWorldScene extends Scene {
 
   /** Passed from LdtkWorldScene — shared unlockedEvents for persistence. */
   egoUnlockedEvents: Set<string> = new Set();
+  private prologueDeathRestarting = false;
 
   get earnedGold(): number {
     return this.runStats.earnedGold;
@@ -1110,6 +1114,7 @@ export class ItemWorldScene extends Scene {
       getHud: () => this.hud,
       getEnemies: () => this.enemyRegistry.enemies,
       defaultBossName: t('ui.hud.boss_default'),
+      isExtraEngaged: () => this.isCurrentRoomBossRoom() && this.hasAliveBossEnemy(),
     });
   }
 
@@ -1926,6 +1931,14 @@ export class ItemWorldScene extends Scene {
     );
   }
 
+  private isCurrentRoomBossRoom(): boolean {
+    return this.isStratumEndRoom(this.currentCol, this.currentRow);
+  }
+
+  private hasAliveBossEnemy(): boolean {
+    return this.enemyRegistry.enemies.some((enemy) => isBossEnemy(enemy) && enemy.alive);
+  }
+
   /** Check if this is the final end room (deepest stratum boss) */
   private isFinalEndRoom(col: number, row: number): boolean {
     return col === this.unifiedGrid.endRoom.col &&
@@ -2245,21 +2258,27 @@ export class ItemWorldScene extends Scene {
     }
 
     if (this.roomTransitionRuntime.isActive) {
+      this.setGameplayHudBlock('roomTransition', true);
       this.roomTransitionRuntime.update(dt, {
         placePlayerInRoom: (col, row) => this.placePlayerForRoomTransition(col, row),
       });
       return;
     }
+    this.setGameplayHudBlock('roomTransition', false);
 
     if (this.absorbDissolveRuntime.isActive) {
+      this.setGameplayHudBlock('absorb', true);
       this.absorbDissolveRuntime.update(dt);
       return;
     }
+    this.setGameplayHudBlock('absorb', false);
 
     if (this.flowState.isExitFade || this.flowState.isPostClearHold) {
+      this.setGameplayHudBlock('flowHold', true);
       this.updateTransition(dt);
       return;
     }
+    this.setGameplayHudBlock('flowHold', false);
 
     // World Map / Inventory are unavailable inside Item World ? surface a
     // short English toast so the player understands the key was recognised
@@ -2303,6 +2322,10 @@ export class ItemWorldScene extends Scene {
         room_row: cell?.row ?? 0,
         enemy_type: this.player.lastDamageSource,
       });
+      if (this.saveAccess.isPrologue()) {
+        this.restartPrologueItemWorldAfterDeath();
+        return;
+      }
       this.progressController.requestExitWithReason('death');
       trackItemWorldExit('death', this.currentStratumIndex);
       this.exitTelemetryState.markExitTracked();
@@ -2609,7 +2632,7 @@ export class ItemWorldScene extends Scene {
     // visible here only takes effect during active gameplay — restoring it after
     // the entry-corridor reveal (which has no symmetric show-HUD) and after every
     // stratum-clear/descent cinematic.
-    this.hud.container.visible = true;
+    this.reconcileGameplayHudVisibility();
     this.hud.updateHP(this.player.hp, this.player.maxHp);
     this.hud.updateFlask(this.player.flaskCharges, this.player.flaskMaxCharges);
     this.hud.updateATK(this.player.atk);
@@ -2664,6 +2687,24 @@ export class ItemWorldScene extends Scene {
       this.jumpTutorialHintHandled = true;
       this.jumpTutorialGroundDelayMs = null;
     }
+  }
+
+  private setGameplayHudBlock(reason: string, blocked: boolean): void {
+    if (blocked) this.gameplayHudBlocks.add(reason);
+    else this.gameplayHudBlocks.delete(reason);
+    this.reconcileGameplayHudVisibility();
+  }
+
+  private reconcileGameplayHudVisibility(): void {
+    if (!this.hud) return;
+    const visible =
+      this.gameplayHudBlocks.size === 0
+      && !this.absorbDissolveRuntime?.isActive
+      && !this.flowState.isExitFade
+      && !this.flowState.isPostClearHold
+      && !this.roomTransitionRuntime?.isActive
+      && !this.uiController?.isEscapeConfirmVisible();
+    this.hud.container.visible = visible;
   }
 
   private updateMovementVfx(dt: number): void {
@@ -2893,6 +2934,47 @@ export class ItemWorldScene extends Scene {
     this.onPrologueEnd?.();
   }
 
+  private restartPrologueItemWorldAfterDeath(): void {
+    if (this.prologueDeathRestarting) return;
+    this.prologueDeathRestarting = true;
+
+    this.egoDialogueRuntime.firePlayerDeath();
+    this.resetPrologueItemWorldRunProgress();
+    this.sourcePlayer.respawn();
+
+    const restarted = new ItemWorldScene(
+      this.game,
+      this.item,
+      this.inventory,
+      this.sourcePlayer,
+      { ...this.sceneOptions },
+      this.saveAccess,
+    );
+    restarted.onComplete = this.onComplete;
+    restarted.onPrologueEnd = this.onPrologueEnd;
+    restarted.itemWorldTutorialDone = this.itemWorldTutorialDone;
+    restarted.egoUnlockedEvents = this.egoUnlockedEvents;
+
+    const started = this.game.transitionDirector.startCoverSwapReveal({
+      cover: 'black',
+      durationOutMs: TransitionTokens.DEATH_RESPAWN,
+      durationInMs: TransitionTokens.DEATH_RESPAWN,
+      onSwap: () => this.game.sceneManager.replace(restarted),
+    });
+    if (!started) void this.game.sceneManager.replace(restarted);
+  }
+
+  private resetPrologueItemWorldRunProgress(): void {
+    const progress = getOrCreateWorldProgress(this.item);
+    progress.deepestUnlocked = 0;
+    progress.visitedRooms = [];
+    progress.clearedRooms = [];
+    progress.spawnedRooms = [];
+    progress.bossPortals = {};
+    progress.lastSafeStratum = 0;
+    progress.cleared = false;
+  }
+
   private cleanupForExit(): void {
     // Analytics: guard against double-fire (death path tracks exit earlier)
     if (this.exitTelemetryState.tryMarkExitTracked()) {
@@ -2976,6 +3058,7 @@ export class ItemWorldScene extends Scene {
       this.roomStateRuntime.persistRoomState(this.unifiedGrid, this.progress, this.roomSpawnState.spawnedRooms);
       // Step 2 (2026-05-25): 흡수 연출 grayscale 100% + intensity 0.5,
       // 1000ms tween. 이후 startExitFade 한다 (update 에서 진행).
+      this.setGameplayHudBlock('absorb', true);
       this.absorbDissolveRuntime.start();
       return;
     }
