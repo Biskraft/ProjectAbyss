@@ -1,9 +1,12 @@
 ---
-id: DEC-048
+id: DEC-051
 date: 2026-06-06
 status: decided
+renumbered_from: DEC-048
 ---
-# DEC-048: 화면 전환 정합성 — TransitionDirector 단일 권위 전면 교체
+# DEC-051: 화면 전환 정합성 — TransitionDirector 단일 권위 전면 교체
+
+> **번호 재배정 (2026-06-09):** 구 `DEC-048`. DEC-048 번호가 세계 진실 삼각측량 결정(`DEC-048-World-Truth-Triangulation`)과 충돌하여 본 전환 결정을 **DEC-051**로 이동. 내용·날짜 불변.
 
 ## 맥락
 화면 전환이 깜빡이거나 타일이 점멸하는 문제. 코드 실측 결과 전환이 30+ 파일로 파편화 — `WorldEdgeTransitionRuntime` ↔ `stepLegacyWorldTransition` 중복, 커버 소유자 3종(`fadeOverlay`/`TransitionOverlay`/스냅샷 RenderTexture) 부모·z 제각각, 로드 직후 검증 프레임 부재로 카메라 lerp가 reveal 첫 프레임에 이전 위치를 그림.

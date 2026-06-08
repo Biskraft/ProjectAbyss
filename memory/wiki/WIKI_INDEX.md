@@ -2,6 +2,7 @@
 
 ## Decisions
 
+- [DEC-051-Transition-Consistency](decisions/DEC-051-Transition-Consistency.md) — 화면 전환 단일 권위 (구 DEC-048, 번호 충돌 해소 2026-06-09)
 - [DEC-050-ItemWorld-Minimap-Fog-Recanon](decisions/DEC-050-ItemWorld-Minimap-Fog-Recanon.md) — ⚠️ SUPERSEDED (2026-06-08 단일 통합·fog 폐기, SSoT=UI_Minimap.md)
 - [DEC-049-Mob-Damage-Uniform-20pct](decisions/DEC-049-Mob-Damage-Uniform-20pct.md)
 - [DEC-048-World-Truth-Triangulation](decisions/DEC-048-World-Truth-Triangulation.md)
@@ -19,6 +20,7 @@
 
 ## Features
 
+- [narrative-world-canon](features/narrative-world-canon.md) — 7얼굴+지원 세력 캐논·D-20 매핑·묘사 패스 (in-progress)
 - [spec-canvas-tool](features/spec-canvas-tool.md) — 스펙 로드맵 방사형 마인드맵 툴 (in-progress)
 - [AltarItemSelectionUiHelpers](features/AltarItemSelectionUiHelpers.md)
 - [AnvilCyclePromptRuntime](features/AnvilCyclePromptRuntime.md)
@@ -333,7 +335,7 @@
 - [2026-06-06](daily/2026-06-06.md)
 - [2026-06-07](daily/2026-06-07.md)
 - [2026-06-08](daily/2026-06-08.md)
-- [WorldPrologueEndRuntime](features/WorldPrologueEndRuntime.md)
+- [2026-06-09](daily/2026-06-09.md) — 내러티브 세계관 정식화 (7얼굴+지원 8세력·D-20 매핑·아틀라스)
 
 
 
