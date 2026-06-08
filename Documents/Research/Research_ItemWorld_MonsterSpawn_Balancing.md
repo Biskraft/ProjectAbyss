@@ -520,6 +520,103 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ---
 
+## 7.1. Phase 0 — CSV 스키마 계약 (확정 2026-06-09)
+
+> **정규화 결정:** 분리(3 테이블). 행 입자가 다름 — 적 *고유 분류* / *스폰 규칙* / *조성 비율*. 단일 시트는 `권속×지층×역할×fluid` 조합 폭발.
+> **Rarity 칼럼 제거:** 정체성=Family, 강도·게이팅=깊이 창(MinStratum) + `StrataConfig(rarity,stratum)`. 깊이 창이 레어리티 게이팅을 겸함(강한 적 MinStratum=3 → 지층 3 보유 Rare+ 에서만 출현).
+
+### 테이블 1 — `Content_Enemy.csv` (기존 확장) · 적 종당 1행 · 거동/분류
+
+> **사용자 결정 2026-06-09 — 단일 시트 유지.** 신규 메타 파일을 만들지 않는다. 분류 시트는 **이미 존재**(`Content_Enemy.csv` = 거동/분류, Type·MovementType·Attribute·**Archetype** 보유). 여기에 칼럼만 추가한다.
+> ※ 적 데이터는 본래 2시트 구조: `Content_Stats_Enemy.csv`(숫자 스탯) + `Content_Enemy.csv`(거동/분류). 분류는 후자에 둔다(전자는 숫자 전용). 로더(`enemyStats.ts`)가 **헤더 기반**이라 칼럼 추가는 기존 파서 무파손.
+
+**기존 칼럼:** `Type, DetectRange, AttackRange, MoveSpeed, AttackCooldown, JumpTiles, MovementType, Attribute, Archetype`
+**신규 추가 3칼럼:**
+
+| 칼럼 | 값 | 설명 |
+|:--|:--|:--|
+| `Role` | swarmer\|bruiser\|ranged\|lieutenant\|treasure\|boss | **조성 예산 버킷**. A-09(보물)·Boss 엣지 때문에 파생 대신 명시 |
+| `IsNeutralBase` | true\|false | true = fluid 분기로 다권속 등장(Slime·Skeleton·MawDrone) |
+| `EliteEligible` | true\|false | A-09 엘리트 승격 허용 |
+
+```
+Type,...,Attribute,Archetype,Role,IsNeutralBase,EliteEligible
+Slime,...,water,A-02,swarmer,true,false
+Skeleton,...,,A-01,bruiser,true,true
+Ghost,...,,A-03a,ranged,false,false
+MawDrone,...,,A-01,bruiser,true,false
+Bulwark,...,,A-04,bruiser,false,true
+Sentry,...,,A-10,ranged,false,true
+Conduit,...,,A-08,lieutenant,false,true
+Spitter,...,acid,A-03a,ranged,false,false   ← M1 신규
+```
+
+> **파생 항목(칼럼 불요):** `Locomotion` 은 당분간 코드 파생 — `flying→aerial`, `MoveSpeed=0→stationary`, `Archetype=A-07→concealed`, else `ground`. surface(벽/천장) 모드 도입 시(M2+) 명시 칼럼 추가.
+> **Attribute 칼럼:** 종 고유 fluid(시그니처)만 기입. 중립 베이스의 분기 fluid 는 스폰 테이블 Fluid 가 결정(공란 = 권속 fallback).
+
+### ⚠ 실측 정합 보정 (Content_Enemy.csv 기준, §6 재조정)
+
+손분석(§6.1/§6.2)과 실 CSV가 일부 어긋남 — CSV가 ground truth:
+
+- **Ghost = `flying` + `A-03a`(Shooter) = 비행 슈터가 이미 존재.** §6.2에서 빈칸(○NEW)으로 본 A-dp(비행-직선) 셀을 **Ghost가 점유**. → 확장 천장 16빈칸이 **15로 감소**(단, Ghost 구현이 실제 사격인지 코드 검증 필요 — A-03a 라벨↔거동 desync 가능성).
+- **MawDrone = `flying`** (지상으로 추정했으나 비행). 비행 모드 적은 Ghost·MawDrone·SparkBat **3종**(§6.2의 2종 아님).
+- **Slime = `A-02`(Jumper)** (A-06 swarmer 로 추정했으나). swarmer 버킷은 유지(A-02 도 swarmer 버킷).
+- **Sentry = `A-10`(Sentinel)** → Role 은 ranged 로 명시(고정 사격 위협).
+
+### 테이블 2 — `Content_ItemWorld_SpawnTable.csv` (재구조) · 스폰 규칙당 1행
+
+> 기존 칼럼(`Rarity,Stratum,EnemyType,Weight,Level,MinCount,MaxCount,IsBoss`) 폐기 → 아래로 교체. Role 은 테이블 1 에서 EnemyType 으로 조회(중복 금지).
+
+| 칼럼 | 값 | 설명 |
+|:--|:--|:--|
+| `Family` | forge\|iron\|rust\|spark\|shadow | 무기 기질 → 권속 풀 키 |
+| `EnemyType` | FK | 테이블 1·스탯 시트 참조 |
+| `Fluid` | magma\|cryo\|water\|acid\|charged\|oil | 이 인스턴스가 두르는 fluid(시그니처=고유 / 중립=권속 fluid) |
+| `MinStratum` | 1.. | 깊이 창 시작(레어리티 게이팅 겸) |
+| `MaxStratum` | 1..99 | 깊이 창 끝(99=무제한) |
+| `Weight` | int | 동일 Role 내 가중 추첨 |
+| `ClusterMin` | int | 픽 시 군집 최소 |
+| `ClusterMax` | int | 픽 시 군집 최대 |
+
+```
+# M1 슬라이스 — rust 권속 (3종)
+Family,EnemyType,Fluid,MinStratum,MaxStratum,Weight,ClusterMin,ClusterMax
+rust,Slime,acid,1,99,70,3,4
+rust,Skeleton,acid,1,99,50,1,2
+rust,Spitter,acid,1,99,40,1,1
+```
+
+선택 — 깊이 게이팅 예: 강한 적은 `MinStratum,3` → Rare+ 전용. 보스(Guardian)는 본 풀 제외, 기존 stratum-end 로직/별도 보스 테이블이 담당.
+
+### 테이블 3 — `Content_RoleComposition.csv` (M2 연기) · 무기 종류 → 역할 예산 편향(§4.1)
+
+```
+WeaponType,SwarmerPct,BruiserPct,RangedPct,LieutenantPct
+Blade,40,30,25,5
+Cleaver,55,30,10,5
+Railbow,40,20,30,10
+...
+```
+M1 은 단일 권속이라 **상수 비율(swarmer45/bruiser30/ranged20/lieut5)** 로 대체, 본 테이블은 M2 도입.
+
+### `Content_StrataConfig.csv` 확장 · 마릿수 예산 ✅ 적용 (2026-06-09)
+
+- 신규 칼럼 `BaseEnemyCount`(레어리티당): Normal4 / Magic5 / Rare6 / Legendary7 / Ancient8. **CSV + `StrataConfig.ts` 파서(cols[13]) + `StratumDef.baseEnemyCount` 적용 완료, tsc 통과.**
+- 방당 예산 = `BaseEnemyCount + EnemyCountBonus`. ※ `EnemyCountBonus`는 파싱돼 있으나 **소비(spawnForRoom)는 M1-B**에서 연결.
+
+### 무기 → 권속 해석 (코드, 신규 CSV 불요)
+
+`family = weapon.temperamentPrimary ?? 'forge'`. 부색 혼입(secondary 권속 20~30%)은 M2 연기.
+
+### 마이그레이션 영향 (M1-B 작업)
+
+1. `game/src/data/itemWorldSpawnTable.ts` 파서 재작성(신 칼럼).
+2. `ItemWorldEnemyEncounterRuntime.spawnForRoom` — 단일 종 1픽 → **Family 필터 + Role 예산 채우기** 로 교체.
+3. `Content_Enemy_Meta.csv` 로더 신설(또는 enemy registry 확장).
+4. `StrataConfig.ts` — BaseEnemyCount 파싱, enemyCountBonus 소비.
+
+---
+
 ## 출처 (Sources)
 
 - [Diablo 3 Greater Rift Mechanics — Maxroll](https://maxroll.gg/d3/resources/greater-rift-explained) — 33 몬스터 세트, 밀도, ×1.17 HP, 진행 게이지, Rift Fishing(1/69,000), 파일런

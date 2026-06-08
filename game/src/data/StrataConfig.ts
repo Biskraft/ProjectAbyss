@@ -5,7 +5,7 @@
  * CSV columns:
  *   Rarity, Stratum,
  *   HpMul, AtkMul, EnemyCountBonus, BossHpMul, BossAtkMul, ExpMultiplier,
- *   NodeCount, BranchCount, HubCount, BossPlacement, Topology
+ *   NodeCount, BranchCount, HubCount, BossPlacement, Topology, BaseEnemyCount
  *
  * DEC-037: 4×4 Grid 토폴로지에서 방사형 Room Graph 토폴로지로 전환.
  * - 그리드 크기 SSoT 는 UnifiedGridData.strataOffsets[].width/height 단일.
@@ -77,6 +77,8 @@ export interface StratumDef {
   hpMul: number;
   atkMul: number;
   enemyCountBonus: number;
+  /** RES-IWS-01 §7.1 — 레어리티별 방당 기본 마릿수 예산. 방 예산 = baseEnemyCount + enemyCountBonus. */
+  baseEnemyCount: number;
   bossHpMul: number;
   bossAtkMul: number;
   expMultiplier: number;
@@ -103,7 +105,7 @@ const _build: Record<string, StratumDef[]> = {};
 const lines = csvText.trim().split(/\r?\n/);
 for (let i = 1; i < lines.length; i++) {
   const cols = lines[i].split(',');
-  if (cols.length < 13) continue;
+  if (cols.length < 14) continue;
   const rarity = cols[0].trim().toLowerCase() as Rarity;
   if (!_build[rarity]) _build[rarity] = [];
   _build[rarity].push({
@@ -118,6 +120,7 @@ for (let i = 1; i < lines.length; i++) {
     hubCount: parseInt(cols[10]),
     bossPlacement: parseBossPlacement(cols[11]),
     topology: parseTopology(cols[12]),
+    baseEnemyCount: parseInt(cols[13]),
     theme: 'itemworld',
   });
 }
