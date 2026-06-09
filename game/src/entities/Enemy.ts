@@ -43,6 +43,7 @@ const CHASE_TURN_COOLDOWN_MS = 300;
 const CHASE_TURN_PAUSE_MS = 33;
 
 export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'scatter' | 'hit' | 'death';
+export type SurfaceAttachment = 'ceiling' | 'leftWall' | 'rightWall';
 
 export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
   fsm: StateMachine<S>;
@@ -57,6 +58,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   exp = 0;
   /** Movement type from CSV: 'ground' = wall/floor collision, 'flying' = solids only */
   movementType: MovementType = 'ground';
+  protected surfaceAttachment: SurfaceAttachment = 'ceiling';
   monsterType = '';
   facingRight = false;
   alive = true;
@@ -177,6 +179,42 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   bindSpawnContext(collisionGrid: number[][], target: CombatEntity): void {
     this.roomData = collisionGrid;
     this.target = target;
+  }
+
+  setSurfaceAttachment(attachment: SurfaceAttachment): void {
+    this.surfaceAttachment = attachment;
+  }
+
+  protected chooseNearestSurfaceAttachment(): void {
+    if (this.roomData.length === 0) return;
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
+    const topRow = Math.floor((this.y - 1) / TILE_SIZE);
+    const leftCol = Math.floor((this.x - 1) / TILE_SIZE);
+    const rightCol = Math.floor((this.x + this.width) / TILE_SIZE);
+    const centerCol = Math.floor(centerX / TILE_SIZE);
+    const centerRow = Math.floor(centerY / TILE_SIZE);
+    const candidates: Array<{ attachment: SurfaceAttachment; distance: number }> = [];
+    for (let offset = 0; offset <= 3; offset++) {
+      if (isSolid(getTile(this.roomData, centerCol, topRow - offset))) {
+        candidates.push({ attachment: 'ceiling', distance: offset });
+        break;
+      }
+    }
+    for (let offset = 0; offset <= 3; offset++) {
+      if (isSolid(getTile(this.roomData, leftCol - offset, centerRow))) {
+        candidates.push({ attachment: 'leftWall', distance: offset });
+        break;
+      }
+    }
+    for (let offset = 0; offset <= 3; offset++) {
+      if (isSolid(getTile(this.roomData, rightCol + offset, centerRow))) {
+        candidates.push({ attachment: 'rightWall', distance: offset });
+        break;
+      }
+    }
+    candidates.sort((a, b) => a.distance - b.distance);
+    if (candidates[0]) this.surfaceAttachment = candidates[0].attachment;
   }
 
   // Hit
@@ -321,7 +359,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.fsm.update(dt);
     }
 
-    if (this.movementType === 'flying') {
+    if (this.movementType === 'surface') {
+      this.updateSurfaceMovement(dtSec, cyroMoveMult);
+    } else if (this.movementType === 'flying') {
       // Flying enemies: no gravity, free movement. Only solid walls block.
       if (this.roomData.length > 0) {
         const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec * cyroMoveMult, this.roomData);
@@ -606,6 +646,92 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected horizontalDistToTarget(): number {
     if (!this.target) return Infinity;
     return Math.abs((this.target.x + this.target.width / 2) - (this.x + this.width / 2));
+  }
+
+  private updateSurfaceMovement(dtSec: number, cyroMoveMult: number): void {
+    this.grounded = false;
+    this.vy = this.surfaceAttachment === 'ceiling' ? 0 : this.vy;
+    if (this.roomData.length === 0) {
+      this.x += this.vx * dtSec * cyroMoveMult;
+      this.y += this.vy * dtSec * cyroMoveMult;
+      return;
+    }
+
+    if (this.surfaceAttachment === 'ceiling') {
+      const rx = resolveX(this.x, this.y, this.width, this.height, this.vx * dtSec * cyroMoveMult, this.roomData);
+      this.x = rx.x;
+      if (rx.collided) this.vx = 0;
+      this.snapToCeiling();
+      this.vy = 0;
+      return;
+    }
+
+    const ry = resolveY(this.x, this.y, this.width, this.height, this.vy * dtSec * cyroMoveMult, this.roomData);
+    this.y = ry.y;
+    if (ry.collided) this.vy = 0;
+    if (this.surfaceAttachment === 'leftWall') this.snapToLeftWall();
+    else this.snapToRightWall();
+    this.vx = 0;
+  }
+
+  private snapToCeiling(): void {
+    const colA = Math.floor((this.x + 2) / TILE_SIZE);
+    const colB = Math.floor((this.x + this.width - 2) / TILE_SIZE);
+    const currentTopRow = Math.floor((this.y - 1) / TILE_SIZE);
+    for (let offset = 0; offset <= 2; offset++) {
+      const row = currentTopRow - offset;
+      if (isSolid(getTile(this.roomData, colA, row)) || isSolid(getTile(this.roomData, colB, row))) {
+        this.y = (row + 1) * TILE_SIZE;
+        return;
+      }
+    }
+    for (let offset = 1; offset <= 2; offset++) {
+      const row = currentTopRow + offset;
+      if (isSolid(getTile(this.roomData, colA, row)) || isSolid(getTile(this.roomData, colB, row))) {
+        this.y = (row + 1) * TILE_SIZE;
+        return;
+      }
+    }
+  }
+
+  private snapToLeftWall(): void {
+    const rowA = Math.floor((this.y + 2) / TILE_SIZE);
+    const rowB = Math.floor((this.y + this.height - 2) / TILE_SIZE);
+    const currentLeftCol = Math.floor((this.x - 1) / TILE_SIZE);
+    for (let offset = 0; offset <= 2; offset++) {
+      const col = currentLeftCol - offset;
+      if (isSolid(getTile(this.roomData, col, rowA)) || isSolid(getTile(this.roomData, col, rowB))) {
+        this.x = (col + 1) * TILE_SIZE;
+        return;
+      }
+    }
+    for (let offset = 1; offset <= 2; offset++) {
+      const col = currentLeftCol + offset;
+      if (isSolid(getTile(this.roomData, col, rowA)) || isSolid(getTile(this.roomData, col, rowB))) {
+        this.x = (col + 1) * TILE_SIZE;
+        return;
+      }
+    }
+  }
+
+  private snapToRightWall(): void {
+    const rowA = Math.floor((this.y + 2) / TILE_SIZE);
+    const rowB = Math.floor((this.y + this.height - 2) / TILE_SIZE);
+    const currentRightCol = Math.floor((this.x + this.width) / TILE_SIZE);
+    for (let offset = 0; offset <= 2; offset++) {
+      const col = currentRightCol + offset;
+      if (isSolid(getTile(this.roomData, col, rowA)) || isSolid(getTile(this.roomData, col, rowB))) {
+        this.x = col * TILE_SIZE - this.width;
+        return;
+      }
+    }
+    for (let offset = 1; offset <= 2; offset++) {
+      const col = currentRightCol - offset;
+      if (isSolid(getTile(this.roomData, col, rowA)) || isSolid(getTile(this.roomData, col, rowB))) {
+        this.x = col * TILE_SIZE - this.width;
+        return;
+      }
+    }
   }
 
   private renderDebugRay(): void {

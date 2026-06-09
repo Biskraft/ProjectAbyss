@@ -33,6 +33,8 @@ const ATTACK_MOVE_MULT = PlayerConst.AttackMoveMult;
  *  grounded value so the player can't drift sideways mid-swing. Keeps the
  *  aerial combo visually "anchored" instead of looking like they're sliding. */
 const AERIAL_ATTACK_MOVE_MULT = 0.05;
+const AERIAL_ATTACK_LUNGE_MULT = 0.35;
+const ATTACK_LUNGE_DURATION_MS = 90;
 
 const WALL_SLIDE_SPEED = PlayerConst.WallSlideSpeed;
 const WALL_JUMP_VX = PlayerConst.WallJumpVx;
@@ -561,6 +563,9 @@ export class Player extends Entity implements CombatEntity {
   hitList = new Set<CombatEntity>();
   private attackActive = false;
   private attackHasActivated = false;
+  private attackLungeRemainingPx = 0;
+  private attackLungeSpeedPxPerMs = 0;
+  private attackLungeDir: 1 | -1 = 1;
   /** Captured at startAttack ??ATTACK_TIME_SCALE divided by the equipped
    *  weapon's CSV atkSpeed. Locks the swing's pace so a mid-swing weapon
    *  swap doesn't visually rubber-band. CSV atkSpeed > 1 = faster, < 1 = slower. */
@@ -818,8 +823,9 @@ export class Player extends Entity implements CombatEntity {
     if (!this.isLifting && this.abilities.dash && this.isPlayerInputJustPressed(GameAction.DASH) &&
         state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
-      if (canDash) {
+      if (canDash && (state !== 'attack' || this.canCancelAttackToDash())) {
         this.endLagTimer = 0;
+        if (state === 'attack') this.endAttack();
         this.fsm.transition('dash');
         return;
       }
@@ -1547,7 +1553,13 @@ export class Player extends Entity implements CombatEntity {
     this.attackTimer = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
     this.attackActive = false;
     this.attackHasActivated = false;
+    this.attackLungeRemainingPx = 0;
+    this.attackLungeSpeedPxPerMs = 0;
     this.attackQueued = false;
+    const lungePx = Math.max(0, step.lungePx) * (this.grounded ? 1 : AERIAL_ATTACK_LUNGE_MULT);
+    this.attackLungeRemainingPx = lungePx;
+    this.attackLungeSpeedPxPerMs = lungePx / ATTACK_LUNGE_DURATION_MS;
+    this.attackLungeDir = this.facingRight ? 1 : -1;
     this.hitList.clear();
     this.comboWindowTimer = 0;
 
@@ -1563,10 +1575,7 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateAttack(dt: number): void {
-    // Aerial swings near-fully lock horizontal input ??air stall already
-    // pins vy, so the player feels anchored mid-combo instead of skating.
-    const moveMul = this.grounded ? ATTACK_MOVE_MULT : AERIAL_ATTACK_MOVE_MULT;
-    this.applyHorizontalInput(dt, moveMul);
+    this.vx = 0;
 
     // Gravity already applied in update() before state dispatch ??no double gravity
 
@@ -1589,6 +1598,9 @@ export class Player extends Entity implements CombatEntity {
     const activeMs = step.activeFrames * FRAME_MS * this.currentAttackTimeScale;
     const activeStartMs = totalMs / 4;
     const elapsedMs = totalMs - this.attackTimer;
+    if (elapsedMs < activeStartMs) {
+      this.applyAttackLunge(dt);
+    }
 
     if (!this.attackHasActivated && elapsedMs >= activeStartMs) {
       this.attackHasActivated = true;
@@ -1645,6 +1657,8 @@ export class Player extends Entity implements CombatEntity {
   private endAttack(): void {
     this.attackActive = false;
     this.attackHasActivated = false;
+    this.attackLungeRemainingPx = 0;
+    this.attackLungeSpeedPxPerMs = 0;
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
@@ -1656,6 +1670,8 @@ export class Player extends Entity implements CombatEntity {
     if (this.fsm.currentState === 'death' || this.fsm.currentState === 'hit') return;
     this.attackActive = false;
     this.attackHasActivated = false;
+    this.attackLungeRemainingPx = 0;
+    this.attackLungeSpeedPxPerMs = 0;
     this.attackQueued = false;
     this.attackTimer = 0;
     this.comboWindowTimer = 0;
@@ -1672,6 +1688,29 @@ export class Player extends Entity implements CombatEntity {
     return this.attackActive;
   }
 
+  private applyAttackLunge(dt: number): void {
+    if (this.attackLungeRemainingPx <= 0 || dt <= 0) {
+      this.vx = 0;
+      return;
+    }
+    const movePx = Math.min(this.attackLungeRemainingPx, this.attackLungeSpeedPxPerMs * dt);
+    this.attackLungeRemainingPx -= movePx;
+    this.vx = this.attackLungeDir * (movePx / (dt / 1000));
+  }
+
+  private canCancelAttackToDash(): boolean {
+    if (this.preAttackDelay > 0) return false;
+    const step = COMBO_STEPS[this.comboIndex];
+    if (!step) return false;
+    const totalMs = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
+    const activeMs = step.activeFrames * FRAME_MS * this.currentAttackTimeScale;
+    const activeStartMs = totalMs / 4;
+    const elapsedMs = totalMs - this.attackTimer;
+    const activeEndMs = activeStartMs + activeMs;
+    if (elapsedMs < activeEndMs) return false;
+    if (this.comboIndex < 2) return true;
+    return elapsedMs >= activeEndMs + Math.max(0, totalMs - activeEndMs) * 0.5;
+  }
   /** True while the dash state is active (scene can spawn afterimage trail). */
   isDashing(): boolean {
     return this.fsm.currentState === 'dash';

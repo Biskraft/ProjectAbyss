@@ -57,6 +57,10 @@ export class Projectile {
     this.collisionGrid = collisionGrid;
   }
 
+  canHitPlayer(): boolean {
+    return true;
+  }
+
   update(dt: number): void {
     if (!this.alive) return;
     const dtSec = dt / 1000;

@@ -3,7 +3,7 @@
  *
  * SSoT: Sheets/Content_Combat_Combo.csv
  * CSV columns: Step,HitboxW,HitboxH,ActiveFrames,TotalFrames,HitstopFrames,
- *              Hitstun,KnockbackX,KnockbackY,ShakeIntensity,ComboWindow,EndLag
+ *              Hitstun,KnockbackX,KnockbackY,ShakeIntensity,ComboWindow,EndLag,LungePx
  *
  * Visual FX (slash sprite, scale, offset, tint) is now owned by
  * Sheets/Content_FX_WeaponType.csv via WeaponFx.ts. This sheet is
@@ -23,6 +23,7 @@ export interface ComboStep {
   knockbackX: number;
   knockbackY: number;
   shakeIntensity: number;
+  lungePx: number;
 }
 
 export const COMBO_STEPS: ComboStep[] = [];
@@ -44,6 +45,7 @@ for (let i = 1; i < lines.length; i++) {
     knockbackX: parseInt(c[7]),
     knockbackY: parseInt(c[8]),
     shakeIntensity: parseFloat(c[9]),
+    lungePx: parseInt(c[12] ?? '0') || 0,
   });
   // Last non-zero ComboWindow / EndLag wins (step 3 has EndLag, steps 1-2 have ComboWindow)
   const cw = parseInt(c[10]);

@@ -104,6 +104,7 @@ export function applyProjectilePlayerHitFeedback(input: ApplyProjectilePlayerHit
 
 export function tryHitPlayerWithProjectile(input: ApplyProjectilePlayerHitFeedbackInput): boolean {
   const { projectile, player } = input;
+  if (!projectile.canHitPlayer()) return false;
   if (player.invincible || player.hp <= 0) return false;
   if (!aabbOverlap(getProjectileAabb(projectile), getEntityAabb(player))) return false;
 

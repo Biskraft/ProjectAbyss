@@ -563,30 +563,39 @@ Spitter,...,acid,A-03a,ranged,false,false   ← M1 신규
 - **Slime = `A-02`(Jumper)** (A-06 swarmer 로 추정했으나). swarmer 버킷은 유지(A-02 도 swarmer 버킷).
 - **Sentry = `A-10`(Sentinel)** → Role 은 ranged 로 명시(고정 사격 위협).
 
-### 테이블 2 — `Content_ItemWorld_SpawnTable.csv` (재구조) · 스폰 규칙당 1행
+### 테이블 2 — `Content_ItemWorld_SpawnTable.csv` (거동 기준 재구조 2026-06-09) · 스폰 규칙당 1행
 
-> 기존 칼럼(`Rarity,Stratum,EnemyType,Weight,Level,MinCount,MaxCount,IsBoss`) 폐기 → 아래로 교체. Role 은 테이블 1 에서 EnemyType 으로 조회(중복 금지).
+> **거동 모델 갱신(DEC-052/053 + `Task_Enemy_00_BehaviorCatalog.md`):** 스폰 단위 = **거동(Behavior, 카탈로그 B01~B52)**, 속성 무관. 속성은 **Family→Fluid 매핑**으로 풀이 적용(per-row 컬럼 아님). 구 `EnemyType+Fluid` 결합 폐기 — 같은 거동이 6속성을 곱셈 커버.
 
 | 칼럼 | 값 | 설명 |
 |:--|:--|:--|
-| `Family` | forge\|iron\|rust\|spark\|shadow | 무기 기질 → 권속 풀 키 |
-| `EnemyType` | FK | 테이블 1·스탯 시트 참조 |
-| `Fluid` | magma\|cryo\|water\|acid\|charged\|oil | 이 인스턴스가 두르는 fluid(시그니처=고유 / 중립=권속 fluid) |
+| `Family` | forge\|iron\|rust\|spark\|shadow | 무기 기질 → 권속 풀 키. **속성은 이 값에서 파생.** |
+| `Behavior` | B01~B52 (또는 거동 EnemyType) | `Task_Enemy_00_BehaviorCatalog.md` 참조. **속성 무관 거동.** Role/Size/Locomotion 은 카탈로그에서 조회. |
+| `FluidOverride` | (선택) magma\|water\|oil\|acid\|charged\|cyro | 빈값=Family 기본 fluid. **지층 속성 혼합 시에만** 명시. |
 | `MinStratum` | 1.. | 깊이 창 시작(레어리티 게이팅 겸) |
 | `MaxStratum` | 1..99 | 깊이 창 끝(99=무제한) |
-| `Weight` | int | 동일 Role 내 가중 추첨 |
-| `ClusterMin` | int | 픽 시 군집 최소 |
-| `ClusterMax` | int | 픽 시 군집 최대 |
+| `Weight` | int | 동일 Role 버킷 내 가중 추첨 |
+| `ClusterMin` / `ClusterMax` | int | 픽 시 군집 크기 |
+
+**Family → Fluid 매핑** (속성 SSoT, 코드 상수 또는 소형 CSV):
+
+| Family | Fluid | | Family | Fluid |
+|:--|:--|:-:|:--|:--|
+| forge | magma | | spark | charged |
+| iron | cyro | | shadow | oil |
+| rust | acid | | (water) | iron 변형·FluidOverride |
 
 ```
-# M1 슬라이스 — rust 권속 (3종)
-Family,EnemyType,Fluid,MinStratum,MaxStratum,Weight,ClusterMin,ClusterMax
-rust,Slime,acid,1,99,70,3,4
-rust,Skeleton,acid,1,99,50,1,2
-rust,Spitter,acid,1,99,40,1,1
+# M1 슬라이스 — rust 풀 (속성=acid 자동, FluidOverride 공란)
+Family,Behavior,FluidOverride,MinStratum,MaxStratum,Weight,ClusterMin,ClusterMax
+rust,B04_Swarmer,,1,99,70,3,4     # 구 RustMite = B04 × rust(acid)
+rust,B05_Brawler,,1,99,50,1,2     # 구 acid Skeleton 분기
+rust,B07_Gunner,,1,99,40,1,1      # 구 Spitter = B07 × rust(acid)
 ```
 
-선택 — 깊이 게이팅 예: 강한 적은 `MinStratum,3` → Rare+ 전용. 보스(Guardian)는 본 풀 제외, 기존 stratum-end 로직/별도 보스 테이블이 담당.
+> 같은 `B07_Gunner` 행이 `forge` 풀에 있으면 자동 magma(=구 Pyrelance). **하나의 거동이 전 가족 커버**, 깊이 게이팅 = MinStratum. 보스(Guardian)는 본 풀 제외(stratum-end/별도 보스 테이블).
+
+**테이블 1 델타(거동 모델):** `Content_Enemy.csv` 에 `Size`(S\|M\|L) 칼럼 추가, `Locomotion` 명시화. per-enemy `Attribute` 는 **deprecated**(속성=풀 적용). `IsNeutralBase` 는 **subsumed**(전 거동이 풀 속성 수용 → 의미 소멸, 제거 가능).
 
 ### 테이블 3 — `Content_RoleComposition.csv` (M2 연기) · 무기 종류 → 역할 예산 편향(§4.1)
 
@@ -610,10 +619,11 @@ M1 은 단일 권속이라 **상수 비율(swarmer45/bruiser30/ranged20/lieut5)*
 
 ### 마이그레이션 영향 (M1-B 작업)
 
-1. `game/src/data/itemWorldSpawnTable.ts` 파서 재작성(신 칼럼).
-2. `ItemWorldEnemyEncounterRuntime.spawnForRoom` — 단일 종 1픽 → **Family 필터 + Role 예산 채우기** 로 교체.
-3. `Content_Enemy_Meta.csv` 로더 신설(또는 enemy registry 확장).
-4. `StrataConfig.ts` — BaseEnemyCount 파싱, enemyCountBonus 소비.
+1. `game/src/data/itemWorldSpawnTable.ts` 파서 재작성(거동 칼럼 `Family,Behavior,FluidOverride,...`).
+2. `ItemWorldEnemyEncounterRuntime.spawnForRoom` — 단일 종 1픽 → **Family 필터 + Role 예산 채우기 + Family→Fluid 속성 적용** 로 교체.
+3. `Content_Enemy.csv` 확장 — `Size` 칼럼 추가, `Locomotion` 명시화(이미 Role/EliteEligible 적용 완료).
+4. **Family→Fluid 매핑** 상수/CSV + fluid 모듈 6종을 거동에 pluggable 부착(per-enemy Attribute 폐기).
+5. `StrataConfig.ts` — BaseEnemyCount 파싱(완료), enemyCountBonus 소비.
 
 ---
 

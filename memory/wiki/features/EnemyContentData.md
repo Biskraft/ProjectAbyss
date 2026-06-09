@@ -116,3 +116,39 @@ Prevention rules:
 ## 2026-06-07 - Bulwark guard-facing split
 - Bulwark now separates movement from shield/attack facing via `guardFacingRight`. Chasing can move toward the player immediately, but shield art, block direction, attack AABB, and rendered body facing only change after the 1000ms delayed turn completes.
 - This avoids base/enemy movement side effects re-flipping the shield and keeps shield visuals and block logic on the same delayed-facing value.
+
+## 2026-06-09 - B01-B52 non-surface batch
+- Added the non-surface, non-cut B-series task enemies from `Documents/Plan/Task_Enemy_B*.md` to `Sheets/Content_Enemy.csv`, `Sheets/Content_Stats_Enemy.csv`, and `Sheets/Content_ItemWorld_SpawnTable.csv`.
+- `game/src/entities/ArchetypeEnemies.ts` now provides pattern-based variant classes instead of one class per B-series enemy: ground chargers, bruisers, swarmers, shooters, bombardiers, fliers, defenders, ambushers, and summoners.
+- `game/src/entities/EnemyFactory.ts` maps the new B-series `MonsterType` strings onto those pattern variants. Surface enemies B48-B52 remain intentionally excluded from spawn data until the DEC-055 wall/ceiling movement module exists.
+- Do not paste task-file CSV examples directly into `Content_Enemy.csv`; those examples use an older schema with size tokens. Current schema is `Type,DetectRange,AttackRange,MoveSpeed,AttackCooldown,JumpTiles,MovementType,Attribute,Archetype,Role,IsNeutralBase,EliteEligible`.
+
+## 2026-06-09 - Temporary rollback: remove B01-B46 temporary variants
+- B-series temporary variants in game/src/entities/ArchetypeEnemies.ts were removed as part of a full rollback for re-planning; only base archetypes remain in implementation. game/src/entities/EnemyFactory.ts now routes any ^B\\d{2}_ monster type to Skeleton fallback before the legacy switch. Sheets/Content_Enemy.csv, Sheets/Content_Stats_Enemy.csv, and Sheets/Content_ItemWorld_SpawnTable.csv entries for B-prefixed IDs were removed, and game/public/assets/World_ProjectAbyss_ExternalEnums.json was regenerated accordingly.
+
+## 2026-06-10 - B07-B52 task behavior pass
+- Replaced thin wrapper implementations for B07/B20/B24/B25/B27/B35/B37/B39/B45/B46/B50/B52 in `game/src/entities/ArchetypeEnemies.ts` with task-specific FSMs: gunner spacing, flit dive melee, gunship high-hover shooting, air bomber marker drops, carrier flit summons, bunker stationary shield/retaliation, totem summoning, emitter area pulse, hidden sniper reveal-shot-reposition, trap layer floor traps, ceiling dropling vertical ambush, and wall gun fixed shooting.
+- Corrected B-series `Sheets/Content_Enemy.csv` rows to include the blank `Attribute` column so `Archetype`, `Role`, `IsNeutralBase`, and `EliteEligible` do not shift left.
+- B50/B52 remain implemented as `MovementType=flying` fixed/ceiling-compatible approximations because `surface` locomotion is not yet in `enemyStats.ts`/runtime movement; do not switch CSV to `surface` until DEC-055 wall/ceiling movement exists.
+- Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - Surface enemy locomotion first pass
+- Added `MovementType=surface` in `game/src/data/enemyStats.ts` and a third movement branch in `game/src/entities/Enemy.ts` for ceiling/left-wall/right-wall attachment with simple surface snapping and no gravity.
+- `Enemy.chooseNearestSurfaceAttachment()` lets fixed surface enemies bind to the nearest authored solid wall/ceiling after spawn.
+- `B50_CeilingDropling` now uses true ceiling attachment while patrolling, detaches to `flying` only during its vertical drop/return, then reattaches to the ceiling.
+- `B52_WallGun` now uses `surface` movement and auto-picks ceiling/left-wall/right-wall attachment as a fixed LOS shooter.
+- `Sheets/Content_Enemy.csv` now declares B50/B52 as `surface`. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - B53-B56 death-management enemies
+- Added B53/B54/B55/B56 task enemies in `game/src/entities/ArchetypeEnemies.ts`, `EnemyFactory.ts`, `Sheets/Content_Enemy.csv`, and `Sheets/Content_Stats_Enemy.csv`.
+- B53_Kamikaze chases and self-detonates only after close-range telegraph; normal kill uses normal death with no explosion.
+- B54_Volatile delays death by 300ms, flashes, then emits an explosion before final removal.
+- B55_Brood delays death briefly, then emits three CinderImp broodlings through the existing `pendingSummons` path.
+- B56_Rupture combines delayed explosion and three broodling summons, and is `EliteEligible=true`.
+- `ExplosionProjectile` is a short-lived hostile projectile used for these death/self-destruct blasts. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - B57-B58 air death-management variants
+- Added B57_AirKamikaze and B58_AirBrood in `game/src/entities/ArchetypeEnemies.ts`, `EnemyFactory.ts`, `Sheets/Content_Enemy.csv`, and `Sheets/Content_Stats_Enemy.csv`.
+- B57_AirKamikaze is a flying homing self-destruct enemy with a short final telegraph and the same enlarged 72px explosion radius as B53.
+- B58_AirBrood is a flying brood enemy that delays death briefly, then releases three B20_Flit broodlings through `pendingSummons`.
+- CSV uses `MovementType=flying`; the task text says `air`, but current runtime schema accepts `ground|flying|surface`. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.

@@ -10,7 +10,7 @@ import statCsvText from '../../../Sheets/Content_Stats_Enemy.csv?raw';
 import behaviorCsvText from '../../../Sheets/Content_Enemy.csv?raw';
 import { resolveGenericFluidType } from './ItemWorldFluidMapping';
 
-export type MovementType = 'ground' | 'flying';
+export type MovementType = 'ground' | 'flying' | 'surface';
 
 /**
  * Enemy elemental attribute. Empty CSV Attribute means the Item World
@@ -23,7 +23,7 @@ const VALID_ATTRIBUTES: ReadonlySet<EnemyAttribute> = new Set<EnemyAttribute>([
 ]);
 
 const VALID_MOVEMENT_TYPES: ReadonlySet<MovementType> = new Set<MovementType>([
-  'ground', 'flying',
+  'ground', 'flying', 'surface',
 ]);
 
 export interface EnemyStatEntry {
