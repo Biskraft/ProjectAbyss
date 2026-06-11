@@ -152,3 +152,42 @@ Prevention rules:
 - B57_AirKamikaze is a flying homing self-destruct enemy with a short final telegraph and the same enlarged 72px explosion radius as B53.
 - B58_AirBrood is a flying brood enemy that delays death briefly, then releases three B20_Flit broodlings through `pendingSummons`.
 - CSV uses `MovementType=flying`; the task text says `air`, but current runtime schema accepts `ground|flying|surface`. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - Adaptive ground enemy jump height
+- `JumpTiles` now means maximum jump capability, not a fixed impulse height. `game/src/entities/Enemy.ts` computes an adaptive jump height from immediate wall height and target elevation, then clamps it to the CSV maximum.
+- Wall-blocked jumps and ceiling-gap jumps both use the adaptive calculation, reducing over-jumping when enemies only need to clear a low obstacle.
+- Keep moving ground enemies at their desired maximum `JumpTiles`; tune movement feel through the adaptive logic before lowering CSV caps. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - Wall-blocked planned enemy jumps
+- Ground enemies now attempt a local landing-candidate jump when blocked by a wall: scan forward tiles, find a standable floor candidate, compute an arc (`vx`/`vy`) to that landing, and carry the planned `vx` during flight.
+- Landing failures are tracked by comparing jump start, landing position, and target candidate. Failed planned jumps add a 1500ms `jumpFailCooldownMs` backoff to reduce repeated same-spot hopping.
+- The player-above ceiling-gap path still uses adaptive impulse only; full vertical-path planning remains separate. Verification: `npx tsc --noEmit` and `npm run build` from `game/` passed.
+
+## 2026-06-10 - Ground jump landing/arc validation
+- Wall-blocked planned jumps now require pixel-accurate body AABB clearance at the landing point and along the computed jump arc.
+- Removed the blind fallback jump when no valid landing candidate exists. If no candidate/arc is valid, the enemy waits through a short failure backoff instead of jumping into a wall side.
+- Prevention rule: tune `JumpTiles` as maximum capability only; do not reintroduce blind impulse fallback for blocked ground enemies without a real landing target.
+- Player-above ceiling-gap jumps also route through planned landing/arc validation instead of raw vertical impulse. Ground enemies should not repeatedly hop just because the player is above them; they need a real upper-floor landing candidate that moves them closer to the target.
+
+## 2026-06-10 - Lightweight platform navigation first pass
+- Ground enemies now extract local platform segments from the collision grid when the target is above them. The navigator finds a takeoff point on the current platform and a reachable landing point on the target platform, then walks to the takeoff before using the existing planned jump executor.
+- This is a lightweight platform navgraph, not a full navmesh: first pass supports current-platform walking into a validated jump edge toward the target platform, with legacy ceiling-gap search as fallback.
+- Prevention rule: do not fix cross-platform chase by increasing jump impulse or scan radius alone. Add/adjust platform edges so enemies know where to walk before jumping.
+
+
+## 2026-06-10 - Platform navgraph multi-step search
+- Lightweight platform navigation now searches platform segments with BFS and chooses the first step toward the target platform instead of only attempting a direct current-platform to target-platform jump.
+- Supported first-step edge types are validated jump edges and drop edges. Jump edges still reuse the planned jump arc/AABB validator; drop edges walk to the selected drop point and let gravity handle descent.
+- Keep this as a platformer navgraph layer above jump execution: path selection decides where to go, planned jump execution decides whether an individual jump is physically valid.
+
+
+## 2026-06-10 - Platform navgraph Shift+I debug
+- Shift+I enemy debug now renders lightweight platform navigation data from game/src/entities/Enemy.ts: platform segments, current platform, target platform, and the selected first jump/drop edge.
+- Colors: cyan = candidate platforms, yellow = current platform, orange = target platform, green = jump edge/arc, yellow edge = drop edge.
+- Keep navgraph visualization gated behind Debug.infoVisible; do not render or build debug graphics during normal play.
+
+
+## 2026-06-10 - CinderImp and Bulwark platform navigation
+- CinderImp chase no longer applies raw vertical impulse (y=-210) for height differences. It now routes chase through base moveTowardTarget(), so swarmer pursuit uses the shared platform navgraph and planned jump validation.
+- Bulwark now has JumpTiles=8 in Sheets/Content_Enemy.csv and its chase movement routes through moveTowardTarget() instead of direct x assignment. Bulwark still restores acingRight from delayed guardFacingRight after base update so shield facing delay remains intact.
+- Prevention rule: enemy-specific chase code should not add raw navigation jumps; use the shared ground movement/navgraph path unless the jump is an explicit attack move.

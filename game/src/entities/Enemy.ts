@@ -29,14 +29,14 @@ const TILE_SIZE = 16;
 const ENEMY_SLOPE_2X1_SNAP_PX = 4;
 
 /**
- * Chase 시 선회 hysteresis + cooldown + 관성 정지 (사용자 결정 2026-05-04, Q1+Q3).
- * base Enemy.moveTowardTarget 의 same-level 분기가 매 프레임 dir 을 재계산해
- * 플레이어가 바로 옆/겹친 상태에서 sub-pixel 위치 차이로 vx 가 +/- 오가며
- * 좌우로 "파바바밧" 떨리던 현상 차단. 모든 ground 적·보스 공통 적용.
+ * Chase ???�회 hysteresis + cooldown + 관???��? (?�용??결정 2026-05-04, Q1+Q3).
+ * base Enemy.moveTowardTarget ??same-level 분기가 �??�레??dir ???�계?�해
+ * ?�레?�어가 바로 ??겹친 ?�태?�서 sub-pixel ?�치 차이�?vx 가 +/- ?��?�?
+ * 좌우�?"?�바바밧" ?�리???�상 차단. 모든 ground ?�·보??공통 ?�용.
  *
- *   - HYSTERESIS_PX:  플레이어가 이 거리 안에 있으면 chaseDir 유지
- *   - COOLDOWN_MS:    한번 선회한 뒤 다음 선회까지 강제 대기
- *   - PAUSE_MS:       선회 직후 vx=0 으로 짧게 멈춰 모션 큐 강조 (≈2 프레임)
+ *   - HYSTERESIS_PX:  ?�레?�어가 ??거리 ?�에 ?�으�?chaseDir ?��?
+ *   - COOLDOWN_MS:    ?�번 ?�회?????�음 ?�회까�? 강제 ?��?
+ *   - PAUSE_MS:       ?�회 직후 vx=0 ?�로 짧게 멈춰 모션 ??강조 (?? ?�레??
  */
 const CHASE_TURN_HYSTERESIS_PX = 8;
 const CHASE_TURN_COOLDOWN_MS = 300;
@@ -44,6 +44,44 @@ const CHASE_TURN_PAUSE_MS = 33;
 
 export type EnemyState = 'idle' | 'patrol' | 'detect' | 'chase' | 'retreat' | 'attack' | 'cooldown' | 'scatter' | 'hit' | 'death';
 export type SurfaceAttachment = 'ceiling' | 'leftWall' | 'rightWall';
+
+interface JumpCandidate {
+  x: number;
+  y: number;
+  score: number;
+}
+
+interface JumpPlan {
+  vx: number;
+  vy: number;
+  durationMs: number;
+  targetX: number;
+  targetY: number;
+}
+
+interface PlatformSegment {
+  id: number;
+  row: number;
+  leftCol: number;
+  rightCol: number;
+}
+
+interface PlatformJumpEdge {
+  takeoffX: number;
+  landing: JumpCandidate;
+  score: number;
+}
+
+type PlatformEdgeKind = 'jump' | 'drop';
+
+interface PlatformNavStep {
+  kind: PlatformEdgeKind;
+  fromId: number;
+  toId: number;
+  takeoffX: number;
+  landing?: JumpCandidate;
+  score: number;
+}
 
 export abstract class Enemy<S extends string = EnemyState> extends Entity implements CombatEntity {
   fsm: StateMachine<S>;
@@ -63,7 +101,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   facingRight = false;
   alive = true;
 
-  // Tile hazard status (TileHazards.ts HazardTarget 호환).
+  // Tile hazard status (TileHazards.ts HazardTarget ?�환).
   // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
   burnRemainingMs = 0;
   burnTickAccum = 0;
@@ -74,7 +112,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   cyroSlowRemainingMs = 0;
   prevInElectric = false;
   /**
-   * Frozen status — set by Ice Ego Shard impact. While > 0 the enemy is
+   * Frozen status ??set by Ice Ego Shard impact. While > 0 the enemy is
    * fully halted: AI tick skipped, vx zeroed, body tinted blue. Decrements
    * each frame. 0 = normal.
    */
@@ -89,12 +127,12 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    */
   oilSlipRemainingMs = 0;
 
-  // ─────────────────────────────────────────────────────────────
+  // ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
   // Element affinity (per-enemy elemental identity for resistance
   // / immunity / weakness). Subclasses override the default
   // `affinity = 'neutral'` in their constructor (or via CSV stats
   // later). Explicit Sets win over family-affinity default.
-  // ─────────────────────────────────────────────────────────────
+  // ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
   /** Enemy's elemental family. 'neutral' means no innate resist/weak. */
   affinity: ElementAffinity = 'neutral';
   /** Sources that deal 0 damage regardless of family rules. */
@@ -106,11 +144,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   /**
    * Multiplier applied to incoming damage of a given element. Order:
-   *   1. explicit immune set    → 0
-   *   2. explicit resist set    → 0.5
-   *   3. explicit weak set      → 1.5
-   *   4. same family as affinity → 0 (family immunity)
-   *   5. default                → 1.0
+   *   1. explicit immune set    ??0
+   *   2. explicit resist set    ??0.5
+   *   3. explicit weak set      ??1.5
+   *   4. same family as affinity ??0 (family immunity)
+   *   5. default                ??1.0
    */
   elementMultiplier(source: ElementAffinity): number {
     if (this.elementImmune?.has(source)) return 0;
@@ -127,18 +165,18 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private moveRemainderY = 0;
 
   // Environment state (for VFX: WaterSplash / WaterBubbles / IceSkidStreak).
-  // Player 와 동일한 의미를 유지한다:
-  //  - inWater: AABB 중심이 water 타일 위
-  //  - submerged: 머리까지 잠김 (중심에서 2 타일 위도 water)
-  //  - waterTransition: 이번 프레임의 enter(+1) / exit(-1) / none(0)
+  // Player ?� ?�일???��?�??��??�다:
+  //  - inWater: AABB 중심??water ?�????
+  //  - submerged: 머리까�? ?��? (중심?�서 2 ?�???�도 water)
+  //  - waterTransition: ?�번 ?�레?�의 enter(+1) / exit(-1) / none(0)
   inWater = false;
   submerged = false;
   waterTransition: 0 | 1 | -1 = 0;
   private prevInWater = false;
 
-  // Ground/jump transition events — Player 와 동일한 consume 패턴.
-  //  - landedFallSpeed: 이번 프레임에 착지했으면 |이전 vy|, 아니면 null
-  //  - jumpedThisFrame: 이번 프레임에 grounded 에서 이륙했고 vy < 0
+  // Ground/jump transition events ??Player ?� ?�일??consume ?�턴.
+  //  - landedFallSpeed: ?�번 ?�레?�에 착�??�으�?|?�전 vy|, ?�니�?null
+  //  - jumpedThisFrame: ?�번 ?�레?�에 grounded ?�서 ?�륙?�고 vy < 0
   private landedFallSpeed: number | null = null;
   private jumpedThisFrame = false;
   private prevGrounded = false;
@@ -151,18 +189,18 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected attackCooldown: number;
   protected cooldownTimer = 0;
 
-  // Chase 선회 상태 — base moveTowardTarget 의 same-level 분기에서 사용.
-  /** 현재 잠긴 수평 추격 방향. 매 프레임 재계산하지 않고 hysteresis + cooldown 으로 갱신. */
+  // Chase ?�회 ?�태 ??base moveTowardTarget ??same-level 분기?�서 ?�용.
+  /** ?�재 ?�긴 ?�평 추격 방향. �??�레???�계?�하지 ?�고 hysteresis + cooldown ?�로 갱신. */
   protected chaseDir: 1 | -1 = 1;
-  /** 다음 선회 가능까지 남은 시간 (ms). */
+  /** ?�음 ?�회 가?�까지 ?��? ?�간 (ms). */
   protected turnCooldownMs = 0;
-  /** 선회 직후 vx=0 으로 멈추는 잔여 시간 (ms). 모션 큐. */
+  /** ?�회 직후 vx=0 ?�로 멈추???�여 ?�간 (ms). 모션 ?? */
   protected turnPauseMs = 0;
 
-  // Super armor — if true, hits don't interrupt actions (no hitstun/knockback)
+  // Super armor ??if true, hits don't interrupt actions (no hitstun/knockback)
   superArmor = false;
 
-  // Navigation jump — when blocked by wall during chase, jump to clear obstacle
+  // Navigation jump ??when blocked by wall during chase, jump to clear obstacle
   /** Max jump height in tiles (0 = no jumping). Override in subclass. */
   protected jumpTiles = 0;
   private wallBlockedTimer = 0;
@@ -171,6 +209,17 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private jumpCooldownTimer = 0;
   private navJumpCarryDir: 1 | -1 = 1;
   private navJumpCarryTimer = 0;
+  private plannedJumpVx = 0;
+  private plannedJumpTimer = 0;
+  private plannedJumpTargetX = 0;
+  private plannedJumpTargetY = 0;
+  private plannedJumpActive = false;
+  private jumpStartX = 0;
+  private jumpStartY = 0;
+  private jumpFailCooldownMs = 0;
+  private lastJumpDebugReason = '';
+  private lastJumpDebugX = 0;
+  private lastJumpDebugY = 0;
 
   // Target reference
   target: CombatEntity | null = null;
@@ -238,8 +287,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   // Sakurai: Flash overlay for hit feedback
   private flashOverlay: Sprite | Graphics | null = null;
   /**
-   * 자식 클래스가 own PNG/Atlas Sprite 를 등록하면 hit flash 가 그 sprite 의
-   * 알파 채널 모양 그대로 흰색으로 발광 (사용자 결정 2026-05-04). 미등록이면
+   * ?�식 ?�래?��? own PNG/Atlas Sprite �??�록?�면 hit flash 가 �?sprite ??
+   * ?�파 채널 모양 그�?�??�색?�로 발광 (?�용??결정 2026-05-04). 미등록이�?
    * 기존 Graphics rect fallback.
    */
   protected mainSprite: Sprite | null = null;
@@ -346,7 +395,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     if (this.turnCooldownMs > 0) this.turnCooldownMs = Math.max(0, this.turnCooldownMs - dt);
     if (this.turnPauseMs > 0) this.turnPauseMs = Math.max(0, this.turnPauseMs - dt);
 
-    // Frozen status — skip AI tick + zero motion. Gravity still applies
+    // Frozen status ??skip AI tick + zero motion. Gravity still applies
     // via the movement block below (frozen enemies in the air will fall).
     if (this.frozenRemainingMs > 0) {
       this.frozenRemainingMs = Math.max(0, this.frozenRemainingMs - dt);
@@ -378,6 +427,15 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.grounded = false;
     } else {
       // Ground enemies: gravity + full collision (wall, platform, one-way).
+      if (this.jumpFailCooldownMs > 0) this.jumpFailCooldownMs = Math.max(0, this.jumpFailCooldownMs - dt);
+      if (this.plannedJumpTimer > 0) {
+        this.plannedJumpTimer = Math.max(0, this.plannedJumpTimer - dt);
+        if (this.grounded || this.fsm.currentState === 'hit' || this.fsm.currentState === 'death') {
+          this.plannedJumpTimer = 0;
+        } else {
+          this.vx = this.plannedJumpVx;
+        }
+      }
       if (this.navJumpCarryTimer > 0) {
         this.navJumpCarryTimer = Math.max(0, this.navJumpCarryTimer - dt);
         if (this.grounded || this.fsm.currentState === 'hit' || this.fsm.currentState === 'death') {
@@ -417,29 +475,28 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         // Wall-blocked jump: scan wall height, jump just enough to clear it
         if (wallBlocked) {
           this.vx = 0;
-          if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0) {
+          if (this.jumpTiles > 0 && this.grounded && this.jumpCooldownTimer <= 0 && this.jumpFailCooldownMs <= 0) {
             this.wallBlockedTimer += dt;
             if (this.wallBlockedTimer >= Enemy.WALL_BLOCK_THRESHOLD) {
-              const wallHeight = this.scanWallHeight(moveDir);
-              if (wallHeight > 0 && wallHeight <= this.jumpTiles) {
-                const jumpHeight = (wallHeight + 1) * TILE_SIZE;
-                this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
-                this.grounded = false;
-                this.navJumpCarryDir = moveDir;
-                this.navJumpCarryTimer = 450;
-                this.wallBlockedTimer = 0;
-                this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
-              } else {
-                this.wallBlockedTimer = 0;
-                this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
-              }
-            }
+              const jumpPlan = this.findWallBlockedJumpPlan(moveDir);
+          if (jumpPlan) {
+            this.startPlannedJump(jumpPlan);
+            this.wallBlockedTimer = 0;
+            this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+          } else {
+            this.wallBlockedTimer = 0;
+            this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+            this.jumpFailCooldownMs = 900;
           }
+        }
+      }
         } else {
           this.wallBlockedTimer = 0;
         }
         if (rx.collided) this.vx = 0;
-        if (this.navJumpCarryTimer > 0 && this.vy < 80) {
+        if (this.plannedJumpTimer > 0 && this.vy < 120) {
+          this.vx = this.plannedJumpVx;
+        } else if (this.navJumpCarryTimer > 0 && this.vy < 80) {
           this.vx = this.navJumpCarryDir * Math.max(Math.abs(this.vx), this.moveSpeed);
         }
 
@@ -469,10 +526,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     // Jump cooldown
     if (this.jumpCooldownTimer > 0) this.jumpCooldownTimer -= dt;
 
-    // Facing — chase / attack / cooldown / hit / detect 동안 chaseDir 로 잠금.
-    // target.x 직접 추적은 player 가 가까이서 좌우로 움직이거나 위로 점프하면
-    // dx 부호가 매 프레임 뒤집혀 "빙글빙글" facing 깜빡임 유발.
-    // patrol 은 subclass 가 super 호출 후 patrolDir 로 덮어쓴다 (Skeleton).
+    // Facing ??chase / attack / cooldown / hit / detect ?�안 chaseDir �??�금.
+    // target.x 직접 추적?� player 가 가까이??좌우�??�직이거나 ?�로 ?�프?�면
+    // dx 부?��? �??�레???�집?� "빙�?빙�?" facing 깜빡???�발.
+    // patrol ?� subclass 가 super ?�출 ??patrolDir �???��?�다 (Skeleton).
     if (this.target) {
       const s = this.fsm.currentState;
       if (s === 'chase' || s === 'attack' || s === 'cooldown' || s === 'hit' || s === 'detect') {
@@ -482,11 +539,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       }
     }
 
-    // Water/submerged 상태 + enter/exit 전이 기록 — 씬에서 매 프레임 enemy 를
-    // 순회하며 VFX(WaterSplash / WaterBubbles) 를 트리거할 때 사용.
+    // Water/submerged ?�태 + enter/exit ?�이 기록 ???�에??�??�레??enemy �?
+    // ?�회?�며 VFX(WaterSplash / WaterBubbles) �??�리거할 ???�용.
     if (this.roomData.length > 0) {
       this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
-      // 머리 부위(중심에서 -2 타일) 도 water 면 submerged
+      // 머리 부??중심?�서 -2 ?�?? ??water �?submerged
       const headInWater = isInWater(
         this.x, this.y - TILE_SIZE * 2, this.width, this.height, this.roomData,
       );
@@ -500,9 +557,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     else this.waterTransition = 0;
     this.prevInWater = this.inWater;
 
-    // Land/jump 전이 감지 (flying 은 grounded 가 항상 false 이므로 자연스럽게 제외됨)
+    // Land/jump ?�이 감�? (flying ?� grounded 가 ??�� false ?��?�??�연?�럽�??�외??
     if (!this.prevGrounded && this.grounded && this.prevVy > 0) {
       this.landedFallSpeed = this.prevVy;
+      this.resolvePlannedJumpLanding();
     }
     if (this.prevGrounded && !this.grounded && this.vy < -50) {
       this.jumpedThisFrame = true;
@@ -531,7 +589,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     return this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
   }
 
-  /** Expose vx for VFX direction calculations (IceSkidStreak 등). */
+  /** Expose vx for VFX direction calculations (IceSkidStreak ??. */
   getVx(): number {
     return this.vx;
   }
@@ -544,8 +602,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.sprite.x = this.facingRight ? 0 : this.width;
 
       // Sakurai: White flash overlay on hit (emphasize impact moment).
-      // mainSprite 등록 시 같은 texture 의 Sprite overlay + blendMode 'add' 로
-      // 알파 채널 모양 그대로 흰색 발광. 미등록이면 기존 Graphics rect fallback.
+      // mainSprite ?�록 ??같�? texture ??Sprite overlay + blendMode 'add' �?
+      // ?�파 채널 모양 그�?�??�색 발광. 미등록이�?기존 Graphics rect fallback.
       if (this.flashTimer > 0) {
         const intensity = Math.min(0.8, this.flashTimer / 40);
         if (this.mainSprite) {
@@ -562,7 +620,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
             this.container.addChild(flash);
             this.flashOverlay = flash;
           }
-          // 매 프레임 갱신 — atlas frame 변경 + facing flip 추적.
+          // �??�레??갱신 ??atlas frame 변�?+ facing flip 추적.
           this.flashOverlay.texture = this.mainSprite.texture;
           this.flashOverlay.scale.x = this.mainSprite.scale.x;
           this.flashOverlay.scale.y = this.mainSprite.scale.y;
@@ -600,7 +658,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.fsm.transition('hit' as S);
     }
 
-    // Show HP bar on hit (skip for bosses — HUD bar handles it)
+    // Show HP bar on hit (skip for bosses ??HUD bar handles it)
     if (!isBossEnemy(this)) {
       this.hpBarVisible = true;
       this.hpBarTimer = this.HP_BAR_SHOW_DURATION;
@@ -748,6 +806,81 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       .stroke({ color: canSee ? 0x36ff6b : 0xff3b30, alpha: 0.9, width: 1 });
     this.debugRayGfx.circle(startX, startY, 2).fill({ color: 0x36ff6b, alpha: 0.95 });
     this.debugRayGfx.circle(targetX, targetY, 2).fill({ color: 0xffd166, alpha: 0.95 });
+    if (this.lastJumpDebugReason) {
+      this.debugRayGfx
+        .circle(this.lastJumpDebugX - this.x, this.lastJumpDebugY - this.y, 4)
+        .stroke({ color: this.lastJumpDebugReason === 'planned' ? 0x36ff6b : 0xff3b30, alpha: 0.95, width: 1 });
+    }
+    this.renderPlatformNavDebug();
+  }
+
+  private renderPlatformNavDebug(): void {
+    if (!this.target || this.roomData.length === 0 || this.jumpTiles <= 0) return;
+    const segments = this.buildPlatformSegments();
+    if (segments.length <= 1) return;
+    const current = this.findPlatformForPoint(segments, this.x + this.width / 2, this.y + this.height);
+    const target = this.findPlatformForPoint(
+      segments,
+      this.target.x + this.target.width / 2,
+      this.target.y + this.target.height,
+    );
+    if (!current || !target) return;
+    const step = current.id === target.id ? null : this.findPlatformNavStep(segments, current, target);
+
+    for (const segment of segments) {
+      const y = segment.row * TILE_SIZE - this.y;
+      const x0 = segment.leftCol * TILE_SIZE - this.x;
+      const x1 = (segment.rightCol + 1) * TILE_SIZE - this.x;
+      const isCurrent = segment.id === current.id;
+      const isTarget = segment.id === target.id;
+      const color = isCurrent ? 0xffd166 : isTarget ? 0xff8a3d : 0x36c9ff;
+      const alpha = isCurrent || isTarget ? 0.95 : 0.35;
+      const width = isCurrent || isTarget ? 2 : 1;
+      this.debugRayGfx.moveTo(x0, y).lineTo(x1, y).stroke({ color, alpha, width });
+    }
+
+    if (!step) return;
+    const takeoffLocalX = step.takeoffX - this.x;
+    const takeoffLocalY = current.row * TILE_SIZE - this.y;
+    const edgeColor = step.kind === 'jump' ? 0x36ff6b : 0xffd166;
+    this.debugRayGfx.circle(takeoffLocalX, takeoffLocalY, 4).fill({ color: edgeColor, alpha: 0.85 });
+
+    if (step.kind === 'drop') {
+      const to = segments.find(segment => segment.id === step.toId);
+      if (!to) return;
+      const dropY = to.row * TILE_SIZE - this.y;
+      this.debugRayGfx
+        .moveTo(takeoffLocalX, takeoffLocalY)
+        .lineTo(takeoffLocalX, dropY)
+        .stroke({ color: edgeColor, alpha: 0.85, width: 1 });
+      this.debugRayGfx
+        .moveTo(takeoffLocalX - 3, dropY - 5)
+        .lineTo(takeoffLocalX, dropY)
+        .lineTo(takeoffLocalX + 3, dropY - 5)
+        .stroke({ color: edgeColor, alpha: 0.85, width: 1 });
+      return;
+    }
+
+    if (!step.landing) return;
+    const plan = this.createJumpPlanFrom(step.takeoffX - this.width / 2, current.row * TILE_SIZE - this.height, step.landing);
+    if (!plan) return;
+    const startX = step.takeoffX - this.width / 2;
+    const startY = current.row * TILE_SIZE - this.height;
+    const durationSec = plan.durationMs / 1000;
+    const steps = Math.max(8, Math.ceil(plan.durationMs / 50));
+    let prevX = startX + this.width / 2 - this.x;
+    let prevY = startY + this.height / 2 - this.y;
+    for (let i = 1; i <= steps; i++) {
+      const t = durationSec * (i / steps);
+      const x = startX + plan.vx * t + this.width / 2 - this.x;
+      const y = startY + plan.vy * t + 0.5 * GRAVITY * t * t + this.height / 2 - this.y;
+      this.debugRayGfx.moveTo(prevX, prevY).lineTo(x, y).stroke({ color: edgeColor, alpha: 0.85, width: 1 });
+      prevX = x;
+      prevY = y;
+    }
+    this.debugRayGfx
+      .circle(step.landing.x + this.width / 2 - this.x, step.landing.y + this.height - this.y, 4)
+      .stroke({ color: edgeColor, alpha: 0.95, width: 1 });
   }
 
   protected hasLineOfSightToTarget(): boolean {
@@ -785,10 +918,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       return;
     }
 
-    // Ground enemies — 공중(점프/낙하 도중)에선 추격 재계산 스킵.
-    // 턱 넘는 점프 동안 player 와의 X 차이가 부호 진동하면 chaseDir 이 매 프레임
-    // 뒤집혀 좌우로 떨리는 현상 (사용자 결정 2026-05-08). 이륙 시 vx/chaseDir
-    // 을 고정한 채로 포물선 운동만 수행, 착지 후 다시 추격 평가.
+    // Ground enemies ??공중(?�프/?�하 ?�중)?�선 추격 ?�계???�킵.
+    // ???�는 ?�프 ?�안 player ?�??X 차이가 부??진동?�면 chaseDir ??�??�레??
+    // ?�집?� 좌우�??�리???�상 (?�용??결정 2026-05-08). ?�륙 ??vx/chaseDir
+    // ??고정??채로 ?�물???�동�??�행, 착�? ???�시 추격 ?��?.
     if (!this.grounded) return;
 
     // Ground enemies: vertical chase rules (§2.2-A)
@@ -798,14 +931,16 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     const HEIGHT_THRESHOLD = TILE_SIZE * 2;
 
     if (heightDiff > HEIGHT_THRESHOLD) {
-      // Player is below — find floor gap and drop (§2.2-A Case 2)
+      // Player is below ??find floor gap and drop (§2.2-A Case 2)
       this.moveTowardEdgeDrop(speed);
     } else if (heightDiff < -HEIGHT_THRESHOLD && this.jumpTiles > 0) {
-      // Player is above — find ceiling gap and move under it to jump through
-      this.moveTowardCeilingGap(speed);
+      // Player is above: use lightweight platform graph first, then legacy gap search.
+      if (!this.moveTowardPlatformPath(speed)) {
+        this.moveTowardCeilingGap(speed);
+      }
     } else {
-      // Same level — horizontal chase (§2.2-A Case 3) + 선회 hysteresis + cooldown + pause.
-      // 선회 직후 turnPauseMs 동안 vx=0 으로 짧게 멈춤 (모션 큐 강조 + 떨림 차단).
+      // Same level ??horizontal chase (§2.2-A Case 3) + ?�회 hysteresis + cooldown + pause.
+      // ?�회 직후 turnPauseMs ?�안 vx=0 ?�로 짧게 멈춤 (모션 ??강조 + ?�림 차단).
       if (this.turnPauseMs > 0) {
         this.vx = 0;
         return;
@@ -826,9 +961,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   }
 
   /**
-   * Subclass 의 chase state enter() 에서 호출 권장. chaseDir 을 즉시 target
-   * 위치 기준으로 잡고 cooldown/pause 0 — 진입 첫 프레임에 의도치 않은
-   * vx=0 pause 가 발생하지 않도록.
+   * Subclass ??chase state enter() ?�서 ?�출 권장. chaseDir ??즉시 target
+   * ?�치 기�??�로 ?�고 cooldown/pause 0 ??진입 �??�레?�에 ?�도�??��?
+   * vx=0 pause 가 발생?��? ?�도�?
    */
   protected initChaseDir(): void {
     if (!this.target) return;
@@ -867,7 +1002,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
 
   /**
    * Ground enemy: player is below. Find the nearest air tile (gap/hole) in the
-   * floor row beneath the enemy's feet and walk INTO it — gravity does the rest.
+   * floor row beneath the enemy's feet and walk INTO it ??gravity does the rest.
    * Scans outward from current position so the enemy always picks the closest gap.
    */
   private moveTowardEdgeDrop(speed: number): void {
@@ -889,7 +1024,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         return;
       }
     }
-    // No gap found — floor is completely sealed. Cannot reach player.
+    // No gap found ??floor is completely sealed. Cannot reach player.
     this.vx = 0;
   }
 
@@ -912,13 +1047,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         const gapX = r * TILE_SIZE + TILE_SIZE / 2;
         const myX = this.x + this.width / 2;
         if (Math.abs(gapX - myX) < TILE_SIZE) {
-          // Already under the gap — jump! + player 쪽 vx 적용 (제자리 점프 방지).
-          if (this.grounded && this.jumpCooldownTimer <= 0) {
-            const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
-            this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
-            this.vx = (this.target.x > this.x ? 1 : -1) * speed;
-            this.jumpCooldownTimer = 500;
-          }
+          // Already under the gap: jump only when a real upper landing arc exists.
+          this.tryStartCeilingGapJump(gapX, speed);
         } else {
           this.vx = gapX > myX ? speed : -speed;
         }
@@ -928,19 +1058,14 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         const gapX = l * TILE_SIZE + TILE_SIZE / 2;
         const myX = this.x + this.width / 2;
         if (Math.abs(gapX - myX) < TILE_SIZE) {
-          if (this.grounded && this.jumpCooldownTimer <= 0) {
-            const jumpHeight = (this.jumpTiles + 1) * TILE_SIZE;
-            this.vy = -Math.sqrt(2 * GRAVITY * jumpHeight);
-            this.vx = (this.target.x > this.x ? 1 : -1) * speed;
-            this.jumpCooldownTimer = 500;
-          }
+          this.tryStartCeilingGapJump(gapX, speed);
         } else {
           this.vx = gapX > myX ? speed : -speed;
         }
         return;
       }
     }
-    // No ceiling gap — move toward player X as fallback
+    // No ceiling gap ??move toward player X as fallback
     const dir = this.target.x > this.x ? 1 : -1;
     this.vx = dir * speed;
   }
@@ -958,6 +1083,506 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     const ratio = Math.max(0, this.hp / this.maxHp);
     const color = ratio > 0.5 ? 0x22cc22 : ratio > 0.25 ? 0xcccc22 : 0xcc2222;
     this.hpBarContainer.rect(barX, barY, barW * ratio, barH).fill(color);
+  }
+
+  /**
+   * JumpTiles is a maximum capability. Pick the smallest jump impulse that can
+   * clear the immediate obstacle and roughly match a higher target elevation.
+   */
+  private computeAdaptiveJumpTiles(dir: 1 | -1, wallHeightTiles: number): number {
+    if (this.jumpTiles <= 0 || !this.grounded) return 0;
+    const wallRequirement = wallHeightTiles > 0 ? wallHeightTiles + 1 : 0;
+    const targetRequirement = this.computeTargetElevationJumpTiles();
+    const requiredTiles = Math.max(1, wallRequirement, targetRequirement);
+    if (requiredTiles > this.jumpTiles) return 0;
+    if (wallHeightTiles > 0 && !this.hasForwardLandingCandidate(dir, requiredTiles)) {
+      return Math.min(requiredTiles, Math.max(1, wallHeightTiles + 1));
+    }
+    return Math.min(this.jumpTiles, requiredTiles);
+  }
+
+  private computeTargetElevationJumpTiles(): number {
+    if (!this.target) return 0;
+    const targetFeet = this.target.y + this.target.height;
+    const myFeet = this.y + this.height;
+    const upwardPx = myFeet - targetFeet;
+    if (upwardPx <= TILE_SIZE) return 0;
+    return Math.ceil(upwardPx / TILE_SIZE) + 1;
+  }
+
+  private findWallBlockedJumpPlan(dir: 1 | -1): JumpPlan | null {
+    const wallHeight = this.scanWallHeight(dir);
+    const jumpTiles = this.computeAdaptiveJumpTiles(dir, wallHeight);
+    if (jumpTiles <= 0) {
+      this.markJumpDebug('no-height', this.x + this.width / 2, this.y + this.height);
+      return null;
+    }
+    const candidate = this.findJumpLandingCandidate(dir, jumpTiles);
+    if (!candidate) {
+      this.markJumpDebug('no-candidate', this.x + this.width / 2 + dir * TILE_SIZE, this.y + this.height);
+      return null;
+    }
+    const plan = this.createJumpPlan(candidate);
+    if (!plan) this.markJumpDebug('blocked-arc', candidate.x + this.width / 2, candidate.y + this.height);
+    return plan;
+  }
+
+  private findJumpLandingCandidate(dir: 1 | -1, jumpTiles: number): JumpCandidate | null {
+    if (this.roomData.length === 0) return null;
+    const startCol = Math.floor((this.x + this.width / 2) / TILE_SIZE);
+    const feetRow = Math.floor((this.y + this.height - 1) / TILE_SIZE);
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    const maxForward = Math.min(7, Math.max(3, jumpTiles));
+    const minRow = Math.max(1, feetRow - jumpTiles - 1);
+    const maxRow = Math.min(gridH - 1, feetRow + 2);
+    let best: JumpCandidate | null = null;
+    for (let ahead = 1; ahead <= maxForward; ahead++) {
+      const col = startCol + dir * ahead;
+      if (col < 0 || col >= gridW) continue;
+      for (let floorRow = minRow; floorRow <= maxRow; floorRow++) {
+        const x = col * TILE_SIZE + TILE_SIZE / 2 - this.width / 2;
+        const y = floorRow * TILE_SIZE - this.height;
+        if (!this.canStandAtPixel(x, y)) continue;
+        if (!this.isJumpCandidateProgress(x, y)) continue;
+        const targetScore = this.scoreJumpCandidate(x, y, ahead, floorRow);
+        const candidate = { x, y, score: targetScore };
+        if (!best || candidate.score < best.score) best = candidate;
+      }
+    }
+    return best;
+  }
+
+  private canOccupyAtPixel(x: number, y: number): boolean {
+    if (this.roomData.length === 0) return false;
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    const leftCol = Math.floor(x / TILE_SIZE);
+    const rightCol = Math.floor((x + this.width - 1) / TILE_SIZE);
+    const topRow = Math.floor(y / TILE_SIZE);
+    const bottomRow = Math.floor((y + this.height - 1) / TILE_SIZE);
+    if (leftCol < 0 || rightCol >= gridW || topRow < 0 || bottomRow >= gridH) return false;
+    for (let r = topRow; r <= bottomRow; r++) {
+      for (let c = leftCol; c <= rightCol; c++) {
+        if (isSolid(getTile(this.roomData, c, r))) return false;
+      }
+    }
+    return true;
+  }
+
+  private hasFloorBelowAtPixel(x: number, y: number): boolean {
+    if (this.roomData.length === 0) return false;
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    const floorRow = Math.floor((y + this.height) / TILE_SIZE);
+    if (floorRow < 0 || floorRow >= gridH) return false;
+    const inset = Math.min(3, Math.max(1, Math.floor(this.width * 0.15)));
+    const leftCol = Math.floor((x + inset) / TILE_SIZE);
+    const rightCol = Math.floor((x + this.width - 1 - inset) / TILE_SIZE);
+    if (leftCol < 0 || rightCol >= gridW) return false;
+    for (let c = leftCol; c <= rightCol; c++) {
+      if (isSolid(getTile(this.roomData, c, floorRow))) return true;
+    }
+    return false;
+  }
+
+  private canStandAtPixel(x: number, y: number): boolean {
+    return this.canOccupyAtPixel(x, y) && this.hasFloorBelowAtPixel(x, y);
+  }
+
+  private isJumpCandidateProgress(x: number, y: number): boolean {
+    if (!this.target) return true;
+    const targetCx = this.target.x + this.target.width / 2;
+    const targetCy = this.target.y + this.target.height / 2;
+    const before = Math.hypot(targetCx - (this.x + this.width / 2), targetCy - (this.y + this.height / 2));
+    const after = Math.hypot(targetCx - (x + this.width / 2), targetCy - (y + this.height / 2));
+    return after < before - 4;
+  }
+
+  private tryStartCeilingGapJump(gapX: number, speed: number): void {
+    if (!this.target || !this.grounded || this.jumpCooldownTimer > 0 || this.jumpFailCooldownMs > 0) return;
+    const dir = this.target.x + this.target.width / 2 > this.x + this.width / 2 ? 1 : -1;
+    const jumpTiles = this.computeAdaptiveJumpTiles(dir, 1);
+    if (jumpTiles <= 0) {
+      this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+      this.jumpFailCooldownMs = 900;
+      this.markJumpDebug('no-height', gapX, this.y);
+      return;
+    }
+    const plan = this.findCeilingGapJumpPlan(gapX, jumpTiles);
+    if (!plan) {
+      this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+      this.jumpFailCooldownMs = 1200;
+      this.markJumpDebug('no-gap-arc', gapX, this.y);
+      return;
+    }
+    this.startPlannedJump(plan);
+    this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+    this.vx = Math.abs(plan.vx) > 1 ? plan.vx : (dir * speed);
+  }
+
+  private findCeilingGapJumpPlan(gapX: number, jumpTiles: number): JumpPlan | null {
+    if (this.roomData.length === 0) return null;
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    const gapCol = Math.floor(gapX / TILE_SIZE);
+    const feetRow = Math.floor((this.y + this.height - 1) / TILE_SIZE);
+    const minRow = Math.max(1, feetRow - jumpTiles - 1);
+    const maxRow = Math.max(minRow, feetRow - 1);
+    let best: JumpCandidate | null = null;
+    for (let offset = 0; offset <= 3; offset++) {
+      for (const sign of offset === 0 ? [0] : [-1, 1]) {
+        const col = gapCol + sign * offset;
+        if (col < 0 || col >= gridW) continue;
+        for (let floorRow = minRow; floorRow <= Math.min(gridH - 1, maxRow); floorRow++) {
+          const x = col * TILE_SIZE + TILE_SIZE / 2 - this.width / 2;
+          const y = floorRow * TILE_SIZE - this.height;
+          if (y >= this.y - TILE_SIZE / 2) continue;
+          if (!this.canStandAtPixel(x, y)) continue;
+          if (!this.isJumpCandidateProgress(x, y)) continue;
+          const candidate = { x, y, score: Math.abs(col - gapCol) * 10 + floorRow };
+          if (!best || candidate.score < best.score) best = candidate;
+        }
+      }
+    }
+    if (!best) return null;
+    const plan = this.createJumpPlan(best);
+    if (!plan) this.markJumpDebug('blocked-arc', best.x + this.width / 2, best.y + this.height);
+    return plan;
+  }
+
+  private scoreJumpCandidate(x: number, y: number, ahead: number, floorRow: number): number {
+    let score = ahead * 10;
+    const currentFeetRow = Math.floor((this.y + this.height - 1) / TILE_SIZE);
+    score += Math.max(0, currentFeetRow - floorRow) * 4;
+    if (this.target) {
+      const before = Math.hypot(
+        (this.target.x + this.target.width / 2) - (this.x + this.width / 2),
+        (this.target.y + this.target.height / 2) - (this.y + this.height / 2),
+      );
+      const after = Math.hypot(
+        (this.target.x + this.target.width / 2) - (x + this.width / 2),
+        (this.target.y + this.target.height / 2) - (y + this.height / 2),
+      );
+      score += (after - before) * 0.1;
+    }
+    return score;
+  }
+
+  private moveTowardPlatformPath(speed: number): boolean {
+    if (!this.target || this.roomData.length === 0 || this.jumpTiles <= 0) return false;
+    const segments = this.buildPlatformSegments();
+    if (segments.length <= 1) return false;
+    const current = this.findPlatformForPoint(segments, this.x + this.width / 2, this.y + this.height);
+    const target = this.findPlatformForPoint(
+      segments,
+      this.target.x + this.target.width / 2,
+      this.target.y + this.target.height,
+    );
+    if (!current || !target || current.id === target.id) return false;
+
+    const step = this.findPlatformNavStep(segments, current, target);
+    if (!step) {
+      this.markJumpDebug('no-nav-step', this.target.x + this.target.width / 2, this.target.y + this.target.height);
+      return false;
+    }
+
+    const centerX = this.x + this.width / 2;
+    if (Math.abs(centerX - step.takeoffX) > TILE_SIZE * 0.5) {
+      this.vx = step.takeoffX > centerX ? speed : -speed;
+      this.markJumpDebug(step.kind === 'jump' ? 'nav-jump-walk' : 'nav-drop-walk', step.takeoffX, current.row * TILE_SIZE);
+      return true;
+    }
+
+    if (step.kind === 'drop') {
+      this.vx = step.takeoffX > centerX ? speed : -speed;
+      this.markJumpDebug('nav-drop', step.takeoffX, current.row * TILE_SIZE);
+      return true;
+    }
+
+    if (!step.landing) return false;
+    if (!this.grounded || this.jumpCooldownTimer > 0 || this.jumpFailCooldownMs > 0) {
+      this.vx = 0;
+      return true;
+    }
+
+    const plan = this.createJumpPlan(step.landing);
+    if (!plan) {
+      this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
+      this.jumpFailCooldownMs = 1200;
+      this.markJumpDebug('nav-arc-fail', step.landing.x + this.width / 2, step.landing.y + this.height);
+      return true;
+    }
+
+    this.startPlannedJump(plan);
+    this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
+    return true;
+  }
+
+  private buildPlatformSegments(): PlatformSegment[] {
+    const segments: PlatformSegment[] = [];
+    if (this.roomData.length === 0) return segments;
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    let id = 0;
+    for (let row = 1; row < gridH; row++) {
+      let startCol = -1;
+      for (let col = 0; col <= gridW; col++) {
+        const x = col * TILE_SIZE + TILE_SIZE / 2 - this.width / 2;
+        const y = row * TILE_SIZE - this.height;
+        const standable = col < gridW && this.canStandAtPixel(x, y);
+        if (standable && startCol < 0) startCol = col;
+        if ((!standable || col === gridW) && startCol >= 0) {
+          segments.push({ id: id++, row, leftCol: startCol, rightCol: col - 1 });
+          startCol = -1;
+        }
+      }
+    }
+    return segments;
+  }
+
+  private findPlatformForPoint(segments: PlatformSegment[], x: number, feetY: number): PlatformSegment | null {
+    const col = Math.floor(x / TILE_SIZE);
+    const row = Math.floor(feetY / TILE_SIZE);
+    let best: PlatformSegment | null = null;
+    let bestScore = Infinity;
+    for (const segment of segments) {
+      const insideX = col >= segment.leftCol && col <= segment.rightCol;
+      const dx = insideX ? 0 : Math.min(Math.abs(col - segment.leftCol), Math.abs(col - segment.rightCol));
+      const dy = Math.abs(row - segment.row);
+      const score = dx * 3 + dy * 12;
+      if (score < bestScore) {
+        bestScore = score;
+        best = segment;
+      }
+    }
+    return best;
+  }
+
+  private findPlatformNavStep(segments: PlatformSegment[], current: PlatformSegment, target: PlatformSegment): PlatformNavStep | null {
+    const queue: PlatformSegment[] = [current];
+    const visited = new Set<number>([current.id]);
+    const firstStep = new Map<number, PlatformNavStep>();
+    const maxVisited = Math.min(segments.length, 80);
+
+    while (queue.length > 0 && visited.size <= maxVisited) {
+      const from = queue.shift()!;
+      const edges = this.findPlatformEdgesFrom(from, segments, target);
+      edges.sort((a, b) => a.score - b.score);
+      for (const edge of edges) {
+        if (visited.has(edge.toId)) continue;
+        const root = from.id === current.id ? edge : firstStep.get(from.id);
+        if (!root) continue;
+        firstStep.set(edge.toId, root);
+        if (edge.toId === target.id) return root;
+        visited.add(edge.toId);
+        const next = segments.find(segment => segment.id === edge.toId);
+        if (next) queue.push(next);
+      }
+    }
+
+    return null;
+  }
+
+  private findPlatformEdgesFrom(from: PlatformSegment, segments: PlatformSegment[], target: PlatformSegment): PlatformNavStep[] {
+    const edges: PlatformNavStep[] = [];
+    for (const to of segments) {
+      if (to.id === from.id) continue;
+      if (!this.shouldConsiderPlatformEdge(from, to, target)) continue;
+
+      const jump = this.findPlatformJumpEdge(from, to);
+      if (jump) {
+        edges.push({
+          kind: 'jump',
+          fromId: from.id,
+          toId: to.id,
+          takeoffX: jump.takeoffX,
+          landing: jump.landing,
+          score: jump.score + this.scorePlatformTowardTarget(to, target),
+        });
+        continue;
+      }
+
+      const drop = this.findPlatformDropEdge(from, to);
+      if (drop) {
+        edges.push({
+          ...drop,
+          score: drop.score + this.scorePlatformTowardTarget(to, target),
+        });
+      }
+    }
+    return edges;
+  }
+
+  private shouldConsiderPlatformEdge(from: PlatformSegment, to: PlatformSegment, target: PlatformSegment): boolean {
+    const rowDelta = to.row - from.row;
+    const upTiles = from.row - to.row;
+    if (upTiles > this.jumpTiles + 1) return false;
+    if (rowDelta > Math.max(8, this.jumpTiles + 2)) return false;
+    const horizontalGap = Math.max(0, Math.max(to.leftCol - from.rightCol, from.leftCol - to.rightCol));
+    if (horizontalGap > Math.max(10, this.jumpTiles + 4)) return false;
+    const currentTargetDist = Math.abs(from.row - target.row) * 4 + Math.abs((from.leftCol + from.rightCol) - (target.leftCol + target.rightCol));
+    const nextTargetDist = Math.abs(to.row - target.row) * 4 + Math.abs((to.leftCol + to.rightCol) - (target.leftCol + target.rightCol));
+    return nextTargetDist <= currentTargetDist + 8;
+  }
+
+  private scorePlatformTowardTarget(segment: PlatformSegment, target: PlatformSegment): number {
+    const center = (segment.leftCol + segment.rightCol) * 0.5;
+    const targetCenter = (target.leftCol + target.rightCol) * 0.5;
+    return Math.abs(segment.row - target.row) * 24 + Math.abs(center - targetCenter) * 2;
+  }
+
+  private findPlatformDropEdge(from: PlatformSegment, to: PlatformSegment): PlatformNavStep | null {
+    if (to.row <= from.row) return null;
+    const overlapLeft = Math.max(from.leftCol, to.leftCol);
+    const overlapRight = Math.min(from.rightCol, to.rightCol);
+    let takeoffCol: number;
+    if (overlapLeft <= overlapRight) {
+      takeoffCol = Math.floor((overlapLeft + overlapRight) / 2);
+    } else if (to.rightCol < from.leftCol) {
+      takeoffCol = from.leftCol;
+    } else if (to.leftCol > from.rightCol) {
+      takeoffCol = from.rightCol;
+    } else {
+      return null;
+    }
+    const takeoffX = takeoffCol * TILE_SIZE + TILE_SIZE / 2;
+    const verticalScore = (to.row - from.row) * 8;
+    const horizontalScore = Math.max(0, Math.max(to.leftCol - from.rightCol, from.leftCol - to.rightCol)) * 4;
+    return {
+      kind: 'drop',
+      fromId: from.id,
+      toId: to.id,
+      takeoffX,
+      score: verticalScore + horizontalScore,
+    };
+  }
+
+  private findPlatformJumpEdge(current: PlatformSegment, target: PlatformSegment): PlatformJumpEdge | null {
+    const currentY = current.row * TILE_SIZE - this.height;
+    const targetCenterX = (target.leftCol + target.rightCol + 1) * TILE_SIZE / 2;
+    let best: PlatformJumpEdge | null = null;
+    for (let landingCol = target.leftCol; landingCol <= target.rightCol; landingCol++) {
+      const landingX = landingCol * TILE_SIZE + TILE_SIZE / 2 - this.width / 2;
+      const landingY = target.row * TILE_SIZE - this.height;
+      if (!this.canStandAtPixel(landingX, landingY)) continue;
+      const landing: JumpCandidate = {
+        x: landingX,
+        y: landingY,
+        score: Math.abs((landingX + this.width / 2) - targetCenterX),
+      };
+      for (let takeoffCol = current.leftCol; takeoffCol <= current.rightCol; takeoffCol++) {
+        const takeoffX = takeoffCol * TILE_SIZE + TILE_SIZE / 2;
+        const startX = takeoffX - this.width / 2;
+        if (!this.canStandAtPixel(startX, currentY)) continue;
+        if (!this.createJumpPlanFrom(startX, currentY, landing)) continue;
+        const currentCenterX = this.x + this.width / 2;
+        const score = Math.abs(takeoffX - currentCenterX) + landing.score * 0.5 + Math.max(0, target.row - current.row) * 64;
+        const edge = { takeoffX, landing, score };
+        if (!best || edge.score < best.score) best = edge;
+      }
+    }
+    return best;
+  }
+
+  private createJumpPlan(candidate: JumpCandidate): JumpPlan | null {
+    return this.createJumpPlanFrom(this.x, this.y, candidate);
+  }
+
+  private createJumpPlanFrom(startX: number, startY: number, candidate: JumpCandidate): JumpPlan | null {
+    const dx = candidate.x - startX;
+    const dy = candidate.y - startY;
+    const horizontalDistance = Math.max(1, Math.abs(dx));
+    const baseSpeed = Math.max(this.moveSpeed, 36);
+    const time = Math.max(0.35, Math.min(0.9, horizontalDistance / (baseSpeed * 1.35)));
+    const vx = dx / time;
+    const vy = (dy - 0.5 * GRAVITY * time * time) / time;
+    const maxVx = Math.max(this.moveSpeed * 2.6, 120);
+    const maxJumpHeight = this.jumpTiles * TILE_SIZE;
+    if (Math.abs(vx) > maxVx) return null;
+    if (vy >= -80) return null;
+    if ((vy * vy) / (2 * GRAVITY) > maxJumpHeight + TILE_SIZE) return null;
+    const plan = {
+      vx,
+      vy,
+      durationMs: time * 1000,
+      targetX: candidate.x,
+      targetY: candidate.y,
+    };
+    if (!this.hasClearJumpArcFrom(startX, startY, plan)) return null;
+    return plan;
+  }
+
+  private hasClearJumpArc(plan: JumpPlan): boolean {
+    return this.hasClearJumpArcFrom(this.x, this.y, plan);
+  }
+
+  private hasClearJumpArcFrom(startX: number, startY: number, plan: JumpPlan): boolean {
+    const durationSec = plan.durationMs / 1000;
+    const steps = Math.max(8, Math.ceil(plan.durationMs / 50));
+    for (let i = 1; i <= steps; i++) {
+      const t = durationSec * (i / steps);
+      const x = startX + plan.vx * t;
+      const y = startY + plan.vy * t + 0.5 * GRAVITY * t * t;
+      if (!this.canOccupyAtPixel(x, y)) return false;
+    }
+    return this.canStandAtPixel(plan.targetX, plan.targetY);
+  }
+
+  private markJumpDebug(reason: string, x: number, y: number): void {
+    this.lastJumpDebugReason = reason;
+    this.lastJumpDebugX = x;
+    this.lastJumpDebugY = y;
+  }
+
+
+  private startPlannedJump(plan: JumpPlan): void {
+    this.plannedJumpVx = plan.vx;
+    this.plannedJumpTimer = plan.durationMs;
+    this.plannedJumpTargetX = plan.targetX;
+    this.plannedJumpTargetY = plan.targetY;
+    this.plannedJumpActive = true;
+    this.jumpStartX = this.x;
+    this.jumpStartY = this.y;
+    this.vx = plan.vx;
+    this.vy = plan.vy;
+    this.grounded = false;
+    this.navJumpCarryTimer = 0;
+    this.markJumpDebug('planned', plan.targetX + this.width / 2, plan.targetY + this.height);
+  }
+
+  private resolvePlannedJumpLanding(): void {
+    if (!this.plannedJumpActive) return;
+    const moved = Math.hypot(this.x - this.jumpStartX, this.y - this.jumpStartY);
+    const targetDist = Math.hypot(this.x - this.plannedJumpTargetX, this.y - this.plannedJumpTargetY);
+    if (moved < 12 || targetDist > TILE_SIZE * 2.5) {
+      this.jumpFailCooldownMs = 1500;
+    }
+    this.plannedJumpTimer = 0;
+    this.plannedJumpTargetX = 0;
+    this.plannedJumpTargetY = 0;
+    this.plannedJumpActive = false;
+  }
+
+  private hasForwardLandingCandidate(dir: 1 | -1, jumpTiles: number): boolean {
+    if (this.roomData.length === 0) return true;
+    const startCol = Math.floor((this.x + this.width / 2) / TILE_SIZE);
+    const feetRow = Math.floor((this.y + this.height - 1) / TILE_SIZE);
+    const gridH = this.roomData.length;
+    const gridW = this.roomData[0]?.length ?? 0;
+    const maxForward = Math.min(5, Math.max(2, jumpTiles));
+    for (let ahead = 1; ahead <= maxForward; ahead++) {
+      const col = startCol + dir * ahead;
+      if (col < 0 || col >= gridW) continue;
+      const minRow = Math.max(0, feetRow - jumpTiles - 1);
+      const maxRow = Math.min(gridH - 1, feetRow + 2);
+      for (let row = minRow; row <= maxRow; row++) {
+        const x = col * TILE_SIZE + TILE_SIZE / 2 - this.width / 2;
+        const y = row * TILE_SIZE - this.height;
+        if (this.canStandAtPixel(x, y)) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -983,7 +1608,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       if (isSolid(this.roomData[row]?.[checkCol] ?? 1)) {
         height++;
       } else {
-        break; // found air — wall ends here
+        break; // found air ??wall ends here
       }
     }
     return height;

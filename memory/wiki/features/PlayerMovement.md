@@ -13,6 +13,7 @@
 ## Ground Locomotion Animation
 
 - `game/src/entities/Player.ts` treats grounded locomotion as active when movement input is held or `|vx| > 10`. Do not switch idle/run purely from `vx`: wall collision can zero horizontal velocity while the player is still pressing into the wall, causing walk animation stutter.
+- Player idle animation timing is sourced from `game/public/assets/characters/erda_atlas.json` frame `duration` values. Keep Aseprite JSON as the timing source for idle instead of hardcoding a separate idle frame time.
 - Non-grid supports such as `ThrowableContainer` tops must refresh external grounding before `Player.update()` when the player is already standing on the top face. Post-update overlap resolution alone misses the exact-touch frame, causing repeated air/land pose churn. Use `forceGrounded(true)` for container-top support when the visual should snap directly to idle/run instead of playing the landing recovery pose.
 - Shared placement helpers bind player terrain through `Player.bindCollisionGrid(...)`; do not add new helper-side `player.roomData = ...` writes.
 

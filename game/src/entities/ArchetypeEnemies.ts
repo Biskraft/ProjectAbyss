@@ -172,8 +172,7 @@ export class Bulwark extends SimpleMeleeEnemy {
           this.fsm.transition('detect');
           return;
         }
-        const moveDir = this.target.x + this.target.width / 2 >= this.x + this.width / 2 ? 1 : -1;
-        this.vx = moveDir * this.moveSpeed;
+        this.moveTowardTarget(this.moveSpeed);
       },
     });
     this.fsm.addState({
@@ -377,13 +376,7 @@ export class CinderImp extends SimpleMeleeEnemy {
           this.fsm.transition('attack');
           return;
         }
-        const dir = this.target.x < this.x ? -1 : 1;
-        const weave = Math.sin(this.skitterPhase) * this.moveSpeed * 0.55;
-        this.vx = dir * this.moveSpeed * 1.15 + weave;
-        this.facingRight = this.vx >= 0;
-        if (this.grounded && Math.abs(this.target.y - this.y) > TILE * 0.5) {
-          this.vy = -210;
-        }
+        this.moveTowardTarget(this.moveSpeed * 1.15);
       },
     });
     this.fsm.addState({

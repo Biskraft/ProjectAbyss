@@ -153,6 +153,7 @@ export class Player extends Entity implements CombatEntity {
   private attackWeaponPoses: AttackWeaponPose[] = ATTACK_WEAPON_POSES.map(p => ({ ...p }));
   /** ?„í??¼ìŠ¤?ì„œ ?˜ë¼??8ê°??„ë ˆ???ìŠ¤ì²?(idle 0??, jump 4??). */
   private erdaFrames: Texture[] = [];
+  private erdaFrameDurationsMs: number[] = [];
   private wakeUpOverrideTimer = 0;
   private wakeUpOverrideDuration = 0;
   private wakeUpHoldPose = false;
@@ -2078,6 +2079,7 @@ export class Player extends Entity implements CombatEntity {
     fetch(path)
       .then(res => res.ok ? res.json() : null)
       .then((json: {
+        frames?: Array<{ duration?: number }> | Record<string, { duration?: number }>;
         meta?: {
           slices?: Array<{
             name?: string;
@@ -2088,6 +2090,7 @@ export class Player extends Entity implements CombatEntity {
           }>;
         };
       } | null) => {
+        this.erdaFrameDurationsMs = this.readAsepriteFrameDurations(json?.frames);
         if (!json?.meta?.slices) return;
 
         const poses = this.attackWeaponPoses.map(p => ({ ...p }));
@@ -2115,6 +2118,20 @@ export class Player extends Entity implements CombatEntity {
       .catch(() => {
         // Fall back to ATTACK_WEAPON_POSES when slice metadata is unavailable.
       });
+  }
+
+  private readAsepriteFrameDurations(frames: Array<{ duration?: number }> | Record<string, { duration?: number }> | undefined): number[] {
+    if (!frames) return [];
+    const entries = Array.isArray(frames) ? frames : Object.values(frames);
+    return entries.map(frame => {
+      const duration = Number(frame?.duration);
+      return Number.isFinite(duration) && duration > 0 ? duration : 0;
+    });
+  }
+
+  private getErdaFrameDurationMs(frameIdx: number, fallbackMs: number): number {
+    const duration = this.erdaFrameDurationsMs[frameIdx];
+    return Number.isFinite(duration) && duration > 0 ? duration : fallbackMs;
   }
 
   private applyWakeUpFrame(frame: number): void {
@@ -2554,8 +2571,8 @@ export class Player extends Entity implements CombatEntity {
       default: {
         // ì§€?ì¼ ?Œë§Œ ?„ë ˆ??ì§„í–‰ ??ë²¼ëž‘ ?™í•˜ ì¤‘ì—??ë§ˆì?ë§?idle ?„ë ˆ?„ì„ ê³µì¤‘?ì„œ ? ì?.
         if (this.grounded) {
-          while (this.erdaAnimTimer >= Player.ANIM_IDLE_FRAME_MS) {
-            this.erdaAnimTimer -= Player.ANIM_IDLE_FRAME_MS;
+          while (this.erdaAnimTimer >= this.getErdaFrameDurationMs(this.erdaAnimFrame, Player.ANIM_IDLE_FRAME_MS)) {
+            this.erdaAnimTimer -= this.getErdaFrameDurationMs(this.erdaAnimFrame, Player.ANIM_IDLE_FRAME_MS);
             this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
           }
         }
