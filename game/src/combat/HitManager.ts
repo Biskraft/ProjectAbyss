@@ -27,6 +27,8 @@ export interface CombatEntity {
    */
   attackHitboxMul?: number;
   onHit(knockbackX: number, knockbackY: number, hitstun: number): void;
+  getHurtAABB?(): AABB;
+  onAttackHitRecoil?(dirX: number, targetKnockbackX: number, heavy: boolean): void;
   modifyIncomingHitDamage?(damage: number, dirX: number, attacker: CombatEntity): number;
   onDeath?(): void;
 }
@@ -104,7 +106,7 @@ export class HitManager {
       if (target.invincible) continue;
       if (target.hp <= 0) continue;
 
-      const targetBox: AABB = {
+      const targetBox: AABB = target.getHurtAABB?.() ?? {
         x: target.x,
         y: target.y,
         width: target.width,
@@ -169,8 +171,9 @@ export class HitManager {
 
         // Technique 7: attacker micro-advance
         if (attackerEntity.startHitAdvance) {
-          attackerEntity.startHitAdvance(dirX, heavy ? 3 : 1.5);
+          attackerEntity.startHitAdvance(-dirX, heavy ? 2 : 1);
         }
+        attacker.onAttackHitRecoil?.(dirX, step.knockbackX, heavy);
 
         // Technique 8: directional camera shake, proportional to combo
         const shakeIntensity = step.shakeIntensity * (heavy ? CombatConst.HeavyShakeMult : 1.0) + (isKill ? CombatConst.KillShakeBonus : 0);

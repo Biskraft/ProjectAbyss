@@ -2082,7 +2082,7 @@ export class B53_Kamikaze extends BSeriesEnemy {
     this.fsm.addState({
       name: 'attack',
       enter: () => {
-        this.warnMs = 420;
+        this.warnMs = 840;
         this.exploded = false;
         this.cleanupMs = 120;
         this.vx = 0;
@@ -2159,7 +2159,7 @@ export class B54_Volatile extends DelayedDeathBSeriesEnemy {
   constructor(level = 1) {
     super({ width: 18, height: 20, color: 0xd85a43, hp: 1, atk: 1, def: 0, detectRange: 180, attackRange: 40, moveSpeed: 40, attackCooldown: 1100 });
     this.applyStats('B54_Volatile', level);
-    this.deathDelayMs = 300;
+    this.deathDelayMs = 600;
     this.sprite.clear();
     this.sprite.rect(2, 2, 14, 18).fill(0xd85a43);
     this.sprite.circle(9, 8, 5).fill(0xffc247);
@@ -2305,7 +2305,7 @@ export class B56_Rupture extends B55_Brood {
   constructor(level = 1) {
     super(level);
     this.applyStats('B56_Rupture', level);
-    this.deathDelayMs = 400;
+    this.deathDelayMs = 800;
     this.sprite.clear();
     this.sprite.rect(1, 2, 24, 24).fill(0x7a4b40);
     this.sprite.circle(8, 11, 5).fill(0xff8a5c);
@@ -2355,7 +2355,7 @@ export class B57_AirKamikaze extends BSeriesEnemy {
     this.fsm.addState({
       name: 'attack',
       enter: () => {
-        this.warnMs = 260;
+        this.warnMs = 520;
         this.exploded = false;
         this.cleanupMs = 120;
         this.vx = 0;

@@ -1,37 +1,36 @@
 /**
- * RoomGraph.ts — DEC-039 Vertical Dive Graph (수직 딥 다이브 그래프).
+ * RoomGraph.ts ??DEC-039 Vertical Dive Graph (?�직 ???�이�?그래??.
  *
- * DEC-037 hub-and-spoke 방사형은 폐기. 각 stratum 그래프는 단일 수직 다이브:
+ * DEC-037 hub-and-spoke 방사?��? ?�기. �?stratum 그래?�는 ?�일 ?�직 ?�이�?
  *
- *   [Plaza (hub)] ← top, 출구 LRD only (U 천장 파괴 시각)
- *      ├─ L → [Lane spoke] → [Lane spoke] → ...               (좌측 분기)
- *      ├─ R → [Lane spoke] → [Lane spoke] → [Archive(shrine)] (우측 분기, 끝에 shrine)
- *      └─ D → [CP spoke] → [CP spoke] → ... → [Boss]          (critical path)
- *                                                ↓ (처치 후 Trapdoor 포탈 활성)
- *                                                ▼ 공격 키 인터랙트 → 다음 Plaza
+ *   [Plaza (hub)] ??top, 출구 LRD only (U 천장 ?�괴 ?�각)
+ *      ?��? L ??[Lane spoke] ??[Lane spoke] ??...               (좌측 분기)
+ *      ?��? R ??[Lane spoke] ??[Lane spoke] ??[Archive(shrine)] (?�측 분기, ?�에 shrine)
+ *      ?��? D ??[CP spoke] ??[CP spoke] ??... ??[Boss]          (critical path)
+ *                                                ??(처치 ??Trapdoor ?�탈 ?�성)
+ *                                                ??공격 ???�터?�트 ???�음 Plaza
  *
- * 룰:
- *   - hub 노드 = 지층 top, role='hub'. 출구 = LR + D (U 없음).
- *   - boss 노드 = 지층 bottom, role='boss'. 출구 = LRU (D 는 처치 후 Trapdoor entity 가 담당).
- *   - shrine 노드 = R 분기 가지 끝, role='shrine'. 옵션 안전지대. 적 spawn 0.
- *   - critical path = hub + D 방향 spoke 사슬 + boss.
+ * �?
+ *   - hub ?�드 = 지�?top, role='hub'. 출구 = LR + D (U ?�음).
+ *   - boss ?�드 = 지�?bottom, role='boss'. 출구 = LRU (D ??처치 ??Trapdoor entity 가 ?�당).
+ *   - shrine ?�드 = R 분기 가지 ?? role='shrine'. ?�션 ?�전지?�. ??spawn 0.
+ *   - critical path = hub + D 방향 spoke ?�슬 + boss.
  *   - 분기 = LR (hub 직속).
- *   - chain-length 교번 (홀수 depth = corridor, 짝수 = room) 보존.
- *   - StratumDef.topology / branchCount / hubCount 는 무시 (vertical dive 는 단일 형상).
- *     CSV 의 nodeCount 는 분배 예산으로만 사용.
+ *   - chain-length 교번 (?�??depth = corridor, 짝수 = room) 보존.
+ *   - StratumDef.topology / branchCount / hubCount ??무시 (vertical dive ???�일 ?�상).
+ *     CSV ??nodeCount ??분배 ?�산?�로�??�용.
  *
  * 보존 invariants:
- *   - 자료구조 (RoomNode/RoomEdge/RoomGraphData) DEC-037 와 동일 — RoomGraphAdapter
- *     와 ItemWorldScene 이 그대로 사용한다.
- *   - validateRoomGraph 의 nodeCount 일치 / hub BFS 도달 / boss·shrine 별도 노드.
+ *   - ?�료구조 (RoomNode/RoomEdge/RoomGraphData) DEC-037 ?� ?�일 ??RoomGraphAdapter
+ *     ?� ItemWorldScene ??그�?�??�용?�다.
+ *   - validateRoomGraph ??nodeCount ?�치 / hub BFS ?�달 / boss·shrine 별도 ?�드.
  *
- * 폐기 (재도입 금지):
+ * ?�기 (?�도??금�?):
  *   - hub_spoke / multi_hub / linear_right / y_fork / t_junction / layer_cake
  *     / ring / spine_pockets / two_arc_pocketed 빌더.
- *   - applyStratumVariant (mirror X/Y/180°) — vertical dive 의 hub-top / boss-bottom
- *     불변을 mirror Y 가 깨뜨리므로 폐기. 시각 다양화는 LDtk 템플릿 셀렉션과
- *     테마 슬러그가 담당.
- *   - hub-hub multi_hub 엣지 (Ancient 다중 hub 도 단일 수직 dive 로 통일).
+ *   - applyStratumVariant (mirror X/Y/180°) ??vertical dive ??hub-top / boss-bottom
+ *     불�???mirror Y 가 깨뜨리�?�??�기. ?�각 ?�양?�는 LDtk ?�플�??�?�션�? *     ?�마 ?�러그�? ?�당.
+ *   - hub-hub multi_hub ?��? (Ancient ?�중 hub ???�일 ?�직 dive �??�일).
  */
 
 import { PRNG } from '@utils/PRNG';
@@ -39,7 +38,7 @@ import type { StratumDef, TopologyKind } from '@data/StrataConfig';
 import { ARCHETYPE_WEIGHTS, type Archetype } from '@level/RoomGraphArchetypes';
 
 // ---------------------------------------------------------------------------
-// Types — 외부 import 호환성을 위해 시그니처 보존.
+// Types ???��? import ?�환?�을 ?�해 ?�그?�처 보존.
 // ---------------------------------------------------------------------------
 
 export type NodeRole = 'hub' | 'spoke' | 'boss' | 'shrine';
@@ -48,11 +47,11 @@ export type ExitSide = 'left' | 'right' | 'up' | 'down';
 export interface RoomNode {
   id: string;
   role: NodeRole;
-  /** vertical dive 는 항상 0 (단일 hub). */
+  /** vertical dive ????�� 0 (?�일 hub). */
   hubIndex: number;
   /** -1 = hub/shrine, 0 = critical path (D 방향), 1 = L 분기, 2 = R 분기. */
   branchIndex: number;
-  /** hub: 0, spoke 사슬 진행도 1.. */
+  /** hub: 0, spoke ?�슬 진행??1.. */
   depth: number;
   stratumIndex: number;
   layout: { angleRad: number; ring: number; x: number; y: number };
@@ -61,12 +60,15 @@ export interface RoomNode {
   cleared: boolean;
   bossPortalX?: number;
   bossPortalY?: number;
+  footprint?: { w: number; h: number };
+  templateId?: string;
+  socketAnchors?: { leftY: number; rightY: number; upX: number; downX: number };
 }
 
 export interface RoomEdge {
   a: string;
   b: string;
-  /** vertical dive 는 'tree' 만 사용. multi_hub / ring_closure 는 폐기되었으나 호환 유지. */
+  /** vertical dive ??'tree' �??�용. multi_hub / ring_closure ???�기?�었?�나 ?�환 ?��?. */
   kind: 'tree' | 'multi_hub' | 'ring_closure';
   sideA: ExitSide;
   sideB: ExitSide;
@@ -75,7 +77,7 @@ export interface RoomEdge {
 export interface RoomGraphData {
   stratumIndex: number;
   hubIds: string[];
-  /** vertical dive 는 항상 0 (CP = D 분기). 호환 유지 필드. */
+  /** vertical dive ????�� 0 (CP = D 분기). ?�환 ?��? ?�드. */
   bossBranchIndex: number;
   bossId: string;
   shrineId: string | null;
@@ -107,17 +109,16 @@ const ANGLE_RIGHT = 0;
 // ---------------------------------------------------------------------------
 
 /**
- * RoomGraph 진입점. DEC-039 vertical dive 단일 빌더.
+ * RoomGraph 진입?? DEC-039 vertical dive ?�일 빌더.
  *
- * topologyOverride / def.topology 는 무시. CSV 의 nodeCount 만 분배 예산으로 사용.
- * archetype 은 무기의 (주색, 부색) 으로 호출 측이 결정 — RoomGraphAdapter 가
- * archetypeFor() 로 매핑 후 전달. 미지정 시 'zigzag' fallback.
+ * topologyOverride / def.topology ??무시. CSV ??nodeCount �?분배 ?�산?�로 ?�용.
+ * archetype ?� 무기??(주색, 부?? ?�로 ?�출 측이 결정 ??RoomGraphAdapter 가
+ * archetypeFor() �?매핑 ???�달. 미�?????'zigzag' fallback.
  *
- * @param def              StratumDef (CSV → StrataConfig.ts)
- * @param itemUid          결정적 시드용 아이템 식별자
- * @param stratumIndex     0-based
- * @param topologyOverride 무시 (vertical dive 단일 형상)
- * @param archetype        DEC-039 7 archetype 중 하나 — 미지정 시 'zigzag'
+ * @param def              StratumDef (CSV ??StrataConfig.ts)
+ * @param itemUid          결정???�드???�이???�별?? * @param stratumIndex     0-based
+ * @param topologyOverride 무시 (vertical dive ?�일 ?�상)
+ * @param archetype        DEC-039 7 archetype �??�나 ??미�?????'zigzag'
  */
 export function generateRoomGraph(
   def: StratumDef,
@@ -126,7 +127,10 @@ export function generateRoomGraph(
   topologyOverride?: TopologyKind,
   archetype: Archetype = 'zigzag',
 ): RoomGraphData {
-  void topologyOverride;
+  const topology = topologyOverride === 'horizontal_descent' ? topologyOverride : def.topology;
+  if (topology === 'horizontal_descent') {
+    return buildHorizontalDescent(def, itemUid, stratumIndex);
+  }
   return buildVerticalDive(def, itemUid, stratumIndex, archetype);
 }
 
@@ -137,18 +141,17 @@ export function generateRoomGraph(
 /**
  * Vertical Dive 빌더.
  *
- * 노드 분배 (총 nodeCount):
+ * ?�드 분배 (�?nodeCount):
  *   hub(1) + boss(1) + shrine(1) + cpLen(D) + lLen(L) + rLen(R) = nodeCount
  *
- * 분배 룰:
+ * 분배 �?
  *   spokeBudget = max(0, nodeCount - 3)
- *   cpLen       = max(2, ceil(spokeBudget / 2))    -- 대부분 예산은 CP 에
- *   sideBudget  = spokeBudget - cpLen
+ *   cpLen       = max(2, ceil(spokeBudget / 2))    -- ?�부�??�산?� CP ?? *   sideBudget  = spokeBudget - cpLen
  *   lLen        = max(1, floor(sideBudget / 2))    -- 좌측 분기
- *   rLen        = max(1, sideBudget - lLen)        -- 우측 분기 (shrine 부착)
+ *   rLen        = max(1, sideBudget - lLen)        -- ?�측 분기 (shrine 부�?
  *
- * 부족한 경우 (nodeCount < 6) 는 cpLen 우선, 분기 길이 0 으로 자연 degenerate.
- * Shrine 은 R 분기 가지 끝에 부착. 분기 길이 0 일 경우 hub 의 W (좌) alcove 로 fallback.
+ * 부족한 경우 (nodeCount < 6) ??cpLen ?�선, 분기 길이 0 ?�로 ?�연 degenerate.
+ * Shrine ?� R 분기 가지 ?�에 부�? 분기 길이 0 ??경우 hub ??W (�? alcove �?fallback.
  */
 function buildVerticalDive(
   def: StratumDef,
@@ -161,18 +164,18 @@ function buildVerticalDive(
   const nodes = new Map<string, RoomNode>();
   const edges: RoomEdge[] = [];
 
-  // 1) 노드 분배 — DEC-039 archetype 시스템 (사용자 결정 2026-05-03):
+  // 1) ?�드 분배 ??DEC-039 archetype ?�스??(?�용??결정 2026-05-03):
   //    archetype 가중치 (D/L/R 비율, branchBudgetPct, branchMaxDepth) 가
-  //    무기의 (주색, 부색) 기질 조합으로 결정됨. 같은 archetype 무기들도
-  //    itemUid 시드로 placement 다양화.
+  //    무기??(주색, 부?? 기질 조합?�로 결정?? 같�? archetype 무기?�도
+  //    itemUid ?�드�?placement ?�양??
   //
-  //    archetype.branchBudgetPct 가 spokeBudget 중 branch 비율.
-  //    archetype.branchMaxDepth 가 branch 최대 깊이.
-  //    spiral archetype 은 itemUid 의 LSB 로 L/R 우세 결정 (별도 처리).
+  //    archetype.branchBudgetPct 가 spokeBudget �?branch 비율.
+  //    archetype.branchMaxDepth 가 branch 최�? 깊이.
+  //    spiral archetype ?� itemUid ??LSB �?L/R ?�세 결정 (별도 처리).
   //
-  //    L/R hub 가지는 폐기 — hub 슬롯 (LR) 은 CP 첫 step + shrine 가 점유.
+  //    L/R hub 가지???�기 ??hub ?�롯 (LR) ?� CP �?step + shrine 가 ?�유.
   const archWeights = ARCHETYPE_WEIGHTS[archetype];
-  // spiral 의 L/R 비율 swap (R 우세 케이스)
+  // spiral ??L/R 비율 swap (R ?�세 케?�스)
   let cpD = archWeights.cpD;
   let cpL = archWeights.cpL;
   let cpR = archWeights.cpR;
@@ -186,11 +189,8 @@ function buildVerticalDive(
   const lLen = 0;
   const rLen = 0;
 
-  // 2) Hub (Plaza) — 지층 top. placement (col, row) = (0, 0).
-  //    Plaza 출구 = LRU (사용자 결정 2026-05-03). D 폐기 — 모든 spoke 가 hub 의
-  //    L/R 출구를 통해 시작. 'no_down' 으로 D 잠금, 'force_up' 으로 U 강제 →
-  //    LDtk LRU 변종 (예: ItemStratum_Level_37) 매칭. 천장 자연 open 이라 위에서
-  //    Trapdoor 로 떨어져 들어오는 다이브 메타포 자연 봉합.
+  // 2) Hub (Plaza) ??지�?top. placement (col, row) = (0, 0).
+  //    Plaza 출구 = LRU (?�용??결정 2026-05-03). D ?�기 ??모든 spoke 가 hub ??  //    L/R 출구�??�해 ?�작. 'no_down' ?�로 D ?�금, 'force_up' ?�로 U 강제 ??  //    LDtk LRU 변�?(?? ItemStratum_Level_37) 매칭. 천장 ?�연 open ?�라 ?�에??  //    Trapdoor �??�어???�어?�는 ?�이�?메�????�연 봉합.
   const hubId = 'h0';
   const hubNode = makeNode({
     id: hubId, role: 'hub', hubIndex: 0, branchIndex: -1, depth: 0,
@@ -200,18 +200,18 @@ function buildVerticalDive(
   hubNode.layout.x = 0; hubNode.layout.y = 0;
   nodes.set(hubId, hubNode);
 
-  // 3) Critical path — Plaza 가 LR 출구만 가지므로 CP 첫 step 은 L 또는 R 강제.
-  //    이후 step 은 D/L/R 자유 zigzag (다이브 메타포 — D 가중치 높음).
-  //    제약:
-  //      - 첫 step (d=1): L 또는 R (D 금지). L/R 분기와 충돌 시 더 멀리 점프.
-  //      - 중간/마지막 step: D/L/R 자유, 같은 LR 연속 회피, occupied 회피.
-  //      - col 은 [-3, +3] 안 (Plaza LR 시작 + L/R 분기 너머까지 여유).
+  // 3) Critical path ??Plaza 가 LR 출구�?가지므�?CP �?step ?� L ?�는 R 강제.
+  //    ?�후 step ?� D/L/R ?�유 zigzag (?�이�?메�?????D 가중치 ?�음).
+  //    ?�약:
+  //      - �?step (d=1): L ?�는 R (D 금�?). L/R 분기?� 충돌 ????멀�??�프.
+  //      - 중간/마�?�?step: D/L/R ?�유, 같�? LR ?�속 ?�피, occupied ?�피.
+  //      - col ?� [-3, +3] ??(Plaza LR ?�작 + L/R 분기 ?�머까�? ?�유).
   //
-  //    L/R 분기는 hub 의 (-d, 0) / (+d, 0) 직선이라 CP 첫 step 이 그것들과
-  //    충돌하지 않도록 occupied 에 사전 등록.
-  // CP 첫 step 미리 결정 — archetype 의 L/R 비율 반영. spiral 처럼 한쪽 우세
-  // archetype 은 첫 step 도 그 우세 방향 70% 정도. 그 외는 L/R 50/50.
-  // shrine 위치 (반대편 hub 출구) 가 첫 step 에 종속되므로 미리 결정.
+  //    L/R 분기??hub ??(-d, 0) / (+d, 0) 직선?�라 CP �?step ??그것?�과
+  //    충돌?��? ?�도�?occupied ???�전 ?�록.
+  // CP �?step 미리 결정 ??archetype ??L/R 비율 반영. spiral 처럼 ?�쪽 ?�세
+  // archetype ?� �?step ??�??�세 방향 70% ?�도. �??�는 L/R 50/50.
+  // shrine ?�치 (반�???hub 출구) 가 �?step ??종속?��?�?미리 결정.
   const lrSum = cpL + cpR;
   const lProb = lrSum > 0 ? cpL / lrSum : 0.5;
   const cpFirstStepDecision: 'L' | 'R' = rng.next() < lProb ? 'L' : 'R';
@@ -219,7 +219,7 @@ function buildVerticalDive(
 
   const cpSteps: Array<'D' | 'L' | 'R'> = [];
   const occupied = new Set<string>(['0,0']); // hub
-  occupied.add(`${shrineColPre},0`); // shrine — CP zigzag 가 침범 못하게 사전 등록
+  occupied.add(`${shrineColPre},0`); // shrine ??CP zigzag 가 침범 못하�??�전 ?�록
   for (let d = 1; d <= lLen; d++) occupied.add(`${-d},0`);
   for (let d = 1; d <= rLen; d++) occupied.add(`${d},0`);
   let curCol = 0, curRow = 0;
@@ -229,14 +229,14 @@ function buildVerticalDive(
     let placed = false;
 
     if (isFirst) {
-      // 첫 step — Plaza LR 출구 활용. cpFirstStepDecision (위에서 미리 결정됨)
-      // 사용 — shrine 위치와 일관성 보장.
+      // �?step ??Plaza LR 출구 ?�용. cpFirstStepDecision (?�에??미리 결정??
+      // ?�용 ??shrine ?�치?� ?��???보장.
       chosen = cpFirstStepDecision;
       placed = true;
     } else {
-      // 중간/마지막 step — archetype 가중치 사용 (DEC-039 사용자 결정 2026-05-03).
-      // RNG 누적 분포로 D/L/R 후보 순서 결정. 가중치 합은 1.0 정규화.
-      // 매 step 후 |curCol| <= max(1, stepsLeftAfter) 강제 (보스 col=0 수렴).
+      // 중간/마�?�?step ??archetype 가중치 ?�용 (DEC-039 ?�용??결정 2026-05-03).
+      // RNG ?�적 분포�?D/L/R ?�보 ?�서 결정. 가중치 ?��? 1.0 ?�규??
+      // �?step ??|curCol| <= max(1, stepsLeftAfter) 강제 (보스 col=0 ?�렴).
       const r = rng.next();
       let order: Array<'D' | 'L' | 'R'>;
       if (r < cpD) {
@@ -255,14 +255,14 @@ function buildVerticalDive(
         if (cand === 'D') nr++;
         else if (cand === 'L') nc--;
         else nc++;
-        if (Math.abs(nc) > maxColAfter) continue; // col=0 수렴 불가능 → skip
+        if (Math.abs(nc) > maxColAfter) continue; // col=0 ?�렴 불�?????skip
         if (occupied.has(`${nc},${nr}`)) continue;
         chosen = cand;
         placed = true;
         break;
       }
       if (!placed) {
-        // Fallback: 모든 자유 후보 막힘 → col 보정 step (curCol 부호 반대) 또는 D.
+        // Fallback: 모든 ?�유 ?�보 막힘 ??col 보정 step (curCol 부??반�?) ?�는 D.
         if (curCol > 0 && !occupied.has(`${curCol - 1},${curRow}`)) chosen = 'L';
         else if (curCol < 0 && !occupied.has(`${curCol + 1},${curRow}`)) chosen = 'R';
         else chosen = 'D';
@@ -277,7 +277,7 @@ function buildVerticalDive(
     cpSteps.push(chosen);
 
     const id = `cp.${d}`;
-    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    const kind: 'room' = 'room';
     const angleRad =
       chosen === 'D' ? ANGLE_DOWN :
       chosen === 'L' ? ANGLE_LEFT :
@@ -295,18 +295,18 @@ function buildVerticalDive(
     edges.push(makeEdge(prevId, id, 'tree', sides.from, sides.to));
   }
 
-  // 4) Boss — 사용자 결정 (2026-05-03): 보스 col 은 *반드시* plaza col 과 동일
-  //    (= 0). Trapdoor 가 보스 D 영역에 hole 을 뚫으면 그 hole 이 다음 stratum
-  //    의 plaza 위로 정확히 떨어져 player 가 plaza 안에 안착한다.
+  // 4) Boss ???�용??결정 (2026-05-03): 보스 col ?� *반드?? plaza col �??�일
+  //    (= 0). Trapdoor 가 보스 D ?�역??hole ???�으�?�?hole ???�음 stratum
+  //    ??plaza ?�로 ?�확???�어??player 가 plaza ?�에 ?�착?�다.
   //
   //    boss step 결정:
-  //      - cp.last col == 0 → step D (자동 col=0)
-  //      - cp.last col == 1 → step L (보정 col=0)
-  //      - cp.last col == -1 → step R (보정 col=0)
-  //    cp zigzag 가 |cp.last col| <= 1 보장하므로 1-step 으로 col=0 도달.
+  //      - cp.last col == 0 ??step D (?�동 col=0)
+  //      - cp.last col == 1 ??step L (보정 col=0)
+  //      - cp.last col == -1 ??step R (보정 col=0)
+  //    cp zigzag 가 |cp.last col| <= 1 보장?��?�?1-step ?�로 col=0 ?�달.
   //
-  //    'no_down' = D 잠금 (Trapdoor 담당).
-  //    'force_lru' = 보스 prefab LRU 변종 강제 (입구 변에 무관하게 통일).
+  //    'no_down' = D ?�금 (Trapdoor ?�당).
+  //    'force_lru' = 보스 prefab LRU 변�?강제 (?�구 변??무�??�게 ?�일).
   const bossDepth = cpLen + 1;
   const bossId = 'boss0';
   const bossPrevCol = curCol, bossPrevRow = curRow;
@@ -333,11 +333,11 @@ function buildVerticalDive(
   const bossSides = sidesByDelta(curCol - bossPrevCol, curRow - bossPrevRow);
   edges.push(makeEdge(lastCpId, bossId, 'tree', bossSides.from, bossSides.to));
 
-  // 5) Left branch — hub 의 W 방향 spoke 사슬. placement (-d, 0).
+  // 5) Left branch ??hub ??W 방향 spoke ?�슬. placement (-d, 0).
   let prevLeft = hubId;
   for (let d = 1; d <= lLen; d++) {
     const id = `l.${d}`;
-    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    const kind: 'room' = 'room';
     const node = makeNode({
       id, role: 'spoke', hubIndex: 0, branchIndex: BR_LEFT, depth: d,
       stratumIndex, angleRad: ANGLE_LEFT, ring: d * RING_UNIT,
@@ -349,11 +349,11 @@ function buildVerticalDive(
     prevLeft = id;
   }
 
-  // 6) Right branch — hub 의 E 방향 spoke 사슬. placement (+d, 0). shrine 은 끝에 부착.
+  // 6) Right branch ??hub ??E 방향 spoke ?�슬. placement (+d, 0). shrine ?� ?�에 부�?
   let prevRight = hubId;
   for (let d = 1; d <= rLen; d++) {
     const id = `r.${d}`;
-    const kind: 'corridor' | 'room' = (d % 2 === 1) ? 'corridor' : 'room';
+    const kind: 'room' = 'room';
     const node = makeNode({
       id, role: 'spoke', hubIndex: 0, branchIndex: BR_RIGHT, depth: d,
       stratumIndex, angleRad: ANGLE_RIGHT, ring: d * RING_UNIT,
@@ -365,8 +365,8 @@ function buildVerticalDive(
     prevRight = id;
   }
 
-  // 7) Shrine (Archive) — hub 의 CP 첫 step 반대편 출구 (사용자 결정 2026-05-02).
-  //    shrineColPre 는 §3 의 occupied 사전 등록과 일관.
+  // 7) Shrine (Archive) ??hub ??CP �?step 반�???출구 (?�용??결정 2026-05-02).
+  //    shrineColPre ??§3 ??occupied ?�전 ?�록�??��?.
   const shrineId = 'shrine';
   const shrineCol = shrineColPre;
   const shrineRow = 0;
@@ -383,13 +383,12 @@ function buildVerticalDive(
   shrineNode.layout.x = shrineCol; shrineNode.layout.y = shrineRow;
   nodes.set(shrineId, shrineNode);
   edges.push(makeEdge(shrineParent, shrineId, 'tree', shrineSideOut, shrineSideIn));
-  occupied.add(`${shrineCol},${shrineRow}`); // shrine 위치도 branch 회피 대상
-
-  // 7.5) Dead-end branch (DEC-039 사용자 결정 2026-05-03) — CP 노드 일부에서
-  //      직선 dead-end 가지가 1..branchMaxDepth 깊이로 뻗어나옴. rarity 가 높을
-  //      수록 깊은 가지. RNG 로 CP 순서 셔플 후 각 노드의 free cardinal (L/R
-  //      우선, U/D 후순위) 첫 방향으로 부착, 같은 방향 직선 연장.
-  //      remaining (branchBudget) 가 소진될 때까지 반복.
+  occupied.add(`${shrineCol},${shrineRow}`); // shrine ?�치??branch ?�피 ?�??
+  // 7.5) Dead-end branch (DEC-039 ?�용??결정 2026-05-03) ??CP ?�드 ?��??�서
+  //      직선 dead-end 가지가 1..branchMaxDepth 깊이�?뻗어?�옴. rarity 가 ?�을
+  //      ?�록 깊�? 가지. RNG �?CP ?�서 ?�플 ??�??�드??free cardinal (L/R
+  //      ?�선, U/D ?�순?? �?방향?�로 부�? 같�? 방향 직선 ?�장.
+  //      remaining (branchBudget) 가 ?�진???�까지 반복.
   let branchN = 0;
   if (branchBudget > 0 && cpLen > 0 && branchMaxDepth > 0) {
     const cpOrder: number[] = [];
@@ -399,7 +398,7 @@ function buildVerticalDive(
       [cpOrder[i], cpOrder[j]] = [cpOrder[j], cpOrder[i]];
     }
     interface DirCard { dx: number; dy: number; out: ExitSide; in: ExitSide; }
-    // L/R 우선 (수평 다양성), U/D 후순위.
+    // L/R ?�선 (?�평 ?�양??, U/D ?�순??
     const dirs: DirCard[] = [
       { dx: -1, dy: 0, out: 'left', in: 'right' },
       { dx: 1, dy: 0, out: 'right', in: 'left' },
@@ -414,7 +413,7 @@ function buildVerticalDive(
       if (!cpNode) continue;
       const cpCol = cpNode.layout.x;
       const cpRow = cpNode.layout.y;
-      // 첫 방향 결정 — L/R 셔플 후 첫 free 셀 방향 채택.
+      // �?방향 결정 ??L/R ?�플 ??�?free ?� 방향 채택.
       const dirOrder: DirCard[] = [...dirs];
       if (rng.next() < 0.5) {
         [dirOrder[0], dirOrder[1]] = [dirOrder[1], dirOrder[0]];
@@ -431,11 +430,11 @@ function buildVerticalDive(
       }
       if (!chosenDir) continue;
 
-      // 가지 깊이 결정 — 1..min(branchMaxDepth, remaining) RNG.
+      // 가지 깊이 결정 ??1..min(branchMaxDepth, remaining) RNG.
       const depthCap = Math.min(branchMaxDepth, remaining);
       const targetDepth = 1 + rng.nextInt(0, depthCap - 1);
 
-      // 직선 연장 — 같은 방향으로 targetDepth 까지. 충돌 시 조기 중단.
+      // 직선 ?�장 ??같�? 방향?�로 targetDepth 까�?. 충돌 ??조기 중단.
       let curC = cpCol;
       let curR = cpRow;
       let parentId = cpId;
@@ -450,7 +449,7 @@ function buildVerticalDive(
         if (occupied.has(`${nc},${nr}`)) break;
         branchN++;
         const id = `b.${branchN}`;
-        const kind: 'corridor' | 'room' = (bd % 2 === 1) ? 'corridor' : 'room';
+        const kind: 'room' = 'room';
         const bnode = makeNode({
           id, role: 'spoke', hubIndex: 0, branchIndex: BR_DEAD, depth: cpDepth + bd,
           stratumIndex, angleRad, ring: bd,
@@ -467,11 +466,11 @@ function buildVerticalDive(
       }
     }
   }
-  // budget 미달 (모든 CP 후보 충돌) — 빠진 만큼 boss/shrine 외 노드 수가 적어
-  // validateRoomGraph IWF-R10 가 nodeCount mismatch 로 throw → 그래도 게임은 진행.
+  // budget 미달 (모든 CP ?�보 충돌) ??빠진 만큼 boss/shrine ???�드 ?��? ?�어
+  // validateRoomGraph IWF-R10 가 nodeCount mismatch �?throw ??그래??게임?� 진행.
 
 
-  // 8) Critical Path 집합 — hub + CP spoke + boss
+  // 8) Critical Path 집합 ??hub + CP spoke + boss
   const criticalPathIds = new Set<string>();
   criticalPathIds.add(hubId);
   for (const node of nodes.values()) {
@@ -479,8 +478,8 @@ function buildVerticalDive(
   }
   criticalPathIds.add(bossId);
 
-  // 9) Polar layout 산출은 폐기 — buildVerticalDive 가 layout.x/y 에 직접 grid
-  //    placement 를 저장하므로 overwrite 하지 않는다. Adapter 가 그대로 사용.
+  // 9) Polar layout ?�출?� ?�기 ??buildVerticalDive 가 layout.x/y ??직접 grid
+  //    placement �??�?�하므�?overwrite ?��? ?�는?? Adapter 가 그�?�??�용.
 
   return {
     stratumIndex,
@@ -495,28 +494,207 @@ function buildVerticalDive(
 }
 
 // ---------------------------------------------------------------------------
-// Validation — DEC-039 invariants 에 맞게 단순화.
+// Horizontal Descent builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Horizontal Descent builder.
+ *
+ * Shape intent:
+ *   A -- B -- C -- D
+ *             |
+ *             E
+ *             |
+ *             F
+ *             |
+ *             G
+ *
+ * C is a rectangular LRD descent_anchor room. It is not an L-shaped graph node;
+ * LDtk room authoring owns the internal L-shaped movement. E/F are simple UD
+ * vertical_shaft rooms. The last vertical node is the boss terminal.
+ */
+function buildHorizontalDescent(
+  def: StratumDef,
+  itemUid: number,
+  stratumIndex: number,
+): RoomGraphData {
+  const rng = new PRNG(itemUid * 7919 + stratumIndex * 104729 + def.nodeCount * 31);
+  const nodes = new Map<string, RoomNode>();
+  const edges: RoomEdge[] = [];
+  const nodeCount = Math.max(5, def.nodeCount);
+
+  const minHorizontalLen = Math.min(4, nodeCount - 2);
+  const maxHorizontalLen = Math.max(minHorizontalLen, Math.min(nodeCount - 2, Math.max(4, Math.floor(nodeCount * 0.68))));
+  const horizontalLen = rng.nextInt(minHorizontalLen, maxHorizontalLen);
+  let remainingVerticalBudget = nodeCount - horizontalLen;
+
+  const interiorIndices: number[] = [];
+  for (let i = 1; i <= horizontalLen - 2; i++) interiorIndices.push(i);
+  const anchorIndex = interiorIndices.length > 0
+    ? interiorIndices[rng.nextInt(0, interiorIndices.length - 1)]
+    : Math.max(1, horizontalLen - 2);
+
+  const preferredMainLen = rng.nextInt(2, Math.max(2, Math.min(5, remainingVerticalBudget)));
+  let mainVerticalLen = Math.min(remainingVerticalBudget, preferredMainLen);
+  remainingVerticalBudget -= mainVerticalLen;
+
+  const branchAnchors = rng.shuffle(interiorIndices.filter(i => i !== anchorIndex));
+  const branchPlans: Array<{ anchorIndex: number; length: number }> = [];
+  while (remainingVerticalBudget > 0 && branchAnchors.length > 0) {
+    const anchor = branchAnchors.shift()!;
+    const length = rng.nextInt(1, Math.min(3, remainingVerticalBudget));
+    branchPlans.push({ anchorIndex: anchor, length });
+    remainingVerticalBudget -= length;
+  }
+  while (remainingVerticalBudget > 0) {
+    if (branchPlans.length > 0 && rng.next() < 0.65) {
+      branchPlans[rng.nextInt(0, branchPlans.length - 1)].length++;
+    } else {
+      mainVerticalLen++;
+    }
+    remainingVerticalBudget--;
+  }
+
+  const hubId = 'h0';
+  const hubNode = makeNode({
+    id: hubId,
+    role: 'hub',
+    hubIndex: 0,
+    branchIndex: -1,
+    depth: 0,
+    stratumIndex,
+    angleRad: ANGLE_RIGHT,
+    ring: 0,
+    tags: ['hub_plaza', 'safe', 'room', 'horizontal_descent_start'],
+  });
+  hubNode.layout.x = 0;
+  hubNode.layout.y = 0;
+  nodes.set(hubId, hubNode);
+
+  const branchAnchorSet = new Set(branchPlans.map(p => p.anchorIndex));
+  const horizontalIds: string[] = [hubId];
+  let shrineId: string | null = null;
+  for (let i = 1; i < horizontalLen; i++) {
+    const isMainAnchor = i === anchorIndex;
+    const isBranchAnchor = branchAnchorSet.has(i);
+    const isRightEnd = i === horizontalLen - 1;
+    const id = isMainAnchor ? 'descent_anchor' : isRightEnd ? 'shrine' : `h.${i}`;
+    const role: NodeRole = isRightEnd ? 'shrine' : 'spoke';
+    const tags = isMainAnchor
+      ? ['room', 'descent_anchor']
+      : isRightEnd
+        ? ['room', 'shrine_alcove', 'safe', 'horizontal_terminal']
+        : isBranchAnchor
+          ? ['room', 'descent_anchor', 'side_descent_anchor']
+          : ['room', 'horizontal_spoke'];
+    const node = makeNode({
+      id,
+      role,
+      hubIndex: 0,
+      branchIndex: isRightEnd ? BR_RIGHT : BR_CP,
+      depth: i,
+      stratumIndex,
+      angleRad: ANGLE_RIGHT,
+      ring: i * RING_UNIT,
+      tags,
+    });
+    node.layout.x = i;
+    node.layout.y = 0;
+    nodes.set(id, node);
+    edges.push(makeEdge(horizontalIds[horizontalIds.length - 1], id, 'tree', 'right', 'left'));
+    horizontalIds.push(id);
+    if (isRightEnd) shrineId = id;
+  }
+
+  const verticalIds: string[] = [];
+  let parentId = horizontalIds[anchorIndex];
+  for (let j = 1; j <= mainVerticalLen; j++) {
+    const isBoss = j === mainVerticalLen;
+    const id = isBoss ? 'boss0' : `v.${j}`;
+    const node = makeNode({
+      id,
+      role: isBoss ? 'boss' : 'spoke',
+      hubIndex: 0,
+      branchIndex: BR_CP,
+      depth: anchorIndex + j,
+      stratumIndex,
+      angleRad: ANGLE_DOWN,
+      ring: (anchorIndex + j) * RING_UNIT,
+      tags: isBoss
+        ? ['room', 'boss_chamber', 'vertical_terminal', 'no_down']
+        : ['room', 'vertical_shaft'],
+    });
+    node.layout.x = anchorIndex;
+    node.layout.y = j;
+    nodes.set(id, node);
+    edges.push(makeEdge(parentId, id, 'tree', 'down', 'up'));
+    verticalIds.push(id);
+    parentId = id;
+  }
+
+  branchPlans.forEach((plan, branchIdx) => {
+    let branchParentId = horizontalIds[plan.anchorIndex];
+    for (let j = 1; j <= plan.length; j++) {
+      const isTerminal = j === plan.length;
+      const id = `b.${branchIdx + 1}.${j}`;
+      const node = makeNode({
+        id,
+        role: 'spoke',
+        hubIndex: 0,
+        branchIndex: BR_LEFT + branchIdx,
+        depth: plan.anchorIndex + j,
+        stratumIndex,
+        angleRad: ANGLE_DOWN,
+        ring: (plan.anchorIndex + j) * RING_UNIT,
+        tags: isTerminal
+          ? ['room', 'vertical_shaft', 'vertical_deadend', 'no_down']
+          : ['room', 'vertical_shaft'],
+      });
+      node.layout.x = plan.anchorIndex;
+      node.layout.y = j;
+      nodes.set(id, node);
+      edges.push(makeEdge(branchParentId, id, 'tree', 'down', 'up'));
+      branchParentId = id;
+    }
+  });
+
+  const criticalPathIds = new Set<string>();
+  for (let i = 0; i <= anchorIndex; i++) criticalPathIds.add(horizontalIds[i]);
+  for (const id of verticalIds) criticalPathIds.add(id);
+
+  return {
+    stratumIndex,
+    hubIds: [hubId],
+    bossBranchIndex: BR_CP,
+    bossId: 'boss0',
+    shrineId,
+    criticalPathIds,
+    nodes,
+    edges,
+  };
+}
+// ---------------------------------------------------------------------------// Validation ??DEC-039 invariants ??맞게 ?�순??
 // ---------------------------------------------------------------------------
 
 export function validateRoomGraph(g: RoomGraphData, def: StratumDef): void {
-  // IWF-R10: 노드 수 일치 (hub + spoke + boss + shrine)
+  // IWF-R10: ?�드 ???�치 (hub + spoke + boss + shrine)
   if (g.nodes.size !== def.nodeCount) {
-    throw new Error(`IWF-R10: nodeCount mismatch — got ${g.nodes.size}, expected ${def.nodeCount}`);
+    throw new Error(`IWF-R10: nodeCount mismatch ??got ${g.nodes.size}, expected ${def.nodeCount}`);
   }
 
-  // IWF-R11: hub[0] 에서 BFS 도달 가능 노드 수 = 전체
+  // IWF-R11: hub[0] ?�서 BFS ?�달 가???�드 ??= ?�체
   const reached = bfsReach(g, g.hubIds[0]);
   if (reached.size !== g.nodes.size) {
-    throw new Error(`IWF-R11: graph not fully reachable from hub — ${reached.size}/${g.nodes.size}`);
+    throw new Error(`IWF-R11: graph not fully reachable from hub ??${reached.size}/${g.nodes.size}`);
   }
 
-  // IWF-R17: boss 별도 노드
+  // IWF-R17: boss 별도 ?�드
   const bossNode = g.nodes.get(g.bossId);
   if (!bossNode || bossNode.role !== 'boss') {
     throw new Error(`IWF-R17: boss node missing or wrong role`);
   }
 
-  // IWF-R18: shrine 별도 노드
+  // IWF-R18: shrine 별도 ?�드
   if (!g.shrineId) {
     throw new Error(`IWF-R18: shrine node missing`);
   }
@@ -525,18 +703,18 @@ export function validateRoomGraph(g: RoomGraphData, def: StratumDef): void {
     throw new Error(`IWF-R18: shrine node wrong role`);
   }
 
-  // DEC-039-V1: hub 는 정확히 1개 ('h0')
+  // DEC-039-V1: hub ???�확??1�?('h0')
   if (g.hubIds.length !== 1 || g.hubIds[0] !== 'h0') {
     throw new Error(`DEC-039-V1: vertical dive requires single hub 'h0', got [${g.hubIds.join(',')}]`);
   }
 
-  // DEC-039-V2: hub 노드는 'force_up' 태그를 가져야 한다 (Plaza LRUD 강제용).
+  // DEC-039-V2: hub ?�드??'force_up' ?�그�?가?�야 ?�다 (Plaza LRUD 강제??.
   const hub = g.nodes.get(g.hubIds[0])!;
-  if (!hub.tags.includes('force_up')) {
-    throw new Error(`DEC-039-V2: hub must carry 'force_up' tag`);
+  if (!hub.tags.includes('horizontal_descent_start') && !hub.tags.includes('force_up')) {
+    throw new Error(`DEC-039-V2: vertical dive hub must carry 'force_up' tag`);
   }
 
-  // DEC-039-V3: boss 노드는 'no_down' 태그를 가져야 한다 (Trapdoor entity 가 담당).
+  // DEC-039-V3: boss ?�드??'no_down' ?�그�?가?�야 ?�다 (Trapdoor entity 가 ?�당).
   if (!bossNode.tags.includes('no_down')) {
     throw new Error(`DEC-039-V3: boss must carry 'no_down' tag`);
   }
@@ -577,13 +755,13 @@ function makeEdge(a: string, b: string, kind: RoomEdge['kind'], sideA: ExitSide,
   return { a, b, kind, sideA, sideB };
 }
 
-/** placement delta (dx, dy) → 출구 면 (from = parent's side, to = child's side). */
+/** placement delta (dx, dy) ??출구 �?(from = parent's side, to = child's side). */
 function sidesByDelta(dx: number, dy: number): { from: ExitSide; to: ExitSide } {
   if (dx === 1 && dy === 0) return { from: 'right', to: 'left' };
   if (dx === -1 && dy === 0) return { from: 'left', to: 'right' };
   if (dx === 0 && dy === 1) return { from: 'down', to: 'up' };
   if (dx === 0 && dy === -1) return { from: 'up', to: 'down' };
-  // Non-cardinal-adjacent — 발생하면 안 되지만 안전하게 down 으로 fallback.
+  // Non-cardinal-adjacent ??발생?�면 ???��?�??�전?�게 down ?�로 fallback.
   return { from: 'down', to: 'up' };
 }
 
@@ -610,3 +788,10 @@ function bfsReach(g: RoomGraphData, startId: string): Set<string> {
 // Re-export utility values for any downstream code that may depend on them.
 // (Currently unused outside this module but kept for symmetry with HEAD.)
 export const _ANGLES = { DOWN: ANGLE_DOWN, UP: ANGLE_UP, LEFT: ANGLE_LEFT, RIGHT: ANGLE_RIGHT } as const;
+
+
+
+
+
+
+

@@ -47,6 +47,15 @@ export abstract class Entity {
 
   abstract update(dt: number): void;
 
+  getHurtAABB(): { x: number; y: number; width: number; height: number } {
+    return {
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+    };
+  }
+
   /** Tick down invincibility timer */
   updateInvincibility(dt: number): void {
     if (this.invincibleTimer > 0) {

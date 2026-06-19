@@ -120,8 +120,8 @@ const ATTACK_STATES: ReadonlySet<string> = new Set([
 ]);
 /** Attack 종료 후 chase 진입 시 chaseDir 변경 차단 기간 (ms). */
 const POST_ATTACK_TURN_LOCK_MS = 1500;
-const COOLDOWN_NORMAL = 1200;          // ms
-const COOLDOWN_ENRAGED = 700;          // ms
+const COOLDOWN_NORMAL = 1800;          // ms (1.5x slower boss attack cadence)
+const COOLDOWN_ENRAGED = 1050;         // ms (1.5x slower boss attack cadence)
 
 // ── Dust effect (사용자 피드백 2026-05-05) ────────────────────────
 //  1) Charge 중 발 밑 큰 먼지 트레일

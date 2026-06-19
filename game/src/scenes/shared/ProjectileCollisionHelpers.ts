@@ -13,7 +13,9 @@ export interface ProjectileAabb {
   height: number;
 }
 
-export function getEntityAabb(entity: { x: number; y: number; width: number; height: number }): ProjectileAabb {
+export function getEntityAabb(entity: { x: number; y: number; width: number; height: number; getHurtAABB?: () => ProjectileAabb }): ProjectileAabb {
+  const hurtBox = entity.getHurtAABB?.();
+  if (hurtBox) return hurtBox;
   return {
     x: entity.x,
     y: entity.y,

@@ -21,3 +21,11 @@ Scene-owned boundaries:
 Verification after extraction: `npx tsc --noEmit`, `npm run build`, and `http://localhost:3000/play/?debug=1` Puppeteer smoke passed.
 
 2026-06-02 update: moved the remaining `entryDialogueStarted` flag from `ItemWorldScene` into this runtime through `tryMarkEntryDialogueStarted()`. Verification: `npx tsc --noEmit`, `npm run build`, and `http://localhost:3000/play/?debug=1` Puppeteer smoke passed.
+
+## 2026-06-17 - Rustborn dialogue reset
+
+- Rustborn/Ego dialogue is intentionally reset for rewriting.
+- `game/src/data/EgoDialogue.ts` keeps exported dialogue hooks and event keys, but all Rustborn/Ego `LoreLine[]` exports currently return empty arrays.
+- `LoreDisplay.showDialogue([])` is a no-op so existing trigger paths can remain wired without showing stale dialogue.
+- `Sheets/Content_Localization.csv` and generated locale JSON had `ego.*` and `prologue.rustborn.*` text keys removed. Item names/descriptions such as `item.sword_rustborn.*` remain.
+- Prevention rule: do not reintroduce Rustborn player-facing dialogue outside the localization SSoT and the explicit `EgoDialogue.ts` exports.

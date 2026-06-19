@@ -23,6 +23,9 @@ export interface RoomCell {
    *  the exit portal re-appears at the same spot on re-entry. */
   bossPortalX?: number;
   bossPortalY?: number;
+  footprint?: { w: number; h: number };
+  tileRect?: { x: number; y: number; w: number; h: number };
+  templateId?: string;
 }
 
 export interface RoomGridData {
@@ -42,6 +45,7 @@ export interface RoomGridData {
 export interface UnifiedRoomCell extends RoomCell {
   stratumIndex: number;
   absoluteRow: number;
+  isFiller?: boolean;
 }
 
 export interface StratumBound {

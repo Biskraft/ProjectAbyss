@@ -1,17 +1,18 @@
-import { Container, Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
+﻿import { Container, Graphics, Sprite, Assets, Rectangle, Texture } from 'pixi.js';
 import { assetPath } from '@core/AssetLoader';
 import { Entity } from './Entity';
 import { GameAction } from '@core/InputManager';
-import { resolveXPixelStep, resolveYPixelStep, resolveXPixelStepWithSlopes2x1, resolveYPixelStepWithSlopes2x1, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
+import { resolveXPixelStep, resolveYPixelStep, resolveXPixelStepWithSlopes2x1, resolveYPixelStepWithSlopes2x1, TILE_LADDER, isInWater, isInOil, isInMagma, isInAcid, isInCyro, isOnIce, isOnOneWay, isOnLadder, isSolid, tryCornerCorrectUp, tryLedgeSnap, tryDashCornerCorrect } from '@core/Physics';
 import { Debug } from '@core/Debug';
 import { StateMachine } from '@utils/StateMachine';
 import { COMBO_STEPS, COMBO_WINDOW, COMBO3_END_LAG, type ComboStep } from '@combat/CombatData';
+import { getPlayerAttackTimeline, type PlayerAttackTimeline } from '@combat/PlayerAttackTimeline';
 import { resolveComboFx, FX_SLASH_FRAMES } from '@combat/WeaponFx';
 import { scaleComboStep, type CombatEntity } from '@combat/HitManager';
 import { SWORD_DEFS, type Rarity, type WeaponDef, type WeaponType } from '@data/weapons';
 import type { Game } from '../Game';
 import { PlayerConst } from '@data/constData';
-// 2026-05-24: BARE_HAND_ATK import ?�거 ??맨손 ?�태 ?�기
+// 2026-05-24: BARE_HAND_ATK import ??蹂ㅽ깴 ??嶺뚮씚維?? ??⑤객臾??????
 import { SFX } from '@audio/Sfx';
 import { rumbleGamepad } from '@utils/GamepadRumble';
 import { CYRO_FROZEN_SLOW_PCT } from '@systems/TileHazards';
@@ -51,26 +52,26 @@ const APEX_THRESHOLD = PlayerConst.ApexThreshold;
 const APEX_GRAVITY_MULT = PlayerConst.ApexGravityMult;
 const AIR_ACCEL_MULT = PlayerConst.AirAccelMult;
 
-/** Oil slip ???�레?�어가 oil ?�?�서 빠져?�온 ??미끄?�짐??지?�되???�간. */
+/** Oil slip ????????怨룹꽑?띠럾? oil ?????????伊숃???瑜곴텛 ??亦껋꼶梨뜹쳞??壤??嶺뚯솘????쒋뵹????蹂?뜟. */
 export const OIL_SLIP_DURATION_MS = 5000;
 export const OIL_RESIDUE_DURATION_MS = OIL_SLIP_DURATION_MS;
-/** Acid residue ??acid ?� ?�탈 ???�존 trail 발생 기간. */
+/** Acid residue ??acid ?? ??袁㏉돮 ????븐쉷??trail ?꾩룇裕뉑틦??リ옇?쀨? */
 export const ACID_RESIDUE_DURATION_MS = 10000;
-/** Magma residue ??magma ?� ?�탈 ???�존 trail 발생 기간. */
+/** Magma residue ??magma ?? ??袁㏉돮 ????븐쉷??trail ?꾩룇裕뉑틦??リ옇?쀨? */
 export const MAGMA_RESIDUE_DURATION_MS = 10000;
-/** Water residue ??water ?� ?�탈 ??puddle ?�국 ?�존 기간 (2026-05-18 ?�각 only). */
+/** Water residue ??water ?? ??袁㏉돮 ??puddle ???????븐쉷???リ옇?쀨?(2026-05-18 ??蹂?뜜 only). */
 export const WATER_RESIDUE_DURATION_MS = 4000;
-/** Cyro residue ??cyro ?� ?�탈 ??ice 결정 ?�존 기간 (2026-05-18 ?�각 only). */
+/** Cyro residue ??cyro ?? ??袁㏉돮 ??ice ?롪퍒?????븐쉷???リ옇?쀨?(2026-05-18 ??蹂?뜜 only). */
 export const CYRO_RESIDUE_DURATION_MS = 6000;
 
-/** Ego Shard ??기본 보유 발수. Hades Bloodstone ?�일 (3�?. */
+/** Ego Shard ???リ옇????곌랜??? ?꾩룇裕?? Hades Bloodstone ???됰뎄 (3??. */
 export const EGO_SHARD_MAX = 3;
 /** Time until a fired shard automatically returns to the player (ms). */
 export const SHARD_RECOVERY_MS = 8000;
 const DASH_FREEZE_MS = PlayerConst.DashFreezeMs;
 const DASH_CORNER_TOLERANCE = PlayerConst.DashCornerToleranceY;
 
-// Derived: jump velocity from v² = 2*g*h => v = sqrt(2*g*h)
+// Derived: jump velocity from v筌?= 2*g*h => v = sqrt(2*g*h)
 const JUMP_VELOCITY = -Math.sqrt(2 * GRAVITY * JUMP_HEIGHT); // negative = upward
 
 const FRAME_MS = 1000 / 60;
@@ -83,25 +84,25 @@ const ATTACK_SPEED_MUL = 1 / 1.5;
 const ATTACK_TIME_SCALE = 1 / ATTACK_SPEED_MUL;
 
 /** Per-combo-step time multiplier. Currently uniform ??rhythm comes from the
- *  pre-3?� pause (COMBO_3_PRE_DELAY_MS) instead of slowing the 3?� swing itself.
+ *  pre-3?? pause (COMBO_3_PRE_DELAY_MS) instead of slowing the 3?? swing itself.
  *  Compounds with weapon atkSpeed and ATTACK_TIME_SCALE inside startAttack. */
 const COMBO_STEP_TIME_MUL: ReadonlyArray<number> = [1.0, 1.0, 1.0];
 
-/** Pause inserted between 2?� ?�과 3?� ?�작 ??"?�슉(???? 박자.
+/** Pause inserted between 2?? ??猷멸땁 3?? ??戮곗굚 ??"??源낅?(???? ?꾩룆踰??
  *  Player stays in attack state (air stall remains active for hover combos),
- *  no hitbox / slash FX during the wait, then 3?� swings at normal pace. */
+ *  no hitbox / slash FX during the wait, then 3?? swings at normal pace. */
 const COMBO_3_PRE_DELAY_MS = 100;
 
-// ?�?� Air Stall ??aerial attacks suspend the player so a 3-hit combo lands. ?�?�
-// Applied during state==='attack' && !grounded. comboIndex 0/1 (1?�/2?�) get
-// "slow descent"; comboIndex 2 (3?�) gets "near-halt" to anchor the finisher.
-/** Gravity multiplier during 1?�/2?� aerial swings ??0 = full halt. */
+// ???? Air Stall ??aerial attacks suspend the player so a 3-hit combo lands. ????
+// Applied during state==='attack' && !grounded. comboIndex 0/1 (1??/2??) get
+// "slow descent"; comboIndex 2 (3??) gets "near-halt" to anchor the finisher.
+/** Gravity multiplier during 1??/2?? aerial swings ??0 = full halt. */
 const AIR_STALL_GRAVITY_MUL_12 = 0;
-/** Gravity multiplier during 3?� aerial swing ??0 = full halt for the finisher. */
+/** Gravity multiplier during 3?? aerial swing ??0 = full halt for the finisher. */
 const AIR_STALL_GRAVITY_MUL_3 = 0;
-/** Max downward speed cap during 1?�/2?� aerial swings (px/s) ??0 = no drift. */
+/** Max downward speed cap during 1??/2?? aerial swings (px/s) ??0 = no drift. */
 const AIR_STALL_MAX_FALL_12 = 0;
-/** Max downward speed cap during 3?� aerial swing (px/s) ??0 = no drift. */
+/** Max downward speed cap during 3?? aerial swing (px/s) ??0 = no drift. */
 const AIR_STALL_MAX_FALL_3 = 0;
 /** Per-16ms damp on upward velocity during aerial attack ??kills jump residue
  *  so the player "hovers" rather than continuing to rise mid-swing. */
@@ -110,68 +111,77 @@ const WEAPON_ICON_BASE_ROTATION = -45 * Math.PI / 180;
 const SLASH_FX_FRAME_W = 96;
 const SLASH_FX_FRAME_H = 64;
 const SLASH_FX_ERDA_REF_X = 0;
-const SLASH_FX_ERDA_REF_Y = 16;
-const ERDA_FRAME_W = 32;
-const ERDA_FRAME_H = 32;
+const SLASH_FX_ERDA_REF_Y = 24;
+const ERDA_FRAME_W = 48;
+const ERDA_FRAME_H = 48;
 const ERDA_ATTACK_GROUND_START = 18;
-const ERDA_ATTACK2_GROUND_START = 22;
-const ERDA_ATTACK_AIR_START = 26;
-const ERDA_AIM_START = 30;
-const ERDA_AIM_JUMP_FRAME = 34;
-const ERDA_LIFT_START = 35;
-const ERDA_WAKE_UP_START = 39;
+const ERDA_ATTACK2_GROUND_START = 26;
+const ERDA_ATTACK_AIR_START = 34;
+const ERDA_AIM_START = 38;
+const ERDA_AIM_JUMP_FRAME = 42;
+const ERDA_LIFT_START = 43;
+const ERDA_WAKE_UP_START = 47;
 const ERDA_WAKE_UP_FRAME_COUNT = 10;
-const ERDA_ATTACK_FRAME_COUNT = 4;
+const ERDA_ATTACK_GROUND_FRAME_COUNT = 8;
+const ERDA_ATTACK_AIR_FRAME_COUNT = 4;
 const COMBO3_SLASH_SCALE_X = 1.35;
+const PLAYER_SLASH_FX_ENABLED = true;
+const CLIMB_SPEED = MOVE_SPEED * 0.7;
+const CLIMB_STEP_OFF_SPEED = MOVE_SPEED * 0.55;
+const CLIMB_CENTER_LERP = 0.28;
 
 const ATTACK_WEAPON_POSES = [
-  { x: 14, y: 17, rotation: 2.35, scale: 0.85 },
-  { x: 15, y: 17, rotation: 2.35, scale: 0.9 },
-  { x: 15, y: 16, rotation: 2.35, scale: 0.85 },
-  { x: 14, y: 16, rotation: 2.35, scale: 0.8 },
+  { x: 14, y: 17, rotation: 2.35, scale: 0.85, drawOrder: 'front' },
+  { x: 15, y: 17, rotation: 2.35, scale: 0.9, drawOrder: 'front' },
+  { x: 15, y: 16, rotation: 2.35, scale: 0.85, drawOrder: 'front' },
+  { x: 14, y: 16, rotation: 2.35, scale: 0.8, drawOrder: 'front' },
 ] as const;
-type AttackWeaponPose = { x: number; y: number; rotation: number; scale: number };
+type AttackWeaponDrawOrder = 'front' | 'back';
+type AttackWeaponPose = { x: number; y: number; rotation: number; scale: number; drawOrder: AttackWeaponDrawOrder };
+type ErdaFrameRange = { from: number; to: number; count: number };
 
-export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'dash' | 'dive' | 'surge_charge' | 'surge_fly' | 'attack' | 'hit' | 'death';
+export type PlayerState = 'idle' | 'run' | 'jump' | 'fall' | 'climb' | 'dash' | 'dive' | 'surge_charge' | 'surge_fly' | 'attack' | 'hit' | 'death';
 
 export class Player extends Entity implements CombatEntity {
   private game: Game;
   /**
-   * Placeholder green rect ???�셋 로딩 �??�패 ??fallback.
-   * erdaSprite 가 붙으�?invisible 처리.
+   * Placeholder green rect ????????β돦裕녽?繞????덉넮 ??fallback.
+   * erdaSprite ?띠럾? ?釉먮듌??얠춺?invisible 嶺뚳퐣瑗??
    */
   private sprite: Graphics;
   /**
-   * Erda 캐릭???�프?�이?? 32×32 RGBA (assets/characters/erda_atlas.png).
-   * 8?�레??가�??��??�스 ??idle(0??), jump(4??).
-   * ?�트박스(14×24)보다 ?��?�?anchor=(0.5, 1) �?"�?중앙" ?�렬.
-   * 로딩??비동기이므�?로드 ?�엔 null, 로드 ?�료 ??컨테?�너??부�?
+   * Erda 嶺?큔??????덈뒆??源녿턄?? 32??2 RGBA (assets/characters/erda_atlas.png).
+   * 8?熬곣뫁????띠럾????熬???源낅츩 ??idle(0??), jump(4??).
+   * ???낅콦?꾩룆踰??14??4)?곌랜????????anchor=(0.5, 1) ??"??繞벿살탳?? ?筌먲퐣議?
+   * ?β돦裕녽?????х뙴?꾨Ь?⑥щ턄亦껋깢????β돦裕녻キ??熬곣뫖??null, ?β돦裕녻キ??熬곣뫁???????쳜????????遊붋嶺?
    */
   private erdaSprite: Sprite | null = null;
   private weaponSprite: Sprite | null = null;
   private weaponSpriteDefId: string | null = null;
   private attackWeaponPoses: AttackWeaponPose[] = ATTACK_WEAPON_POSES.map(p => ({ ...p }));
-  /** ?��??�스?�서 ?�라??8�??�레???�스�?(idle 0??, jump 4??). */
+  private attackWeaponPoseByFrame = new Map<number, AttackWeaponPose>();
+  /** ?熬???源낅츩???????濡?뎄??8???熬곣뫁??????⑸츩嶺?(idle 0??, jump 4??). */
   private erdaFrames: Texture[] = [];
   private erdaFrameDurationsMs: number[] = [];
+  private erdaFrameTags = new Map<string, ErdaFrameRange>();
   private wakeUpOverrideTimer = 0;
   private wakeUpOverrideDuration = 0;
   private wakeUpHoldPose = false;
   private playerInputSuppressed = false;
   /**
-   * ?�니메이???�브 ?�테?�트:
-   *   - idle   : ?�레??0..3 루프 (400ms/frame)
-   *   - run    : ?�레??8..15 루프 (100ms/frame)
-   *   - takeoff: ?�레??4, 짧�? ?�륙 squash (160ms)
-   *   - air    : ?�레??5, 공중 지??
-   *   - land   : ?�레??6 ??7, 짧�? 착�? 복구 (�?150ms)
-   *   - dash   : ?�레??16 ??17 (startup 30ms + linger 120ms)
-   *   - attack : ?�레??18..21, 진행�?기반 ?�크??(step.totalFrames*FRAME_MS ??맞춰 4?�레??분할)
+   * ??ル봾鍮띸춯濡ル뾼?????類λ땹 ???댟??袁⑤콦:
+   *   - idle   : ?熬곣뫁???0..3 ?猷먮쳜??(400ms/frame)
+   *   - run    : ?熬곣뫁???8..15 ?猷먮쳜??(100ms/frame)
+   *   - takeoff: ?熬곣뫁???4, 嶺뚯쉧猷? ???筌?squash (160ms)
+   *   - air    : ?熬곣뫁???5, ??ㅻ쾴鸚?嶺뚯솘???
+   *   - land   : ?熬곣뫁???6 ??7, 嶺뚯쉧猷? 嶺뚢뼰維? ?곌랜踰??(??150ms)
+   *   - dash   : ?熬곣뫁???16 ??17 (startup 30ms + linger 120ms)
+   *   - attack : ?熬곣뫁???18..21, 嶺뚯쉳?듸쭛?묐ご??リ옇?↑????꾩씩??(step.totalFrames*FRAME_MS ??嶺뚮씮???4?熬곣뫁????釉뚯뫓??
    * idle/run switches on grounded locomotion intent or actual velocity.
-   * 공중 진입/착�???grounded ?��?�??�리�?
-   * dash / attack ?� FSM state 감�?�?진입/?�탈.
+   * ??ㅻ쾴鸚?嶺뚯쉳???嶺뚢뼰維???grounded ?影????筌뤾봇遊뷸ㅀ?
+   * dash / attack ?? FSM state ?띠룆흮???嶺뚯쉳?????袁㏉돮.
    */
-  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'dash' | 'attack' | 'aim' | 'lift' = 'idle';
+  private erdaAnim: 'idle' | 'run' | 'takeoff' | 'air' | 'land' | 'climb' | 'dash' | 'attack' | 'aim' | 'lift' = 'idle';
   /**
    * Charging Cast ??set by scene each frame while V (CAST) is held. Drives
    * the dedicated "aim" Erda animation override. Cleared on release.
@@ -183,68 +193,68 @@ export class Player extends Entity implements CombatEntity {
    * speed (heavy carry).
    */
   isLifting = false;
-  /** idle/run/land ???�브 ?�레???�덱??(0 기�?). takeoff/air ???�용 ???? */
+  /** idle/run/land ????類λ땹 ?熬곣뫁????筌뤾퍓???(0 ?リ옇??). takeoff/air ?????????? */
   private erdaAnimFrame = 0;
-  /** ?�레???�적 ?�?�머 (ms). */
+  /** ?熬곣뫁????熬곣뫗?????????(ms). */
   private erdaAnimTimer = 0;
-  /** ?�전 ?�레?�의 grounded. ?�륙/착�? ?��? 감�??? */
+  /** ??怨몄쓧 ?熬곣뫁??熬곣뫗踰?grounded. ???筌?嶺뚢뼰維? ?影? ?띠룆흮??? */
   private erdaPrevGrounded = true;
   /**
-   * 공중 진입???�프(jump ?�력)?��? ?�순 ?�하(ledge walk-off)?��?.
-   * ?�하 ??air(5) / land 초반(6) ?�레?�을 ?�킵??간결???�하-착�?�??�생.
+   * ??ㅻ쾴鸚?嶺뚯쉳??????믨퀡??jump ???놁졑)?筌? ??貫?????곕┃(ledge walk-off)?筌?.
+   * ???곕┃ ??air(5) / land ?貫?꾥?6) ?熬곣뫁??熬곣뫗諭????꾨븕???띠룄?①뙼?????곕┃-嶺뚢뼰維?嶺???繹?
    */
   private erdaJumpedOff = false;
-  private static readonly ANIM_IDLE_FRAME_MS = 400;  // ?�본 100ms × 4 ?�리�?
-  private static readonly ANIM_RUN_FRAME_MS = 67;     // running ???�본 100ms ??1.5× ?�도
-  private static readonly ANIM_TAKEOFF_MS = 160;      // ?�레??4 ??짧�? ?�륙 squash (2�??�닝)
-  private static readonly ANIM_LAND_FRAME_MS = 150;   // ?�레??6, 7 각각 ???�도 2/3 �?감속 (100??50ms)
-  private static readonly ANIM_DASH_STARTUP_MS = 30;  // ?�레??16 ???�카로운 ?�동 (짧게)
-  private static readonly ANIM_DASH_LINGER_MS = 120;  // ?�레??17 ???�상 ?�운 (길게). ?�계 150ms = DASH_DURATION
-  /** Slash FX ??atlas ?�레??ms. FX ?�펙(sprite/scale/offset/color) ?� CSV(COMBO_STEPS) SSoT. */
+  private static readonly ANIM_IDLE_FRAME_MS = 400;  // ???沅?100ms ??4 ???遊븅뇦?
+  private static readonly ANIM_RUN_FRAME_MS = 67;     // running ?????沅?100ms ??1.5?????쒖┣
+  private static readonly ANIM_TAKEOFF_MS = 160;      // ?熬곣뫁???4 ??嶺뚯쉧猷? ???筌?squash (2????類ｋ뻤)
+  private static readonly ANIM_LAND_FRAME_MS = 150;   // ?熬곣뫁???6, 7 ?띠룄?ヨ??????쒖┣ 2/3 ???띠룆흮??(100??50ms)
+  private static readonly ANIM_DASH_STARTUP_MS = 30;  // ?熬곣뫁???16 ????ル∥異?슖?る츋????類ｌ쭢 (嶺뚯쉧猷볢떋?
+  private static readonly ANIM_DASH_LINGER_MS = 120;  // ?熬곣뫁???17 ????븐슙留?????(?ル?뉓떋?. ??猷뼘?150ms = DASH_DURATION
+  /** Slash FX ??atlas ?熬곣뫁???ms. FX ???덉쓢(sprite/scale/offset/color) ?? CSV(COMBO_STEPS) SSoT. */
   private static readonly ANIM_SLASH_FRAME_MS = 40;
   private slashFrames: Texture[] = [];
   private slashSprite: Sprite | null = null;
-  private slashTimer = 0;          // ?�래???�니메이???�?�머 (ms)
-  private slashFrameIdx = 0;       // ?�재 ?�생 중인 atlas ?�레???�덱??
-  private slashFromIdx = 0;        // ?�생 구간 ?�작
-  private slashToIdx = -1;         // ?�생 구간 ??(비활????-1)
-  private slashHitboxW = 0;        // ?�번 ?�래?��? 참조?�는 ?�트박스 가�????�치 계산??
-  private slashOffsetX = 0;        // CSV FxOffsetX 캐시 (공격 �?comboIndex 가 바뀌어???�재 FX ?��?)
-  private slashOffsetY = 0;        // CSV FxOffsetY 캐시
+  private slashTimer = 0;          // ???????ル봾鍮띸춯濡ル뾼??????????(ms)
+  private slashFrameIdx = 0;       // ?熬곣뫗????繹?繞벿살탳??atlas ?熬곣뫁????筌뤾퍓???
+  private slashFromIdx = 0;        // ??繹???뚮뜆????戮곗굚
+  private slashToIdx = -1;         // ??繹???뚮뜆????(????????-1)
+  private slashHitboxW = 0;        // ??????????? 嶺뚣볦굣???濡ル츎 ???낅콦?꾩룆踰???띠럾??????熬곣뫚????ｌ뫒亦??
+  private slashOffsetX = 0;        // CSV FxOffsetX 嶺?흮??(??ㅻ???繞?comboIndex ?띠럾? ?꾩룆????????熬곣뫗??FX ???)
+  private slashOffsetY = 0;        // CSV FxOffsetY 嶺?흮??
   private attackSprite: Graphics;
   fsm: StateMachine<PlayerState>;
 
   // Stats
   hp = PlayerConst.BaseHp;
   maxHp = PlayerConst.BaseHp;
-  // 2026-05-24: 맨손 ?�태 ?�거. BARE_HAND_ATK 가???�기. 무기 미장�???ATK 0.
-  // updatePlayerAtk() 가 �??�레??atk �??�계?�하므�?초기값�? placeholder.
+  // 2026-05-24: 嶺뚮씚維?? ??⑤객臾???蹂ㅽ깴. BARE_HAND_ATK ?띠럾???????? ??쒕뼬??亦껋꼶梨?節뤵럶???ATK 0.
+  // updatePlayerAtk() ?띠럾? 嶺??熬곣뫁???atk ???????⑥쥓由?쾬?빧???貫?껆뵳寃쇱쾸沃? placeholder.
   atk = 0;
   def = PlayerConst.BaseDef;
   facingRight = true;
 
   // ============================================================
   // Tile hazard status (TileHazards.ts duck-typed fields)
-  // magma ?�촉 ??Burn 3s · charged 체류 ??0.5s tick · acid 체류 ???�속 DOT
-  // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+  // magma ??얜?寃???Burn 3s 鸚?charged 嶺뚳퐢?筌???0.5s tick 鸚?acid 嶺뚳퐢?筌?????⑥リ틭 DOT
+  // GDD: Documents/System/System_World_TileSystem.md 筌?.6-2.13
   // ============================================================
-  /** Burn ?�태 ?�여 ms (0 = ?�상). magma/fire ?�촉 ???�정·갱신. */
+  /** Burn ??⑤객臾???븐슜??ms (0 = ?筌먦끆留?. magma/fire ??얜?寃??????깆젧鸚룸슗泥롦틦?용뼁. */
   burnRemainingMs = 0;
-  /** Burn 1�?tick ?�적??(HazardTarget ?�환). */
+  /** Burn 1??tick ?熬곣뫗???(HazardTarget ?筌뤿굞??. */
   burnTickAccum = 0;
-  /** Charged 0.5�?tick ?�적??(?�드 진입 중에�?증�?). */
+  /** Charged 0.5??tick ?熬곣뫗???(?熬곣뫀援?嶺뚯쉳???繞벿살탳?됰맮彛?嶺뚯빘鍮?). */
   chargedTickAccum = 0;
-  /** Acid 0.1�?tick ?�적??(?�드 진입 중에�?증�?). */
+  /** Acid 0.1??tick ?熬곣뫗???(?熬곣뫀援?嶺뚯쉳???繞벿살탳?됰맮彛?嶺뚯빘鍮?). */
   acidTickAccum = 0;
   chargedStateMs = 0;
   cyroTickAccum = 0;
   cyroSlowRemainingMs = 0;
-  /** ?�전 ?�레??electric ?�버?�이 ?�이?�는지 (thunder per-pulse ?��?지 ?�래??. */
+  /** ??怨몄쓧 ?熬곣뫁???electric ???댁뮅???깅턄 ???깅턄???덈츎嶺뚯솘? (thunder per-pulse ???嶺뚯솘? ?筌뤾퍔???. */
   prevInElectric = false;
   /**
-   * Oil slip debuff ?�여 ms. oil ?�?�서 빠져?�오�?OIL_SLIP_DURATION_MS �?
-   * refresh. > 0 ???�안 ice ?� ?�일??미끄?�짐 (frictionMul = 0.1).
-   * Scene ??hazard tick ?�서 �??�레??감소.
+   * Oil slip debuff ??븐슜??ms. oil ?????????伊숃???瑜곴텕嶺?OIL_SLIP_DURATION_MS ??
+   * refresh. > 0 ?????덊닱 ice ?? ???됰뎄??亦껋꼶梨뜹쳞??壤?(frictionMul = 0.1).
+   * Scene ??hazard tick ?????嶺??熬곣뫁????띠룆흮??
    */
   oilSlipRemainingMs = 0;
   /**
@@ -252,17 +262,17 @@ export class Player extends Entity implements CombatEntity {
    * can refresh slipperiness without recursively spawning more oil blots.
    */
   oilResidueRemainingMs = 0;
-  /** ?�전 ?�레??oil ?� ?�에 ?�었?��? ??진입·?�탈 ?�환 감�????�용. */
+  /** ??怨몄쓧 ?熬곣뫁???oil ?? ???고뱺 ??????? ??嶺뚯쉳???怡??袁㏉돮 ?熬곥굦???띠룆흮??????? */
   prevInOil = false;
-  /** Acid residue trail ?�여 ?�간 ??발이 acid ???�어?�어 ?�존 ?�적 spawn. */
+  /** Acid residue trail ??븐슜????蹂?뜟 ???꾩룇裕??acid ???筌믨퀡????곗꽑 ??븐쉷????븐슦??spawn. */
   acidResidueRemainingMs = 0;
   prevInAcid = false;
-  /** Magma residue trail ?�여 ?�간 ??발이 magma ??그을???�존 ?�적 spawn. */
+  /** Magma residue trail ??븐슜????蹂?뜟 ???꾩룇裕??magma ???잙갭梨?????븐쉷????븐슦??spawn. */
   magmaResidueRemainingMs = 0;
   prevInMagma = false;
-  /** Water residue trail ?�여 ?�간 ??�??�음 puddle ?�적 (2026-05-18). */
+  /** Water residue trail ??븐슜????蹂?뜟 ?????筌믨퀣踰?puddle ??븐슦??(2026-05-18). */
   waterResidueRemainingMs = 0;
-  /** Cyro residue trail ?�여 ?�간 ??발자�?�� ice 결정 ?�존 (2026-05-18). */
+  /** Cyro residue trail ??븐슜????蹂?뜟 ???꾩룇裕?袁ｋ쨨???ice ?롪퍒?????븐쉷??(2026-05-18). */
   cyroResidueRemainingMs = 0;
   prevInCyro = false;
 
@@ -440,7 +450,7 @@ export class Player extends Entity implements CombatEntity {
 
   // Abilities (unlocked by relic pickups)
   abilities = {
-    dash: false,          // ?�릭 ?�득 ?�까지 비활??(?�중???�득)
+    dash: false,          // ???遊????쒓덫 ?熬곥룊?긺춯?뼿 ??????(??瑜곥돡?????쒓덫)
     diveAttack: false,
     surge: false,
     waterBreathing: false,
@@ -455,7 +465,7 @@ export class Player extends Entity implements CombatEntity {
   private static readonly SURGE_DURATION = PlayerConst.SurgeDurationMs;
   private surgeChargeTimer = 0;
   private surgeFlyTimer = 0;
-  private surgeDirX = 0; // 0 = straight up, ±1 = diagonal off wall
+  private surgeDirX = 0; // 0 = straight up, 筌? = diagonal off wall
   /** True during surge flight ??scene can check for contact damage. */
   surgeActive = false;
 
@@ -469,10 +479,10 @@ export class Player extends Entity implements CombatEntity {
   // Last safe ground position (for spike hazard respawn)
   lastSafeX = 0;
   lastSafeY = 0;
-  /** True �??�재 grounded ?�태가 carrier(GiantBuilder ???�동 ?�면) ?�에 ???�음??
-   *  ?��??�다. ??경우 lastSafeX/Y �?갱신?��? ?�아 spike teleport ??
-   *  carrier 가 ?�나버린 ?�치�?복�??��? ?�게 ?�다. Scene ??�??�레??
-   *  playerOnBuilder 결과�?갱신?�다. */
+  /** True 嶺??熬곣뫗??grounded ??⑤객臾뜻뤆?쎛 carrier(GiantBuilder ?????????類쏅듆) ?熬곣뫖???????깅쾳??
+   *  ?????類ｋ펲. ???롪퍔???lastSafeX/Y ???띠룄????? ???욱닡 spike teleport ??
+   *  carrier ?띠럾? ??ル봽?뚨뵓怨뚯뫊???熬곣뫚?꾢슖??곌랜踰???? ??袁⑹벟 ??類ｋ펲. Scene ??嶺??熬곣뫁???
+   *  playerOnBuilder ?롪퍒???앹뿉??띠룄????類ｋ펲. */
   onCarrier = false;
   /** Vertical velocity inherited from the moving carrier underfoot. The scene
    * sets this before update; grounded jumps add it to their takeoff velocity. */
@@ -488,12 +498,12 @@ export class Player extends Entity implements CombatEntity {
 
   // Physics
   private grounded = false;
-  /** Debug (Shift+I): ?�번 ?�레???��? 지지 ?�스. 'grid'|'slope'|'none' ?�는
-   *  ?�이 forceGrounded �??�긴 ?�벨('container'|'builder'|'locked-door'|'void-fade' ??. */
+  /** Debug (Shift+I): ??????熬곣뫁?????? 嶺뚯솘?嶺뚯솘? ???裕? 'grid'|'slope'|'none' ???裕?
+   *  ????forceGrounded ?????얄뵺 ??怨뚮낵('container'|'builder'|'locked-door'|'void-fade' ??. */
   groundSource = 'none';
-  /** Debug: groundSource==='grid' ????발밑 ?� 좌표=?�?�id 목록. */
+  /** Debug: groundSource==='grid' ?????꾩룇裕녻??? ??レ뒭筌?????酉?嶺뚮ㅄ維뽨빳? */
   groundSourceDetail = '';
-  /** ??forceGrounded 가 ?�긴 ?�벨 (extraGroundedSticky 가 true ????groundSource �??�출). */
+  /** ??forceGrounded ?띠럾? ???얄뵺 ??怨뚮낵 (extraGroundedSticky ?띠럾? true ????groundSource ???筌뤾쑵??. */
   private extraGroundedLabel = 'scene';
   private moveRemainderX = 0;
   private moveRemainderY = 0;
@@ -535,14 +545,15 @@ export class Player extends Entity implements CombatEntity {
   private airDashAvailable = true;
   private groundDashAvailable = true;
   private groundDashDelayTimer = 0;
-  /** true �??�번 ?�?��? 지?�에???�작?�음. dash 종료 ??쿨�????�진 ?�정 기�?. */
+  /** true 嶺??????????? 嶺뚯솘???⑤챶?????戮곗굚???踰? dash ??リ턁筌????臾낅쳜??????異???????リ옇??. */
   private dashStartedGrounded = false;
-  /** ?�???�딜 ?�결 ?�?�머 (ms). >0 ?�면 vx/vy=0, 방향�??�플�? */
+  /** ??????ル봾? ???얩뜖 ???????(ms). >0 ?????vx/vy=0, ?꾩렮維싧젆?彛???臾먰깵嶺? */
   private dashFreezeTimer = 0;
 
   // Variable jump height
-  /** ?�프 ??JUMP ?�면 ?�승?�도�??�반 �??????�는 ?�효 ?�간 (ms). */
+  /** ??믨퀡????JUMP ??寃밸듆 ??⑤챶諭???쒖┣?????됰틮 ?????????덈츎 ??ル쪇????蹂?뜟 (ms). */
   private varJumpTimer = 0;
+  private ladderCenterX: number | null = null;
 
   // Death
   isDead = false;
@@ -556,10 +567,23 @@ export class Player extends Entity implements CombatEntity {
   invincible = false;
 
   // Attack / combo
-  comboIndex = 0;          // 0=1?�, 1=2?�, 2=3?�
+  comboIndex = 0;          // 0=1??, 1=2??, 2=3??
   attackTimer = 0;          // current attack frame timer (ms)
+  private attackElapsedMs = 0;
+  private attackVisualTotalMs = 0;
+  private attackHitStartMs = 0;
+  private attackHitEndMs = 0;
+  private attackFxMs = 0;
+  private attackCancelStartMs = 0;
+  private attackCancelEndMs = 0;
+  private attackMoveLockEndMs = 0;
+  private attackLungeStartMs = 0;
+  private attackLungeEndMs = 0;
+  private currentAttackTimeline: PlayerAttackTimeline | null = null;
+  private attackFxTriggered = false;
+  private attackVisualReleased = false;
   comboWindowTimer = 0;     // time left to input next combo (ms)
-  endLagTimer = 0;          // 3?� end lag (ms)
+  endLagTimer = 0;          // 3?? end lag (ms)
   attackQueued = false;     // next attack input buffered
   hitList = new Set<CombatEntity>();
   private attackActive = false;
@@ -567,11 +591,13 @@ export class Player extends Entity implements CombatEntity {
   private attackLungeRemainingPx = 0;
   private attackLungeSpeedPxPerMs = 0;
   private attackLungeDir: 1 | -1 = 1;
+  private attackHitRecoilMs = 0;
+  private attackHitRecoilVx = 0;
   /** Captured at startAttack ??ATTACK_TIME_SCALE divided by the equipped
    *  weapon's CSV atkSpeed. Locks the swing's pace so a mid-swing weapon
    *  swap doesn't visually rubber-band. CSV atkSpeed > 1 = faster, < 1 = slower. */
   private currentAttackTimeScale = ATTACK_TIME_SCALE;
-  /** ms remaining in the 2???� pause. >0 holds the player in 'attack' state
+  /** ms remaining in the 2???? pause. >0 holds the player in 'attack' state
    *  with no active hitbox / no timer tick until it elapses. */
   private preAttackDelay = 0;
 
@@ -589,14 +615,10 @@ export class Player extends Entity implements CombatEntity {
     this.width = 14;
     this.height = 24;
 
-    // Collision width: 70% (tighter feel in tile-based levels).
-    // Collision height: 1.5 cell (24px @ TILE_SIZE=16) ???�용??결정 (2026-05-03):
-    //   기존 1 cell (16px) ?� 1?� ?�이 ?�을 player 가 ?�과 가??(= 메트로베?�아
-    //   ?�력 게이?�로 막아????좁�? ?�로가 무력??. 1.5 cell �??�워 차단.
-    this.collisionW = Math.floor(this.width * 0.7);   // 9px
-    this.collisionH = 24;                             // 1.5 cell ??1?� ???�과 방�?
+    this.collisionW = PlayerConst.CollisionW;
+    this.collisionH = PlayerConst.CollisionH;
 
-    // Placeholder sprite ??erdaSprite 로딩 ?�까지�?보임.
+    // Placeholder sprite ??erdaSprite ?β돦裕녽??熬곥룊?긺춯?뼿嶺??곌랜???
     this.sprite = new Graphics();
     this.sprite.rect(0, 0, this.width, this.height).fill(0x2ecc71);
     this.container.addChild(this.sprite);
@@ -606,7 +628,7 @@ export class Player extends Entity implements CombatEntity {
     this.attackSprite.visible = false;
     this.container.addChild(this.attackSprite);
 
-    // 비동�?로드: ?�료 ??Graphics �??�기�?Sprite �?교체.
+    // ???х뙴?꾨Ь??β돦裕녻キ? ?熬곣뫁????Graphics ????節뗢뵛??Sprite ????흮??
     this.loadErdaSprite();
     this.loadAttackWeaponPoseData();
     this.loadWeaponSprite();
@@ -616,6 +638,17 @@ export class Player extends Entity implements CombatEntity {
     this.fsm = new StateMachine<PlayerState>();
     this.setupStates();
     this.fsm.transition('fall');
+  }
+
+  getHurtAABB(): { x: number; y: number; width: number; height: number } {
+    const width = this.width;
+    const height = this.height;
+    return {
+      x: this.x + (this.width - width) / 2,
+      y: this.y + this.height - height,
+      width,
+      height,
+    };
   }
 
   private setupStates(): void {
@@ -639,14 +672,20 @@ export class Player extends Entity implements CombatEntity {
       update: (dt) => this.stateAir(dt),
     });
     this.fsm.addState({
+      name: 'climb',
+      enter: () => this.startClimb(),
+      update: (dt) => this.stateClimb(dt),
+      exit: () => { this.ladderCenterX = null; },
+    });
+    this.fsm.addState({
       name: 'dash',
       enter: () => this.startDash(),
       update: (dt) => this.stateDash(dt),
       exit: () => {
-        // 지???�?�는 종료 경로?� 무�??�게 쿨�??�이 ?�작?�어???�다.
-        // ?�상 종료(stateDash ??dashTimer<=0) + 중단(onHit/onDeath ??FSM ?�이)
-        // ?�쪽 모두 ?�기??커버. stateDash ?�서 set ?�면 중단 경로�??�쳐
-        // ?�격 직후 즉시 ?��???가?�한 버그 발생 (Codex review P2).
+        // 嶺뚯솘???????類ｋ츎 ??リ턁筌??롪퍔?δ빳?? ??쒕뼬????우벟 ?臾낅쳜??熬곣뫗逾???戮곗굚??琉우꽑????類ｋ펲.
+        // ?筌먦끆留???リ턁筌?stateDash ??dashTimer<=0) + 繞벿살탮??onHit/onDeath ??FSM ?熬곣뫗逾?
+        // ??얜?嫄?嶺뚮ㅄ維筌????????ｋ걞?? stateDash ?????set ??濡?듆 繞벿살탮???롪퍔?δ빳?꾨ご??癰???
+        // ???ｋ큵 嶺뚯쉳???嶺뚯빖留????????띠럾??繞③뇡??뺢퀗????꾩룇裕뉑틦?(Codex review P2).
         if (this.dashStartedGrounded) {
           this.groundDashDelayTimer = DASH_GROUND_DELAY;
         }
@@ -740,9 +779,9 @@ export class Player extends Entity implements CombatEntity {
     if (!this.grounded && this.vy > this.peakFallSpeed) {
       this.peakFallSpeed = this.vy;
     }
-    // Carrier(GiantBuilder) ??grounding ?� safe ground �?기록?��? ?�는??
-    // 빌더가 ?�동/?�실????spike teleport 가 �?공간??가리키�?????
-    // ?�한 좁�? ??좌우 �??�착 ?�는 머리 ??막힘) ?�에 ?�으�?기록?��? ?�는??
+    // Carrier(GiantBuilder) ??grounding ?? safe ground ???リ옇?▽빳??? ???낅츎??
+    // ????臾덉쾸? ????????堉????spike teleport ?띠럾? ????ㅻ?????띠럾??洹먮뿪?뺟춯?????
+    // ??믨퀡由???る궚? ????レ뒩?????筌먦끆而????裕??誘⑹굡????嶺뚮씭留?? ???고뱺 ???깅さ嶺??リ옇?▽빳??? ???낅츎??
     if (this.grounded && this.hp > 0 && !this.onCarrier) {
       const T = 16;
       const cOffX = (this.width - this.collisionW) / 2;
@@ -779,10 +818,10 @@ export class Player extends Entity implements CombatEntity {
         this._justDroppedThrough = true; // VFX: drop-through dust
         return;                     // skip all other jump/attack processing this frame
       }
-      // 2026-05-17: drop-through ?��? ??"착�? 직후 ?�동 ?�프" 방�?.
-      //  - DOWN ???�린 ?�태??JUMP ??buffer ?��? ?�는??(?�도=?�랍, not jump).
-      //  - drop-through 직후 short window (dropThroughTimer ?�성 �? ??JUMP ??무시.
-      // ?????�용??(a) DOWN ?��? mash ?� (b) DOWN ?�고 JUMP ?��? 모두 차단.
+      // 2026-05-17: drop-through ??? ??"嶺뚢뼰維? 嶺뚯쉳??????吏???믨퀡?? ?꾩렮維?.
+      //  - DOWN ?????逾???⑤객臾??JUMP ??buffer ??? ???낅츎??(??濡レ┣=??類ㅻ옐, not jump).
+      //  - drop-through 嶺뚯쉳???short window (dropThroughTimer ??戮?뎽 繞? ??JUMP ????쒕샍??
+      // ??????⑤챷???(a) DOWN ??? mash ?? (b) DOWN ???┑?JUMP ??? 嶺뚮ㅄ維筌?嶺뚢뼰維??
       if (this.isPlayerInputDown(GameAction.LOOK_DOWN) || this.dropThroughTimer > 0) {
         return;
       }
@@ -811,18 +850,23 @@ export class Player extends Entity implements CombatEntity {
 
     const state = this.fsm.currentState;
 
+    if (state !== 'climb' && this.canEnterClimb()) {
+      this.fsm.transition('climb');
+      return;
+    }
+
     // Surge input ????+ C on ground or wall
     if (!this.isLifting && this.abilities.surge && this.isPlayerInputJustPressed(GameAction.DASH) &&
         this.isPlayerInputDown(GameAction.LOOK_UP) &&
         (this.grounded || this.wallSliding) &&
-        state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
+        state !== 'surge_charge' && state !== 'surge_fly' && state !== 'climb' && state !== 'hit' && state !== 'death') {
       this.fsm.transition('surge_charge');
       return;
     }
 
-    // Dash input (requires dash ability, available from most states, cancels 3?� end lag)
+    // Dash input (requires dash ability, available from most states, cancels 3?? end lag)
     if (!this.isLifting && this.abilities.dash && this.isPlayerInputJustPressed(GameAction.DASH) &&
-        state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'hit' && state !== 'death') {
+        state !== 'dash' && state !== 'surge_charge' && state !== 'surge_fly' && state !== 'climb' && state !== 'hit' && state !== 'death') {
       const canDash = this.grounded ? this.groundDashAvailable : this.airDashAvailable;
       if (canDash && (state !== 'attack' || this.canCancelAttackToDash())) {
         this.endLagTimer = 0;
@@ -836,7 +880,7 @@ export class Player extends Entity implements CombatEntity {
     if (!this.isLifting && this.abilities.diveAttack && !this.grounded &&
         this.attackInputEnabled && this.isPlayerInputDown(GameAction.LOOK_DOWN) &&
         this.isPlayerInputJustPressed(GameAction.ATTACK) &&
-        state !== 'dive' && state !== 'dash' && state !== 'hit' && state !== 'death') {
+        state !== 'dive' && state !== 'dash' && state !== 'climb' && state !== 'hit' && state !== 'death') {
       this.fsm.transition('dive');
       return;
     }
@@ -854,7 +898,7 @@ export class Player extends Entity implements CombatEntity {
       && this.attackInputEnabled
       && !this.game.input.interactionPromptActive;
     const attackStateAllowed =
-      !this.isLifting && state !== 'dive' && state !== 'hit' && state !== 'death';
+      !this.isLifting && state !== 'climb' && state !== 'dive' && state !== 'hit' && state !== 'death';
     if (attackPressedThisFrame && attackStateAllowed &&
         this.equippedWeaponType === null && !this.abilities.cheat) {
       // Bare-hand swing attempt ??surface toast via scene, no state change.
@@ -940,15 +984,16 @@ export class Player extends Entity implements CombatEntity {
     if (this.inWater && !this.prevInWater) this._waterTransition = 1;
     else if (!this.inWater && this.prevInWater) this._waterTransition = -1;
     this.prevInWater = this.inWater;
-    // 2026-05-17: 부??/ ?�체 ?�??�� 모든 fluid (water/oil/magma/acid/cyro) ??
-    // ?��? ?�용. `waterMult` 가 gravity + ?�평 ?�동 + max fall ???�시???�핑?�다.
-    // 변?�명?� legacy "water" ?��? (참조 부????. 별도 inAnyFluid ?�래그로 split.
+    // 2026-05-17: ?遊붋??/ ??ル―????????嶺뚮ㅄ維獄?fluid (water/oil/magma/acid/cyro) ??
+    // ??? ??⑤챷?? `waterMult` ?띠럾? gravity + ??臾먯┯ ?????+ max fall ?????덈뻣????믨퀡由??類ｋ펲.
+    // ?곌떠???濡?뎄?? legacy "water" ??? (嶺뚣볦굣???遊붋????. ?곌랙?х뙴?inAnyFluid ????뗥윜諛몄굡餓?split.
     const inAnyFluid = this.inWater
       || isInOil(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 11
       || isInMagma(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 6
       || isInAcid(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 13
       || isInCyro(this.x, this.y, this.width, this.height, this.roomData) || overlayTile === 20;
-    const waterMult = inAnyFluid ? PlayerConst.WaterMoveMult : 1.0; // slow everything in fluid
+    const waterMult = inAnyFluid ? PlayerConst.WaterMoveMult : 1.0; // slow gravity/fall behavior in fluid
+    const horizontalFluidMoveMult = this.inWater && this.abilities.waterBreathing ? 1.25 : waterMult;
 
     // Submersion check ??head (top of sprite) is in water OR oil = 2+
     // tiles deep. Oil submersion drains oxygen the same way water does so
@@ -977,11 +1022,11 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // Apply gravity (except during dash/dive/surge) ??reduced in water.
-    // ?�점 근처(|vy| < APEX_THRESHOLD)?�서 중력 ?�반 ??체공�??�승.
+    // ?筌먦끉???잙??섋뜎?|vy| < APEX_THRESHOLD)?????繞벿살탮?????됰틮 ??嶺뚳퐢???泥???⑤챶諭?
     // Aerial attack ??"Air Stall": gravity dramatically reduced + max fall
-    // capped so 1/2/3?� 콤보 ?�체�?공중?�서 ?�어 맞출 ???�다. 3?�??
-    // 거의 멈춰??마무�?강�?�??�정?�으�?꽂게 ?�다.
-    if (state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
+    // capped so 1/2/3?? ?袁좊걞???熬곣뫕?????ㅻ쾴鸚???????怨룹꽑 嶺뚮씮????????덈펲. 3????
+    // 濾곌쑨???嶺뚮∥????嶺뚮씭?꾬쨭???띠룆踰??????깆젧??⑤챷紐드슖??臾롫옓????類ｋ펲.
+    if (state !== 'climb' && state !== 'dash' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge') {
       const apexMult = Math.abs(this.vy) < APEX_THRESHOLD ? APEX_GRAVITY_MULT : 1.0;
       const aerialAttack = state === 'attack' && !this.grounded;
       const stallMult = aerialAttack
@@ -995,7 +1040,7 @@ export class Player extends Entity implements CombatEntity {
         this.vy *= Math.pow(AIR_STALL_RISE_DAMP_PER_16MS, dt / 16.67);
       }
 
-      // inAnyFluid �?fluid drag �?max fall ???�일 �?(2026-05-17 ??부???�일).
+      // inAnyFluid 嶺?fluid drag ??max fall ?????됰뎄 嶺?(2026-05-17 ???遊붋?????逾?.
       const baseMaxFall = inAnyFluid ? MAX_FALL_SPEED * PlayerConst.WaterMaxFallMult : MAX_FALL_SPEED;
       const maxFall = aerialAttack
         ? (this.comboIndex === 2 ? AIR_STALL_MAX_FALL_3 : AIR_STALL_MAX_FALL_12)
@@ -1003,21 +1048,21 @@ export class Player extends Entity implements CombatEntity {
       if (this.vy > maxFall) this.vy = maxFall;
     }
 
-    // Variable jump height ??JUMP 버튼???�?�머 ?�에 ?�면 ?�승?�도 ?�반 �?
-    // tap = short hop, hold = full height. dash/surge 중엔 비활??(varJumpTimer=0 ?��?).
+    // Variable jump height ??JUMP ?뺢퀗?????????????怨룻뱺 ??寃밸듆 ??⑤챶諭???쒖┣ ???됰틮 ??
+    // tap = short hop, hold = full height. dash/surge 繞벿살탳????????(varJumpTimer=0 ???).
     if (this.varJumpTimer > 0) {
       this.varJumpTimer -= dt;
       if (this.vy < 0 && this.isPlayerInputJustReleased(GameAction.JUMP)) {
         this.vy *= VAR_JUMP_CUT_MULT;
         this.varJumpTimer = 0;
       } else if (this.vy >= 0) {
-        // ?��? ?�하 중이�??�?�머 ?��? ?�음.
+        // ???? ???곕┃ 繞벿살탳?醫묒춺??????????? ??怨몃쾳.
         this.varJumpTimer = 0;
       }
     }
 
-    // Slow horizontal movement in water
-    const moveX = this.consumePixelMoveX(this.vx * waterMult * dtSec);
+    // WaterBreathing removes water slowdown and grants a small horizontal speed boost.
+    const moveX = this.consumePixelMoveX(this.vx * horizontalFluidMoveMult * dtSec);
     const moveY = this.consumePixelMoveY(this.vy * dtSec);
     const colOffX = (this.width - this.collisionW) / 2;   // center horizontally
     const colOffY = this.height - this.collisionH;         // anchor at feet
@@ -1027,7 +1072,7 @@ export class Player extends Entity implements CombatEntity {
     const physX = this.x + colOffX;
     const physY = this.y + colOffY;
     const slopeEligible =
-      state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge' &&
+      state !== 'climb' && state !== 'dive' && state !== 'surge_fly' && state !== 'surge_charge' &&
       (state === 'dash' || this.grounded || this.vy >= 0);
     const slopeSnapPx = state === 'dash' ? SLOPE_2X1_DASH_CAPTURE_PX : SLOPE_2X1_GROUND_SNAP_PX;
 
@@ -1069,7 +1114,7 @@ export class Player extends Entity implements CombatEntity {
     this.y = rx.y - colOffY;
     if (rx.collided) this.vx = 0;
 
-    // ?�승 �?천장 코너???�짝 걸리�?8px ?�내?�서 ?�평?�로 밀???�과.
+    // ??⑤챶諭?繞?嶺뚳퐣裕???袁⑤??????怨? 濾곌쑬梨?怨살춺?8px ???亦???????臾먯┯??怨쀬Ŧ ?꾩럾??????沅?
     if (moveY < 0) {
       const cornerX = tryCornerCorrectUp(
         this.x + colOffX, this.y + colOffY, this.collisionW, this.collisionH,
@@ -1096,8 +1141,8 @@ export class Player extends Entity implements CombatEntity {
     // resolve; we read it here so animation + jump checks behave as if
     // the player is on solid ground.
     this.grounded = ry.grounded || rx.onSlope || this.extraGroundedSticky;
-    // Debug (Shift+I): 발밑???�받치는 충돌 ?�스???�체�?기록. ?�선?�위??
-    // grounded ?��? ?�서(grid > slope > scene flag)?� ?�일.
+    // Debug (Shift+I): ?꾩룇裕녻????ル봿六좂뇖?닿섬???寃몃쳳?????裕???筌먦끆????リ옇?▽빳? ??⑥ろ맖??戮곕쭊??
+    // grounded ??? ??戮?맋(grid > slope > scene flag)?? ???됰뎄.
     if (ry.grounded) {
       this.groundSource = 'grid';
       this.groundSourceDetail = this.sampleFloorTiles(colOffX, colOffY);
@@ -1147,7 +1192,7 @@ export class Player extends Entity implements CombatEntity {
     }
 
     // State transitions based on grounded
-    if (state === 'jump' || state === 'fall') {
+    if (state === 'jump' || state === 'fall' || state === 'climb') {
       if (this.grounded) {
         this.fsm.transition(this.getGroundMovementState());
       } else if (state === 'jump' && this.vy > 0) {
@@ -1172,9 +1217,9 @@ export class Player extends Entity implements CombatEntity {
     // Update camera facing
     this.game.camera.facingDirection = this.facingRight ? 1 : -1;
 
-    // Erda atlas ?�레???�니메이????grounded ?��?�?idle/jump ?�환.
+    // Erda atlas ?熬곣뫁?????ル봾鍮띸춯濡ル뾼?????grounded ?????idle/jump ?熬곥굦??
     this.updateErdaAnimation(dt);
-    // Slash FX ???�생 중일 ?�만 ?�레??갱신, ?�료 ???�동 ?��?.
+    // Slash FX ????繹?繞벿살탳?????異??熬곣뫁????띠룄??? ?熬곣뫁???????吏????.
     this.updateSlashFX(dt);
     // Consume the scene-supplied "standing on container" flag. The scene
     // re-sets it AFTER player.update each frame; reads here next frame.
@@ -1259,7 +1304,7 @@ export class Player extends Entity implements CombatEntity {
     const onIce = this.grounded && isOnIce(this.x, this.y, this.width, this.height, this.roomData);
     const oilSlipping = this.grounded && this.oilSlipRemainingMs > 0;
     const frictionMul = (onIce || oilSlipping) ? 0.1 : 1.0;
-    // 공중?�서??가??감속???�간 줄여 ?�약감·조?�감??무겁�?
+    // ??ㅻ쾴鸚???????띠럾????띠룆흮?????袁⑺뜟 繞벿븐뫒???熬곣뫖?뗦뤆?낆??룸컾???얜‘鍮????쒕뼬?▲굝移?
     const airMul = this.grounded ? 1.0 : AIR_ACCEL_MULT;
     const accelRate = MOVE_SPEED / (ACCEL_FRAMES / 60) * frictionMul * airMul;
 
@@ -1327,6 +1372,88 @@ export class Player extends Entity implements CombatEntity {
     this.startJumpMotion(WALL_JUMP_VY);
   }
 
+  private getPlayerCollisionRect(): { x: number; y: number; width: number; height: number } {
+    const colOffX = (this.width - this.collisionW) / 2;
+    const colOffY = this.height - this.collisionH;
+    return {
+      x: this.x + colOffX,
+      y: this.y + colOffY,
+      width: this.collisionW,
+      height: this.collisionH,
+    };
+  }
+
+  private isTouchingLadder(): boolean {
+    const rect = this.getPlayerCollisionRect();
+    return isOnLadder(rect.x, rect.y, rect.width, rect.height, this.roomData);
+  }
+
+  private getCurrentLadderCenterX(): number | null {
+    const rect = this.getPlayerCollisionRect();
+    const col = Math.floor((rect.x + rect.width / 2) / 16);
+    const top = Math.floor((rect.y + 2) / 16);
+    const bottom = Math.floor((rect.y + rect.height - 3) / 16);
+    for (let row = top; row <= bottom; row++) {
+      if (this.roomData[row]?.[col] === TILE_LADDER) return col * 16 + 8;
+    }
+    return null;
+  }
+
+  private canEnterClimb(): boolean {
+    if (this.isLifting || this.flaskCasting || this.fsm.currentState === 'hit' || this.fsm.currentState === 'death') {
+      return false;
+    }
+    return this.isPlayerInputDown(GameAction.LOOK_UP) && this.isTouchingLadder();
+  }
+
+  private startClimb(): void {
+    this.vx = 0;
+    this.vy = 0;
+    this.grounded = false;
+    this.wallSliding = false;
+    this.touchingWallDir = 0;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+    this.varJumpTimer = 0;
+    this.doubleJumpAvailable = true;
+    this.airDashAvailable = true;
+    this.ladderCenterX = this.getCurrentLadderCenterX();
+    this.moveRemainderX = 0;
+    this.moveRemainderY = 0;
+  }
+
+  private stateClimb(dt: number): void {
+    if (!this.isTouchingLadder()) {
+      this.fsm.transition(this.grounded ? this.getGroundMovementState() : 'fall');
+      return;
+    }
+
+    if (this.isPlayerInputJustPressed(GameAction.JUMP) && this.fsm.currentState !== 'climb') {
+      this.startJumpMotion(JUMP_VELOCITY * 0.85);
+      this._justJumpedGround = true;
+      SFX.play('jump', 0, { speed: 0.95 + Math.random() * 0.1 });
+      return;
+    }
+
+    const inputX = this.getHorizontalInputDirection();
+    const inputY = (this.isPlayerInputDown(GameAction.LOOK_UP) ? -1 : 0)
+      + (this.isPlayerInputDown(GameAction.LOOK_DOWN) ? 1 : 0);
+    if (inputX !== 0 && inputY === 0) {
+      this.vx = inputX * CLIMB_STEP_OFF_SPEED;
+      this.vy = 0;
+      this.fsm.transition(this.grounded ? this.getGroundMovementState() : 'fall');
+      return;
+    }
+
+    this.vx = 0;
+    this.vy = inputY * CLIMB_SPEED;
+    const centerX = this.ladderCenterX ?? this.getCurrentLadderCenterX();
+    if (centerX !== null) {
+      const desiredX = centerX - this.width / 2;
+      this.x += (desiredX - this.x) * Math.min(1, CLIMB_CENTER_LERP * dt / 16.67);
+    }
+  }
+
   private tryJump(): boolean {
     const canJump = this.grounded || this.coyoteTimer > 0;
     const wantsJump = this.jumpBufferTimer > 0;
@@ -1337,7 +1464,7 @@ export class Player extends Entity implements CombatEntity {
         this.jumpBufferTimer = 0;
         this.startDoubleJumpMotion();
         this._justDoubleJumped = true;
-        // ?�블 ?�프 ??speed ?�간 빠르�?(?�치 ?? �?차별??
+        // ??븐뼦????믨퀡????speed ??袁⑺뜟 ??伊??듭물?(??源딅뭵 ?? ??嶺뚢뼰維???
         SFX.play('jump', 0, { speed: 1.1 });
         return true;
       }
@@ -1345,7 +1472,7 @@ export class Player extends Entity implements CombatEntity {
       this.coyoteTimer = 0;
       // VFX: ground takeoff event (only fires for grounded jump ??coyote counts)
       this._justJumpedGround = true;
-      // 지�??�프 ??speed 0.95~1.05 무작??(?�조로�? 감소).
+      // 嶺뚯솘?嶺???믨퀡????speed 0.95~1.05 ??쒕샍???(??棺??륁뿉?? ?띠룆흮??.
       SFX.play('jump', 0, { speed: 0.95 + Math.random() * 0.1 });
       this.startGroundJumpMotion();
       return true;
@@ -1378,24 +1505,24 @@ export class Player extends Entity implements CombatEntity {
     this.dashStartedGrounded = this.grounded;
     if (this.grounded) {
       this.groundDashAvailable = false;
-      // 쿨�??��? dash 종료 ?�점???�작 ??FSM dash.exit ?�서 ?�합 처리.
+      // ?臾낅쳜??熬? dash ??リ턁筌???戮곗젍????戮곗굚 ??FSM dash.exit ????????? 嶺뚳퐣瑗??
     } else {
       this.airDashAvailable = false;
     }
-    // ?�??sound ??speed 0.95~1.05 무작??(반복�???.
+    // ????sound ??speed 0.95~1.05 ??쒕샍???(?꾩룇瑗??泥???.
     SFX.play('dash', 0, { speed: 0.95 + Math.random() * 0.1 });
     rumbleGamepad(45, 0.15, 0.35);
     this.dashTimer = DASH_DURATION;
-    // ?�???�딜 3?�레??50ms) ?�결 ??stateDash ?�서 ?��???방향 ?�정 ??dashSpeed 커밋.
+    // ??????ル봾? 3?熬곣뫁???50ms) ???얩뜖 ??stateDash ????????????꾩렮維싧젆??筌먦끉????dashSpeed ??ｋ걞??
     this.dashFreezeTimer = DASH_FREEZE_MS;
-    // Variable jump ?�?�머???�?�로 ??��?�인 ?�프 ?�승�?무�? ??즉시 종료.
+    // Variable jump ????????????類ㅼŦ ?????⑥щ데 ??믨퀡????⑤챶諭????쒕뼬? ??嶺뚯빖留????リ턁筌?
     this.varJumpTimer = 0;
 
     if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
     else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
     else this.dashDirX = this.facingRight ? 1 : -1;
 
-    // ?�결 구간 ?�안?� ?��?. 방향?� freeze ?�제 ?�간 ?�샘??
+    // ???얩뜖 ??뚮뜆?????덊닱?? ?筌?. ?꾩렮維싧젆?? freeze ??怨몄젷 ??蹂?뜟 ??繹??
     this.vx = 0;
     this.vy = 0;
 
@@ -1405,20 +1532,20 @@ export class Player extends Entity implements CombatEntity {
   }
 
   private stateDash(dt: number): void {
-    // Freeze 구간 ??방향�??�시�??�샘?? ?�동?� 멈춤.
+    // Freeze ??뚮뜆?????꾩렮維싧젆?彛????곕뻣????繹?? ?????? 嶺뚮∥???
     if (this.dashFreezeTimer > 0) {
       this.dashFreezeTimer -= dt;
         if (this.isPlayerInputDown(GameAction.MOVE_RIGHT)) this.dashDirX = 1;
       else if (this.isPlayerInputDown(GameAction.MOVE_LEFT)) this.dashDirX = -1;
-      // ?�력 ?�으�?기존 dashDirX ?��? (startDash ?�서 facing 기반 ?�정).
+      // ???놁졑 ??怨몃さ嶺??リ옇???dashDirX ??? (startDash ?????facing ?リ옇?↑????깆젧).
       this.vx = 0;
       this.vy = 0;
       if (this.dashFreezeTimer <= 0) {
-        // Freeze ?�제 ???�제 ?�???�도 커밋.
+        // Freeze ??怨몄젷 ?????깆젷 ???????쒖┣ ??ｋ걞??
         const dashSpeed = (DASH_DISTANCE / (DASH_DURATION / 1000)) * this.getCyroMoveMultiplier();
         this.vx = this.dashDirX * dashSpeed;
         this.vy = 0;
-        this._dashDir = this.dashDirX; // VFX ?�확??(방향 변경됐?????�음)
+        this._dashDir = this.dashDirX; // VFX ?????(?꾩렮維싧젆??곌떠??롪퍔?η뵳???????깅쾳)
       }
       return;
     }
@@ -1426,11 +1553,11 @@ export class Player extends Entity implements CombatEntity {
     this.dashTimer -= dt;
     if (this.dashTimer <= 0) {
       this.vx = this.dashDirX * MOVE_SPEED * 0.5 * this.getCyroMoveMultiplier();
-      // groundDashDelayTimer ??FSM dash.exit ?�서 ?�합 처리 (중단 경로 커버).
+      // groundDashDelayTimer ??FSM dash.exit ????????? 嶺뚳퐣瑗??(繞벿살탮???롪퍔?δ빳???ｋ걞??.
       if (this.grounded) {
         this.fsm.transition(this.getGroundMovementState());
       } else {
-        // 지???�?��? 공중?�서 ?�났?�면 공중 ?�?�도 ?�진 ??ledge-drop ?�쇄 방�?.
+        // 嶺뚯솘???????? ??ㅻ쾴鸚???????硫명뀬???좊듆 ??ㅻ쾴鸚?????類ｌ┣ ???異???ledge-drop ??⑥ル눝 ?꾩렮維?.
         if (this.dashStartedGrounded) {
           this.airDashAvailable = false;
         }
@@ -1545,44 +1672,60 @@ export class Player extends Entity implements CombatEntity {
 
   private startAttack(): void {
     const step = COMBO_STEPS[this.comboIndex];
-    // Capture per-swing time scale = global slow-down × (1 / weapon atkSpeed)
-    // × per-combo-step multiplier ("?�슉-??: 3?� drawn out).
+    const timeline = getPlayerAttackTimeline(this.comboIndex, this.grounded);
+    const attackRange = this.getAttackRangeForTimeline(timeline);
+    // Capture per-swing time scale = global slow-down ??(1 / weapon atkSpeed)
+    // ??per-combo-step multiplier ("??源낅?-??: 3?? drawn out).
     const def = this.getEquippedWeaponDef();
     const wSpeed = def.atkSpeed > 0 ? def.atkSpeed : 1.0;
     const stepMul = COMBO_STEP_TIME_MUL[this.comboIndex] ?? 1.0;
     this.currentAttackTimeScale = (ATTACK_TIME_SCALE / wSpeed) * stepMul;
-    this.attackTimer = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
+    this.currentAttackTimeline = timeline;
+    this.attackElapsedMs = 0;
+    this.attackVisualTotalMs = timeline.visualTotalMs === 'auto'
+      ? this.getErdaRangeDurationMs(attackRange)
+      : Math.max(1, timeline.visualTotalMs);
+    this.attackHitStartMs = this.getErdaFrameMarkerStartMs(attackRange, timeline.hitStartFrame);
+    this.attackHitEndMs = Math.max(this.attackHitStartMs + 1, this.getErdaFrameMarkerEndMs(attackRange, timeline.hitEndFrame));
+    this.attackFxMs = this.getErdaFrameMarkerStartMs(attackRange, timeline.fxFrame);
+    this.attackCancelStartMs = this.getErdaFrameMarkerStartMs(attackRange, timeline.cancelStartFrame);
+    this.attackCancelEndMs = Math.max(this.attackCancelStartMs, this.getErdaFrameMarkerEndMs(attackRange, timeline.cancelEndFrame));
+    this.attackMoveLockEndMs = this.getErdaFrameMarkerEndMs(attackRange, timeline.moveLockEndFrame);
+    this.attackLungeStartMs = this.getErdaFrameMarkerStartMs(attackRange, timeline.lungeStartFrame);
+    this.attackLungeEndMs = Math.max(this.attackLungeStartMs, this.getErdaFrameMarkerStartMs(attackRange, timeline.lungeEndFrame));
+    this.attackTimer = this.attackVisualTotalMs;
     this.attackActive = false;
     this.attackHasActivated = false;
+    this.attackFxTriggered = false;
     this.attackLungeRemainingPx = 0;
     this.attackLungeSpeedPxPerMs = 0;
+    this.attackHitRecoilMs = 0;
+    this.attackHitRecoilVx = 0;
     this.attackQueued = false;
     const lungePx = Math.max(0, step.lungePx) * (this.grounded ? 1 : AERIAL_ATTACK_LUNGE_MULT);
     this.attackLungeRemainingPx = lungePx;
-    this.attackLungeSpeedPxPerMs = lungePx / ATTACK_LUNGE_DURATION_MS;
+    this.attackLungeSpeedPxPerMs = lungePx / Math.max(1, this.attackLungeEndMs - this.attackLungeStartMs);
     this.attackLungeDir = this.facingRight ? 1 : -1;
     this.hitList.clear();
     this.comboWindowTimer = 0;
 
-    // Swing whoosh ??every attack swing (hit ?�는 miss 무�?).
-    // comboIndex 0/1/2 ??whoosh_01/02/03 ?�산 (Sfx.ASSET_BACKED_CUES 배열 ?�덱??.
+    // Swing whoosh ??every attack swing (hit ???裕?miss ??쒕뼬?).
+    // comboIndex 0/1/2 ??whoosh_01/02/03 ?????(Sfx.ASSET_BACKED_CUES ?꾩룄?ｈ굢??筌뤾퍓???.
     SFX.play('attack_swing', this.comboIndex);
 
     // Show attack hitbox visual
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
-    // Slash FX ??comboIndex �??�그/?��???
+    // Slash FX ??comboIndex ????蹂μ쟽/?????
   }
 
   private stateAttack(dt: number): void {
-    this.vx = 0;
-
     // Gravity already applied in update() before state dispatch ??no double gravity
 
-    // 2???� pause ??hold the player in 'attack' state (air stall stays active
+    // 2???? pause ??hold the player in 'attack' state (air stall stays active
     // because comboIndex is already 2) without ticking attack/hitbox logic.
-    // When the countdown elapses, fire startAttack() to begin 3?�.
+    // When the countdown elapses, fire startAttack() to begin 3??.
     if (this.preAttackDelay > 0) {
       this.preAttackDelay -= dt;
       if (this.preAttackDelay <= 0) {
@@ -1592,32 +1735,80 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
 
-    this.attackTimer -= dt;
+    this.attackElapsedMs += dt;
+    this.attackTimer = Math.max(0, this.attackVisualTotalMs - this.attackElapsedMs);
 
     const step = COMBO_STEPS[this.comboIndex];
-    const totalMs = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
-    const activeMs = step.activeFrames * FRAME_MS * this.currentAttackTimeScale;
-    const activeStartMs = totalMs / 4;
-    const elapsedMs = totalMs - this.attackTimer;
-    if (elapsedMs < activeStartMs) {
+    const timeline = this.currentAttackTimeline ?? getPlayerAttackTimeline(this.comboIndex, this.grounded);
+    const elapsedMs = this.attackElapsedMs;
+    if (elapsedMs >= this.attackLungeStartMs && elapsedMs < this.attackLungeEndMs) {
       this.applyAttackLunge(dt);
+    } else if (elapsedMs < this.attackMoveLockEndMs) {
+      this.vx = 0;
     }
 
-    if (!this.attackHasActivated && elapsedMs >= activeStartMs) {
-      this.attackHasActivated = true;
-      this.attackActive = true;
-      this.updateAttackVisual();
+    if (!this.attackFxTriggered && elapsedMs >= this.attackFxMs) {
+      this.attackFxTriggered = true;
       this.triggerSlash(this.comboIndex);
     }
 
+    if (!this.attackHasActivated && elapsedMs >= this.attackHitStartMs) {
+      this.attackHasActivated = true;
+      this.attackActive = true;
+      this.updateAttackVisual();
+    }
+
     // Deactivate hitbox after active frames
-    if (this.attackHasActivated && elapsedMs >= activeStartMs + activeMs) {
+    if (this.attackHasActivated && elapsedMs >= this.attackHitEndMs) {
       this.attackActive = false;
       this.attackSprite.visible = false;
     }
 
+    if (this.attackQueued && this.comboIndex < 2 && elapsedMs >= this.attackCancelStartMs && elapsedMs <= this.attackCancelEndMs) {
+      this.attackActive = false;
+      this.attackHasActivated = false;
+      this.comboIndex++;
+      this.attackQueued = false;
+      if (this.comboIndex === 2) {
+        const nextTimeline = getPlayerAttackTimeline(this.comboIndex, this.grounded);
+        this.preAttackDelay = Math.max(0, nextTimeline.preDelayMs || COMBO_3_PRE_DELAY_MS);
+      } else {
+        this.startAttack();
+      }
+      return;
+    }
+
+    if (!this.attackQueued && elapsedMs >= this.attackCancelStartMs && elapsedMs <= this.attackCancelEndMs) {
+      const wantsMovement = this.grounded
+        ? this.getHorizontalInputDirection() !== 0
+        : (
+          this.getHorizontalInputDirection() !== 0
+          || this.isPlayerInputJustPressed(GameAction.JUMP)
+          || this.isPlayerInputJustPressed(GameAction.DASH)
+        );
+      if (wantsMovement) {
+        this.attackActive = false;
+        this.attackHasActivated = false;
+        this.attackVisualReleased = true;
+        this.erdaAnim = this.grounded ? this.getGroundMovementState() : 'air';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+        this.hideAttackWeapon();
+        this.attackSprite.visible = false;
+        if (this.comboIndex >= 2) {
+          this.endLagTimer = Math.max(0, timeline.endLagMs || COMBO3_END_LAG);
+          this.comboIndex = 0;
+        } else {
+          this.comboIndex++;
+          this.comboWindowTimer = Math.max(0, timeline.comboWindowMs || COMBO_WINDOW);
+        }
+        this.fsm.transition(this.grounded ? this.getGroundMovementState() : 'fall');
+        return;
+      }
+    }
+
     // Attack animation finished
-    if (this.attackTimer <= 0) {
+    if (elapsedMs >= this.attackVisualTotalMs) {
       this.attackActive = false;
       this.attackHasActivated = false;
 
@@ -1626,9 +1817,10 @@ export class Player extends Entity implements CombatEntity {
         this.comboIndex++;
         this.attackQueued = false;
         if (this.comboIndex === 2) {
-          // 2?� ??3?�: insert "?�슉(???? pause. stateAttack will fire
+          // 2?? ??3??: insert "??源낅?(???? pause. stateAttack will fire
           // startAttack() once the delay countdown reaches 0.
-          this.preAttackDelay = COMBO_3_PRE_DELAY_MS;
+          const nextTimeline = getPlayerAttackTimeline(this.comboIndex, this.grounded);
+          this.preAttackDelay = Math.max(0, nextTimeline.preDelayMs || COMBO_3_PRE_DELAY_MS);
         } else {
           this.startAttack();
         }
@@ -1637,13 +1829,13 @@ export class Player extends Entity implements CombatEntity {
 
       // Attack done ??set combo window or end lag
       if (this.comboIndex >= 2) {
-        // 3?� finished ??end lag
-        this.endLagTimer = COMBO3_END_LAG;
+        // 3?? finished ??end lag
+        this.endLagTimer = Math.max(0, timeline.endLagMs || COMBO3_END_LAG);
         this.comboIndex = 0;
       } else {
-        // 1?� or 2?� ??combo window
+        // 1?? or 2?? ??combo window
         this.comboIndex++;
-        this.comboWindowTimer = COMBO_WINDOW;
+        this.comboWindowTimer = Math.max(0, timeline.comboWindowMs || COMBO_WINDOW);
       }
 
       // Return to movement state
@@ -1658,8 +1850,15 @@ export class Player extends Entity implements CombatEntity {
   private endAttack(): void {
     this.attackActive = false;
     this.attackHasActivated = false;
+    this.attackFxTriggered = false;
+    this.attackVisualReleased = false;
+    this.attackElapsedMs = 0;
+    this.attackVisualTotalMs = 0;
+    this.currentAttackTimeline = null;
     this.attackLungeRemainingPx = 0;
     this.attackLungeSpeedPxPerMs = 0;
+    this.attackHitRecoilMs = 0;
+    this.attackHitRecoilVx = 0;
     this.attackSprite.visible = false;
     if (this.slashSprite) this.slashSprite.visible = false;
     this.slashToIdx = -1;
@@ -1673,8 +1872,15 @@ export class Player extends Entity implements CombatEntity {
     this.attackHasActivated = false;
     this.attackLungeRemainingPx = 0;
     this.attackLungeSpeedPxPerMs = 0;
+    this.attackHitRecoilMs = 0;
+    this.attackHitRecoilVx = 0;
     this.attackQueued = false;
     this.attackTimer = 0;
+    this.attackElapsedMs = 0;
+    this.attackVisualTotalMs = 0;
+    this.currentAttackTimeline = null;
+    this.attackFxTriggered = false;
+    this.attackVisualReleased = false;
     this.comboWindowTimer = 0;
     this.endLagTimer = 0;
     this.preAttackDelay = 0;
@@ -1689,28 +1895,77 @@ export class Player extends Entity implements CombatEntity {
     return this.attackActive;
   }
 
+  onAttackHitRecoil(dirX: number, targetKnockbackX: number, heavy: boolean): void {
+    this.attackLungeRemainingPx = 0;
+    this.attackLungeSpeedPxPerMs = 0;
+    this.attackHitRecoilMs = heavy ? 100 : 75;
+    this.attackHitRecoilVx = -dirX * Math.max(15, targetKnockbackX * (heavy ? 0.06875 : 0.05625));
+  }
+
+  private moveAttackLungeBy(moveX: number): void {
+    if (moveX === 0) return;
+    const colOffX = (this.width - this.collisionW) / 2;
+    const colOffY = this.height - this.collisionH;
+    const physX = this.x + colOffX;
+    const physY = this.y + colOffY;
+    const slopeEligible = this.grounded || this.vy >= 0;
+    const slopeSnapPx = SLOPE_2X1_GROUND_SNAP_PX;
+
+    let rx = slopeEligible
+      ? resolveXPixelStepWithSlopes2x1(
+        physX, physY, this.collisionW, this.collisionH,
+        moveX, this.roomData, slopeSnapPx,
+      )
+      : {
+        ...resolveXPixelStep(physX, physY, this.collisionW, this.collisionH, moveX, this.roomData),
+        y: physY,
+        onSlope: false,
+      };
+
+    if (rx.collided && !rx.onSlope) {
+      const correctedY = tryLedgeSnap(
+        physX, physY, this.collisionW, this.collisionH,
+        moveX, this.roomData, LEDGE_TOLERANCE,
+      );
+      if (correctedY !== null) {
+        rx = {
+          ...resolveXPixelStep(physX, correctedY, this.collisionW, this.collisionH, moveX, this.roomData),
+          y: correctedY,
+          onSlope: false,
+        };
+      }
+    }
+
+    this.x = rx.x - colOffX;
+    this.y = rx.y - colOffY;
+    if (rx.collided) {
+      this.attackLungeRemainingPx = 0;
+      this.attackLungeSpeedPxPerMs = 0;
+    }
+  }
+
   private applyAttackLunge(dt: number): void {
+    if (this.attackHitRecoilMs > 0) {
+      this.attackHitRecoilMs = Math.max(0, this.attackHitRecoilMs - dt);
+      this.vx = this.attackHitRecoilVx;
+      if (this.attackHitRecoilMs <= 0) this.attackHitRecoilVx = 0;
+      return;
+    }
     if (this.attackLungeRemainingPx <= 0 || dt <= 0) {
-      this.vx = 0;
       return;
     }
     const movePx = Math.min(this.attackLungeRemainingPx, this.attackLungeSpeedPxPerMs * dt);
     this.attackLungeRemainingPx -= movePx;
-    this.vx = this.attackLungeDir * (movePx / (dt / 1000));
+    this.moveAttackLungeBy(this.attackLungeDir * movePx);
   }
 
   private canCancelAttackToDash(): boolean {
     if (this.preAttackDelay > 0) return false;
-    const step = COMBO_STEPS[this.comboIndex];
-    if (!step) return false;
-    const totalMs = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
-    const activeMs = step.activeFrames * FRAME_MS * this.currentAttackTimeScale;
-    const activeStartMs = totalMs / 4;
-    const elapsedMs = totalMs - this.attackTimer;
-    const activeEndMs = activeStartMs + activeMs;
-    if (elapsedMs < activeEndMs) return false;
-    if (this.comboIndex < 2) return true;
-    return elapsedMs >= activeEndMs + Math.max(0, totalMs - activeEndMs) * 0.5;
+    if (!this.currentAttackTimeline) return false;
+    const elapsedMs = this.attackElapsedMs;
+    if (elapsedMs < this.attackCancelStartMs) return false;
+    if (elapsedMs > this.attackCancelEndMs) return false;
+    return true;
   }
   /** True while the dash state is active (scene can spawn afterimage trail). */
   isDashing(): boolean {
@@ -1832,8 +2087,8 @@ export class Player extends Entity implements CombatEntity {
   wallContactDir(): number { return this.touchingWallDir; }
 
   /**
-   * Debug: 발밑(feetRow) ?�?�을 그리?�에???�플??"col,row=tileId" 목록?�로 반환.
-   * groundSource==='grid' ?????�떤 ?�?�이 ?�받치는지 ?�별??
+   * Debug: ?꾩룇裕녻?feetRow) ?????깅굵 ?잙갭梨???戮?뱺????臾먰깵??"col,row=tileId" 嶺뚮ㅄ維뽨빳??怨쀬Ŧ ?꾩룇瑗??
+   * groundSource==='grid' ?????????????源녿턄 ??ル봿六좂뇖?닿섬????? ??紐끒??
    */
   private sampleFloorTiles(colOffX: number, colOffY: number): string {
     const T = 16;
@@ -1968,7 +2223,7 @@ export class Player extends Entity implements CombatEntity {
     }
     this.attackSprite.scale.x = 1;
     this.attackSprite.y = offsetY;
-    // ?�트박스 ?�버�?박스??Debug.visible ??true ???�만 ?�시.
+    // ???낅콦?꾩룆踰????븐뼚?붷윜??꾩룆踰???Debug.visible ??true ?????異???戮?뻣.
     this.attackSprite.visible = Debug.visible;
   }
 
@@ -2005,19 +2260,18 @@ export class Player extends Entity implements CombatEntity {
   private flashOverlay: Graphics | null = null;
 
   /**
-   * Erda ?�프?�이??비동�?로드.
-   * ?�셋 부???�트?�크 ?�패 ??fallback ?� 기존 ?�색 placeholder ?��?.
+   * Erda ???덈뒆??源녿턄?????х뙴?꾨Ь??β돦裕녻キ?
+   * ??????遊붋?????덈콦??怨뚯씩 ???덉넮 ??fallback ?? ?リ옇????獄?繹?placeholder ???.
    */
   private loadErdaSprite(): void {
     const path = assetPath('assets/characters/erda_atlas.png');
     Assets.load(path).then((tex: Texture) => {
       if (this.container.destroyed) return;
-      // pixel-perfect ??주�? ?�스케???�이?�라??worldRT nearest)�??�치.
+      // pixel-perfect ???낅슣?? ???용츩??댟?????逾?熬곣뫁逾??worldRT nearest)????源딅뭵.
       tex.source.scaleMode = 'nearest';
 
-      // 32×32 frame atlas. attack2 adds four frames after attack1:
-      // attack1=18..21, attack2=22..25, attack_air=26..29,
-      // aim=30..33, aim_jump=34, lift=35..38.
+      // Atlas ranges are resolved from erda_atlas.json frameTags when available.
+      // Fallback constants below match the current exported strip.
       this.erdaFrames = [];
       const frameCount = Math.floor(tex.width / ERDA_FRAME_W);
       for (let i = 0; i < frameCount; i++) {
@@ -2030,18 +2284,18 @@ export class Player extends Entity implements CombatEntity {
       }
 
       const s = new Sprite(this.erdaFrames[0]);
-      // �?중앙 기�?: ?�트박스(14×24) ???�단 중앙???�프?�이???�커�?건다.
-      // 32×32 ?�프?�이?��? 박스보다 가�?18px, ?�로 8px 커서 바깥?�로 ?�져?�옴 (?�도).
+      // ??繞벿살탳???リ옇??: ???낅콦?꾩룆踰??14??4) ????濡ル펺 繞벿살탳??????덈뒆??源녿턄?????臾??濾곌쑬???
+      // 32??2 ???덈뒆??源녿턄?筌? ?꾩룆踰??덊돦?????띠럾???18px, ?筌뤾퍔夷?8px ??ｋ걠???꾩룆?썼눧??怨쀬Ŧ ???二??瑜곴맘 (??濡レ┣).
       s.anchor.set(0.5, 1);
       s.x = this.width / 2;
       s.y = this.height;
-      // attackSprite / flashOverlay 보다 ?�래???�아 ?�트박스 ?�버�??�버?�이�?가리�? ?�도�?
+      // attackSprite / flashOverlay ?곌랜????熬곣뫁????癰??????낅콦?꾩룆踰????븐뼚?붷윜????댁뮅???깅턄???띠럾??洹? ???낆┣??
       const weaponIdx = this.weaponSprite ? this.container.getChildIndex(this.weaponSprite) : -1;
       this.container.addChildAt(s, weaponIdx >= 0 ? weaponIdx + 1 : 0);
       this.erdaSprite = s;
       this.sprite.visible = false; // placeholder off.
     }).catch(() => {
-      // 로드 ?�패 ??placeholder ?��?.
+      // ?β돦裕녻キ????덉넮 ??placeholder ???.
     });
   }
 
@@ -2081,6 +2335,7 @@ export class Player extends Entity implements CombatEntity {
       .then((json: {
         frames?: Array<{ duration?: number }> | Record<string, { duration?: number }>;
         meta?: {
+          frameTags?: Array<{ name?: string; from?: number; to?: number }>;
           slices?: Array<{
             name?: string;
             keys?: Array<{
@@ -2091,33 +2346,71 @@ export class Player extends Entity implements CombatEntity {
         };
       } | null) => {
         this.erdaFrameDurationsMs = this.readAsepriteFrameDurations(json?.frames);
+        this.erdaFrameTags = this.readAsepriteFrameTags(json?.meta?.frameTags);
         if (!json?.meta?.slices) return;
 
-        const poses = this.attackWeaponPoses.map(p => ({ ...p }));
+        const posesByFrame = new Map(this.attackWeaponPoseByFrame);
         for (const slice of json.meta.slices) {
-          const match = /^weapon_(\d+)_r(-?\d+)_s(\d+)$/i.exec(slice.name ?? '');
+          const match = /^weapon_(\d+)_r(-?\d+)_s(\d+)(?:_z(front|back|f|b))?$/i.exec(slice.name ?? '');
           const key = slice.keys?.[0];
           if (!match || !key?.bounds) continue;
 
           const frameNo = Number(match[1]);
-          const attackFrameIdx =
-            frameNo >= 19 && frameNo <= 22 ? frameNo - 19 :
-            frameNo >= 18 && frameNo <= 21 ? frameNo - 18 :
-            -1;
-          if (attackFrameIdx < 0 || attackFrameIdx >= poses.length) continue;
-
-          poses[attackFrameIdx] = {
+          if (!Number.isFinite(frameNo)) continue;
+          posesByFrame.set(frameNo, {
             x: key.bounds.x + (key.pivot?.x ?? Math.floor((key.bounds.w ?? 1) / 2)),
             y: key.bounds.y + (key.pivot?.y ?? Math.floor((key.bounds.h ?? 1) / 2)),
             rotation: Number(match[2]) * Math.PI / 180 + WEAPON_ICON_BASE_ROTATION,
             scale: Number(match[3]) / 100,
-          };
+            drawOrder: match[4]?.toLowerCase().startsWith('b') ? 'back' : 'front',
+          });
         }
-        this.attackWeaponPoses = poses;
+        this.attackWeaponPoseByFrame = posesByFrame;
       })
       .catch(() => {
         // Fall back to ATTACK_WEAPON_POSES when slice metadata is unavailable.
       });
+  }
+
+  private readAsepriteFrameTags(tags: Array<{ name?: string; from?: number; to?: number }> | undefined): Map<string, ErdaFrameRange> {
+    const ranges = new Map<string, ErdaFrameRange>();
+    for (const tag of tags ?? []) {
+      const name = tag.name;
+      const from = Number(tag.from);
+      const to = Number(tag.to);
+      if (!name || !Number.isFinite(from) || !Number.isFinite(to)) continue;
+      const a = Math.max(0, Math.floor(Math.min(from, to)));
+      const b = Math.max(0, Math.floor(Math.max(from, to)));
+      ranges.set(name, { from: a, to: b, count: b - a + 1 });
+    }
+    return ranges;
+  }
+
+  private getErdaFrameRange(tagName: string, fallbackFrom: number, fallbackCount: number): ErdaFrameRange {
+    const tagged = this.erdaFrameTags.get(tagName);
+    if (tagged && tagged.count > 0) return tagged;
+    const count = Math.max(1, fallbackCount);
+    return { from: fallbackFrom, to: fallbackFrom + count - 1, count };
+  }
+
+  private hasErdaFrameRange(range: ErdaFrameRange): boolean {
+    return this.erdaFrames.length > range.from;
+  }
+
+  private getCurrentErdaAttackRange(): ErdaFrameRange {
+    if (!this.grounded) {
+      return this.getErdaFrameRange('attack_air', ERDA_ATTACK_AIR_START, ERDA_ATTACK_AIR_FRAME_COUNT);
+    }
+    if (this.comboIndex === 2) {
+      return this.getErdaFrameRange('attack2', ERDA_ATTACK2_GROUND_START, ERDA_ATTACK_GROUND_FRAME_COUNT);
+    }
+    return this.getErdaFrameRange('attack1', ERDA_ATTACK_GROUND_START, ERDA_ATTACK_GROUND_FRAME_COUNT);
+  }
+
+  private getAttackWeaponPose(frameIdx: number): AttackWeaponPose | null {
+    const exact = this.attackWeaponPoseByFrame.get(frameIdx);
+    if (exact) return exact;
+    return null;
   }
 
   private readAsepriteFrameDurations(frames: Array<{ duration?: number }> | Record<string, { duration?: number }> | undefined): number[] {
@@ -2134,12 +2427,88 @@ export class Player extends Entity implements CombatEntity {
     return Number.isFinite(duration) && duration > 0 ? duration : fallbackMs;
   }
 
+  private getErdaFrameByDurationProgress(range: ErdaFrameRange, progress: number, reverse: boolean): number {
+    const availableCount = Math.max(1, Math.min(range.count, Math.max(1, this.erdaFrames.length - range.from)));
+    const durations: number[] = [];
+    let totalDuration = 0;
+    for (let i = 0; i < availableCount; i++) {
+      const frameIdx = range.from + i;
+      const duration = this.erdaFrameDurationsMs[frameIdx];
+      if (!Number.isFinite(duration) || duration <= 0) {
+        totalDuration = 0;
+        break;
+      }
+      durations.push(duration);
+      totalDuration += duration;
+    }
+
+    if (totalDuration <= 0 || durations.length !== availableCount) {
+      const forwardIdx = Math.min(availableCount - 1, Math.floor(progress * availableCount));
+      const idx = reverse ? availableCount - 1 - forwardIdx : forwardIdx;
+      return Math.max(0, Math.min(this.erdaFrames.length - 1, range.from + idx));
+    }
+
+    const normalizedProgress = reverse ? 1 - progress : progress;
+    const cursor = Math.max(0, Math.min(totalDuration - 0.0001, normalizedProgress * totalDuration));
+    let acc = 0;
+    for (let i = 0; i < availableCount; i++) {
+      acc += durations[i];
+      if (cursor < acc) {
+        return Math.max(0, Math.min(this.erdaFrames.length - 1, range.from + i));
+      }
+    }
+    return Math.max(0, Math.min(this.erdaFrames.length - 1, range.from + availableCount - 1));
+  }
+
+  private getErdaRangeDurationMs(range: ErdaFrameRange): number {
+    const availableCount = Math.max(1, Math.min(range.count, Math.max(1, this.erdaFrames.length - range.from)));
+    let total = 0;
+    for (let i = 0; i < availableCount; i++) {
+      total += this.getErdaFrameDurationMs(range.from + i, 100);
+    }
+    return Math.max(1, total);
+  }
+
+  private getErdaFrameMarkerStartMs(range: ErdaFrameRange, frame: number): number {
+    const availableCount = Math.max(1, Math.min(range.count, Math.max(1, this.erdaFrames.length - range.from)));
+    const clampedFrame = Math.max(0, Math.min(availableCount - 1, Math.floor(frame)));
+    let ms = 0;
+    for (let i = 0; i < clampedFrame; i++) {
+      ms += this.getErdaFrameDurationMs(range.from + i, 100);
+    }
+    return ms;
+  }
+
+  private getErdaFrameMarkerEndMs(range: ErdaFrameRange, frame: number): number {
+    const availableCount = Math.max(1, Math.min(range.count, Math.max(1, this.erdaFrames.length - range.from)));
+    const clampedFrame = Math.max(0, Math.min(availableCount - 1, Math.floor(frame)));
+    return this.getErdaFrameMarkerStartMs(range, clampedFrame)
+      + this.getErdaFrameDurationMs(range.from + clampedFrame, 100);
+  }
+
+  private getAttackRangeForTimeline(timeline: PlayerAttackTimeline): ErdaFrameRange {
+    if (timeline.animTag === 'attack2') {
+      return this.getErdaFrameRange('attack2', ERDA_ATTACK2_GROUND_START, ERDA_ATTACK_GROUND_FRAME_COUNT);
+    }
+    if (timeline.animTag === 'attack_air') {
+      return this.getErdaFrameRange('attack_air', ERDA_ATTACK_AIR_START, ERDA_ATTACK_AIR_FRAME_COUNT);
+    }
+    return this.getErdaFrameRange(timeline.animTag, ERDA_ATTACK_GROUND_START, ERDA_ATTACK_GROUND_FRAME_COUNT);
+  }
+
+  private getAttackFrameAtElapsedMs(range: ErdaFrameRange, elapsedMs: number, reverse: boolean): number {
+    const total = this.getErdaRangeDurationMs(range);
+    const progress = Math.max(0, Math.min(0.9999, elapsedMs / total));
+    return this.getErdaFrameByDurationProgress(range, progress, reverse);
+  }
+
   private applyWakeUpFrame(frame: number): void {
     if (!this.erdaSprite) return;
-    const frameCount = Math.min(ERDA_WAKE_UP_FRAME_COUNT, Math.max(0, this.erdaFrames.length - ERDA_WAKE_UP_START));
+    const range = this.getErdaFrameRange('wake_up', ERDA_WAKE_UP_START, ERDA_WAKE_UP_FRAME_COUNT);
+    const frameCount = Math.min(range.count, Math.max(0, this.erdaFrames.length - range.from));
     if (frameCount > 0) {
       const idx = Math.max(0, Math.min(frameCount - 1, frame));
-      this.erdaSprite.texture = this.erdaFrames[ERDA_WAKE_UP_START + idx];
+      this.erdaSprite.texture = this.erdaFrames[range.from + idx];
     } else if (this.erdaFrames.length > 0) {
       this.erdaSprite.texture = this.erdaFrames[0];
     }
@@ -2159,12 +2528,23 @@ export class Player extends Entity implements CombatEntity {
     }
     if (!s) return;
 
-    const idx = Math.max(0, Math.min(this.attackWeaponPoses.length - 1, frameIdx));
-    const pose = this.attackWeaponPoses[idx];
+    const pose = this.getAttackWeaponPose(frameIdx);
+    if (!pose) {
+      s.visible = false;
+      return;
+    }
     const erdaLocalX = this.width / 2;
     const erdaLocalY = this.height;
-    const erdaFrameW = 32;
-    const erdaFrameH = 32;
+    const erdaFrameW = ERDA_FRAME_W;
+    const erdaFrameH = ERDA_FRAME_H;
+    if (this.erdaSprite && !this.erdaSprite.destroyed && s.parent === this.container) {
+      const erdaIdx = this.container.getChildIndex(this.erdaSprite);
+      const weaponIdx = this.container.getChildIndex(s);
+      const targetIdx = pose.drawOrder === 'back'
+        ? Math.max(0, erdaIdx)
+        : Math.min(this.container.children.length - 1, erdaIdx + 1);
+      if (weaponIdx !== targetIdx) this.container.setChildIndex(s, targetIdx);
+    }
     s.visible = true;
     s.x = this.facingRight
       ? erdaLocalX - erdaFrameW / 2 + pose.x
@@ -2175,8 +2555,8 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * Slash FX ?��??�스 비동�?로드. 6 ?�레??32×32), ?�일 source 공유.
-   * ?�생?� startAttack() ?�서 triggerSlash(comboIndex) �??�작, updateSlashFX() 가 ?�레??진행.
+   * Slash FX ?熬???源낅츩 ???х뙴?꾨Ь??β돦裕녻キ? 6 ?熬곣뫁???32??2), ??關逾?source ??ㅻ쾴??.
+   * ??繹?? startAttack() ?????triggerSlash(comboIndex) ????戮곗굚, updateSlashFX() ?띠럾? ?熬곣뫁???嶺뚯쉳?듸쭛?
    */
   private loadSlashSprite(): void {
     const path = assetPath('assets/sprites/fx_slash_02_atlas.png');
@@ -2190,14 +2570,14 @@ export class Player extends Entity implements CombatEntity {
         );
       }
       const s = new Sprite(this.slashFrames[0]);
-      // ?�커: 가�?중앙(0.5) + ?�로 중앙(0.5) ???�레?�어 ?�이 중앙??맞춰 배치.
+      // ???臾? ?띠럾???繞벿살탳??0.5) + ?筌뤾퍔夷?繞벿살탳??0.5) ????????怨룹꽑 ?沃섅굦逾?繞벿살탳???嶺뚮씮????꾩룄???
       s.anchor.set(0, 0);
       s.visible = false;
-      // attackSprite ???�버�?박스 ?????�도�?그냥 추�?.
+      // attackSprite ????븐뼚?붷윜??꾩룆踰?????????녹┣???잙갭梨뜻틦??怨뺣뼺?.
       this.container.addChild(s);
       this.slashSprite = s;
     }).catch(() => {
-      // ?�패 ??FX �??�략. ?�투 ?�체???�향 ?�음.
+      // ???덉넮 ??FX 嶺???紐꾩끋. ?熬곥굥??????????⑤갭????怨몃쾳.
     });
   }
 
@@ -2213,15 +2593,16 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * 콤보 ?�텝�?slash FX ?�리�? ?�펙 SSoT:
-   *   - 공격 ?�정:  COMBO_STEPS[step] × attackHitboxMul
-   *   - ?�각 FX:    resolveComboFx(equippedWeaponType, equippedRarity, step)
-   *     ?��? L1 sprite/scale/offset/color: Content_FX_WeaponType.csv
-   *     ?��? L2 tint:                     Content_Rarity.csv FxTint
+   * ?袁좊걞?????댟???slash FX ?筌뤾봇遊뷸ㅀ? ???덉쓢 SSoT:
+   *   - ??ㅻ????????  COMBO_STEPS[step] ??attackHitboxMul
+   *   - ??蹂?뜜 FX:    resolveComboFx(equippedWeaponType, equippedRarity, step)
+   *     ??? L1 sprite/scale/offset/color: Content_FX_WeaponType.csv
+   *     ??? L2 tint:                     Content_Rarity.csv FxTint
    *
-   * FxScaleX/Y ??무기 hitbox 배율�??�동: FX ?�기??공격 범위??비�?.
+   * FxScaleX/Y ????쒕뼬??hitbox ?꾩룄???ぢ???⑤베吏? FX ???????ㅻ????뺢퀡????????.
    */
   private triggerSlash(comboIndex: number): void {
+    if (!PLAYER_SLASH_FX_ENABLED) return;
     if (!this.slashSprite || this.slashFrames.length === 0) return;
     const step = this.getAttackStep(comboIndex);
     if (!step) return;
@@ -2231,7 +2612,7 @@ export class Player extends Entity implements CombatEntity {
     const fx = resolveComboFx(this.equippedWeaponType, this.equippedRarity, comboIndex);
     if (!fx) return;
     const range = FX_SLASH_FRAMES[fx.sprite];
-    if (!range) return; // ?????�는 ?�그 ??FX ?�략.
+    if (!range) return; // ???????⑸츎 ??蹂μ쟽 ??FX ??紐꾩끋.
     const [from, to] = range;
     if (from < 0 || to < from || to >= this.slashFrames.length) return;
 
@@ -2243,7 +2624,7 @@ export class Player extends Entity implements CombatEntity {
     this.slashOffsetX = fx.offsetX;
     this.slashOffsetY = fx.offsetY;
 
-    // FX ?�각 ?�기??공격 범위??비�?.
+    // FX ??蹂?뜜 ???????ㅻ????뺢퀡????????.
     const mul = this.attackHitboxMul;
     const fxScaleY = this.comboIndex === 1 ? -fx.scaleY : fx.scaleY;
     const comboScaleX = this.comboIndex === 2 ? COMBO3_SLASH_SCALE_X : 1;
@@ -2259,24 +2640,24 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * �??�레??slash FX ?�치/?�레??갱신. stateAttack 중에�??��? ?�음.
-   * slashToIdx === -1 ?�면 비활??
+   * 嶺??熬곣뫁???slash FX ?熬곣뫚???熬곣뫁????띠룄??? stateAttack 繞벿살탳?됰맮彛???? ???깅쾳.
+   * slashToIdx === -1 ???????????
    */
   private updateSlashFX(dt: number): void {
     if (!this.slashSprite || this.slashToIdx < 0) return;
     const s = this.slashSprite;
 
-    // 중심 = ?�트박스 중심 + FxOffsetX(좌향 ??부??반전). Y = ?�레?�어 ?�이 중앙 + FxOffsetY.
-    const erdaTopLeftX = this.width / 2 - 16;
-    const erdaTopLeftY = this.height - 32;
+    // 繞벿살탳??= ???낅콦?꾩룆踰??繞벿살탳??+ FxOffsetX(??レ뒭?????遊붋???꾩룇瑗??. Y = ??????怨룹꽑 ?沃섅굦逾?繞벿살탳??+ FxOffsetY.
+    const erdaTopLeftX = this.width / 2 - ERDA_FRAME_W / 2;
+    const erdaTopLeftY = this.height - ERDA_FRAME_H;
     s.x = this.facingRight
       ? erdaTopLeftX - SLASH_FX_ERDA_REF_X + this.slashOffsetX
-      : erdaTopLeftX + 32 + SLASH_FX_ERDA_REF_X - this.slashOffsetX;
+      : erdaTopLeftX + ERDA_FRAME_W + SLASH_FX_ERDA_REF_X - this.slashOffsetX;
     s.y = erdaTopLeftY - SLASH_FX_ERDA_REF_Y + this.slashOffsetY;
     if (s.scale.y < 0) {
       s.y += SLASH_FX_FRAME_H * Math.abs(s.scale.y);
     }
-    // 방향 ?��? (공격 �?facing ??바뀌진 ?��?�?보수??갱신).
+    // ?꾩렮維싧젆???? (??ㅻ???繞?facing ???꾩룆????異????嶺??곌랜?????띠룄???.
     const sx = Math.abs(s.scale.x);
     s.scale.x = this.facingRight ? sx : -sx;
 
@@ -2286,7 +2667,7 @@ export class Player extends Entity implements CombatEntity {
       this.slashTimer -= slashFrameMs;
       this.slashFrameIdx++;
       if (this.slashFrameIdx > this.slashToIdx) {
-        // ?�생 ?�료 ???��?.
+        // ??繹??熬곣뫁???????.
         s.visible = false;
         this.slashToIdx = -1;
         return;
@@ -2296,10 +2677,10 @@ export class Player extends Entity implements CombatEntity {
   }
 
   /**
-   * ?�니메이??갱신:
-   *   grounded ?��? 감�? ??takeoff(?�륙) / land(착�?) ?�리�?
-   *   �??�브 ?�테?�트가 ?�체 ?�?�머�??�음 ?�테?�트�?진행.
-   *     idle (loop) ?�leave?�> takeoff ?�80ms?�> air ?�land edge?�> land(6,50ms) ?�> land(7,50ms) ?�> idle
+   * ??ル봾鍮띸춯濡ル뾼????띠룄???
+   *   grounded ?影? ?띠룆흮? ??takeoff(???筌? / land(嶺뚢뼰維?) ?筌뤾봇遊뷸ㅀ?
+   *   ????類λ땹 ???댟??袁⑤콦?띠럾? ????????????れ뿉????깅쾳 ???댟??袁⑤콦??嶺뚯쉳?듸쭛?
+   *     idle (loop) ??leave??> takeoff ??80ms??> air ??land edge??> land(6,50ms) ??> land(7,50ms) ??> idle
    */
   private updateErdaAnimation(dt: number): void {
     if (!this.erdaSprite || this.erdaFrames.length === 0) return;
@@ -2314,7 +2695,8 @@ export class Player extends Entity implements CombatEntity {
     if (this.wakeUpOverrideTimer > 0) {
       this.hideAttackWeapon();
       const elapsed = Math.max(0, this.wakeUpOverrideDuration - this.wakeUpOverrideTimer);
-      const frameCount = Math.min(ERDA_WAKE_UP_FRAME_COUNT, Math.max(0, this.erdaFrames.length - ERDA_WAKE_UP_START));
+      const wakeUpRange = this.getErdaFrameRange('wake_up', ERDA_WAKE_UP_START, ERDA_WAKE_UP_FRAME_COUNT);
+      const frameCount = Math.min(wakeUpRange.count, Math.max(0, this.erdaFrames.length - wakeUpRange.from));
       if (frameCount > 0) {
         const frameMs = this.wakeUpOverrideDuration / frameCount;
         const frame = Math.min(frameCount - 1, Math.floor(elapsed / frameMs));
@@ -2327,9 +2709,39 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
 
-    // Dash ?�선 ??FSM state === 'dash' 진입 ?��????�니메이??리셋.
-    // dash 중엔 grounded ?��?(takeoff/land) ?�이�?건너?�어 16??7 ?�퀀?��? 보장.
+    // Dash ??⑥ろ맖 ??FSM state === 'dash' 嶺뚯쉳????影?????ル봾鍮띸춯濡ル뾼????洹먮봾??
+    // dash 繞벿살탳??grounded ?影?(takeoff/land) ?熬곣뫗逾??濾곌쑬????⑥レ꽑 16??7 ???궰???? ?곌랜???
     const fsmState = this.fsm.currentState;
+    if (fsmState === 'climb') {
+      this.hideAttackWeapon();
+      const climbRange = this.getErdaFrameRange('climb', 5, 1);
+      if (this.erdaAnim !== 'climb') {
+        this.erdaAnim = 'climb';
+        this.erdaAnimFrame = 0;
+        this.erdaAnimTimer = 0;
+      }
+      if (this.hasErdaFrameRange(climbRange)) {
+        const moving = Math.abs(this.vy) > 1;
+        if (moving && climbRange.count > 1) {
+          const frameMs = Math.max(60, 130 - Math.min(70, Math.abs(this.vy) * 0.12));
+          this.erdaAnimTimer += dt;
+          while (this.erdaAnimTimer >= frameMs) {
+            this.erdaAnimTimer -= frameMs;
+            this.erdaAnimFrame = (this.erdaAnimFrame + 1) % climbRange.count;
+          }
+        } else {
+          this.erdaAnimFrame = 0;
+          this.erdaAnimTimer = 0;
+        }
+        const climbFrame = Math.min(climbRange.from + this.erdaAnimFrame, this.erdaFrames.length - 1);
+        this.erdaSprite.texture = this.erdaFrames[climbFrame];
+      } else {
+        this.erdaSprite.texture = this.erdaFrames[Math.min(5, this.erdaFrames.length - 1)];
+      }
+      this.erdaPrevGrounded = false;
+      return;
+    }
+
     if (fsmState === 'dash') {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'dash') {
@@ -2339,7 +2751,7 @@ export class Player extends Entity implements CombatEntity {
       }
       this.erdaPrevGrounded = this.grounded;
       this.erdaAnimTimer += dt;
-      // ?�레??16 (startup, 30ms) ??17 (linger, 120ms). ?�상?� dash 종료 ?��?까�? ?��?.
+      // ?熬곣뫁???16 (startup, 30ms) ??17 (linger, 120ms). ??븐슙留?? dash ??リ턁筌??影?濚밸Ŧ?? ???.
       if (this.erdaAnimFrame === 0 && this.erdaAnimTimer >= Player.ANIM_DASH_STARTUP_MS) {
         this.erdaAnimFrame = 1;
         this.erdaAnimTimer = 0;
@@ -2348,7 +2760,12 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
     if (this.erdaAnim === 'dash') {
-      // dash 종료 ??지�?공중???�라 idle/run/air �?복�?.
+      // dash ??リ턁筌???嶺뚯솘?嶺???ㅻ쾴鸚????⑤벡逾?idle/run/air ???곌랜踰?.
+      this.erdaAnim = this.getGroundOrAirAnimationState();
+      this.erdaAnimFrame = 0;
+      this.erdaAnimTimer = 0;
+    }
+    if (this.erdaAnim === 'climb') {
       this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
@@ -2369,11 +2786,11 @@ export class Player extends Entity implements CombatEntity {
       this.erdaAnimTimer = 0;
     }
 
-    // Lift override ??while carrying a throwable container. 4-frame lift
-    // animation at indices 35~38 (Aseprite tag `lift`, shifted +4).
+    // Lift override while carrying a throwable container.
     // Walk cycle when ground locomotion is active; hold frame 35 when stationary.
     // Takes precedence over aim because hands are full.
-    if (this.isLifting && this.erdaFrames.length >= ERDA_LIFT_START + 4) {
+    const liftRange = this.getErdaFrameRange('lift', ERDA_LIFT_START, 4);
+    if (this.isLifting && this.hasErdaFrameRange(liftRange)) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'lift') {
         this.erdaAnim = 'lift';
@@ -2386,22 +2803,22 @@ export class Player extends Entity implements CombatEntity {
         const LIFT_WALK_FRAME_MS = 110;
         while (this.erdaAnimTimer >= LIFT_WALK_FRAME_MS) {
           this.erdaAnimTimer -= LIFT_WALK_FRAME_MS;
-          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
+          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % liftRange.count;
         }
       } else {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      this.erdaSprite.texture = this.erdaFrames[ERDA_LIFT_START + this.erdaAnimFrame];
+      this.erdaSprite.texture = this.erdaFrames[Math.min(liftRange.from + this.erdaAnimFrame, this.erdaFrames.length - 1)];
       this.erdaPrevGrounded = this.grounded;
       return;
     }
 
-    // Aim override ??while charging an Ego Shard. 4-frame aim animation
-    // at indices 30~33. When ground locomotion is active, cycle the 4 frames
+    // Aim override while charging an Ego Shard. When ground locomotion is active, cycle the frames
     // as a walk-aim shuffle. When stationary, hold frame 30 (steady aim).
     // Higher priority than idle/run/jump but below dash.
-    if (this.isAiming && this.erdaFrames.length >= ERDA_AIM_START + 4) {
+    const aimRange = this.getErdaFrameRange('aim', ERDA_AIM_START, 4);
+    if (this.isAiming && this.hasErdaFrameRange(aimRange)) {
       this.hideAttackWeapon();
       if (this.erdaAnim !== 'aim') {
         this.erdaAnim = 'aim';
@@ -2411,9 +2828,10 @@ export class Player extends Entity implements CombatEntity {
       // Mid-air aim ??dedicated `aim_jump` frame. Falls back to the steady
       // aim pose when the atlas hasn't been updated.
       if (!this.grounded) {
-        const airIdx = this.erdaFrames.length > ERDA_AIM_JUMP_FRAME
-          ? ERDA_AIM_JUMP_FRAME
-          : ERDA_AIM_START;
+        const aimJumpRange = this.getErdaFrameRange('aim_jump', ERDA_AIM_JUMP_FRAME, 1);
+        const airIdx = this.hasErdaFrameRange(aimJumpRange)
+          ? aimJumpRange.from
+          : aimRange.from;
         this.erdaSprite.texture = this.erdaFrames[airIdx];
         this.erdaPrevGrounded = this.grounded;
         return;
@@ -2421,28 +2839,29 @@ export class Player extends Entity implements CombatEntity {
       const moving = this.isGroundLocomotionActive();
       if (moving) {
         this.erdaAnimTimer += dt;
-        const AIM_WALK_FRAME_MS = 110;   // 4 frames × 110 ??440ms cycle
+        const AIM_WALK_FRAME_MS = 110;   // 4 frames ??110 ??440ms cycle
         while (this.erdaAnimTimer >= AIM_WALK_FRAME_MS) {
           this.erdaAnimTimer -= AIM_WALK_FRAME_MS;
-          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % 4;
+          this.erdaAnimFrame = (this.erdaAnimFrame + 1) % aimRange.count;
         }
       } else {
         this.erdaAnimFrame = 0;
         this.erdaAnimTimer = 0;
       }
-      this.erdaSprite.texture = this.erdaFrames[ERDA_AIM_START + this.erdaAnimFrame];
+      this.erdaSprite.texture = this.erdaFrames[Math.min(aimRange.from + this.erdaAnimFrame, this.erdaFrames.length - 1)];
       this.erdaPrevGrounded = this.grounded;
       return;
     }
 
-    // Attack ??each combo step scrubs a 4-frame attack strip from progress.
-    // Grounded 1?�/2?� use attack1, grounded 3?� uses attack2.
+    // Attack: each combo step scrubs the current atlas frameTag range from progress.
+    // Grounded 1??/2?? use attack1, grounded 3?? uses attack2.
     // Airborne attacks always use attack_air so the finisher does not pop to a ground pose.
     if (fsmState === 'attack') {
-      // 2?? pause(preAttackDelay) ?�안 직전 frame + weapon pose hold.
-      // attackTimer 가 0 ?�라 ?�래 progress 계산??0.9999 �??�??frame jump 발생 ??가?�로 차단.
+      // 2?? pause(preAttackDelay) ???덊닱 嶺뚯쉳???frame + weapon pose hold.
+      // attackTimer ?띠럾? 0 ??????熬곣뫁??progress ??ｌ뫒亦??0.9999 ??????frame jump ?꾩룇裕뉑틦????띠럾???類ㅼŦ 嶺뚢뼰維??
       if (this.preAttackDelay > 0) {
-        this.updateAttackWeaponPose(this.erdaAnimFrame);
+        const attackRange = this.getCurrentErdaAttackRange();
+        this.updateAttackWeaponPose(this.erdaAnimFrame > 0 ? this.erdaAnimFrame : attackRange.from);
         this.erdaPrevGrounded = this.grounded;
         return;
       }
@@ -2452,27 +2871,20 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimTimer = 0;
       }
       this.erdaPrevGrounded = this.grounded;
-      const step = COMBO_STEPS[this.comboIndex];
-      const total = step.totalFrames * FRAME_MS * this.currentAttackTimeScale;
-      const progress = total > 0 ? Math.max(0, Math.min(0.9999, 1 - this.attackTimer / total)) : 0;
-      const forwardIdx = Math.min(ERDA_ATTACK_FRAME_COUNT - 1, Math.floor(progress * ERDA_ATTACK_FRAME_COUNT));
-      const idx = this.comboIndex === 1 ? ERDA_ATTACK_FRAME_COUNT - 1 - forwardIdx : forwardIdx;
-      const attackStart =
-        !this.grounded && this.erdaFrames.length >= ERDA_ATTACK_AIR_START + ERDA_ATTACK_FRAME_COUNT
-          ? ERDA_ATTACK_AIR_START
-          : this.comboIndex === 2 && this.erdaFrames.length >= ERDA_ATTACK2_GROUND_START + ERDA_ATTACK_FRAME_COUNT
-            ? ERDA_ATTACK2_GROUND_START
-            : ERDA_ATTACK_GROUND_START;
-      this.erdaAnimFrame = idx;
-      this.erdaSprite.texture = this.erdaFrames[attackStart + idx];
-      this.updateAttackWeaponPose(idx);
+      const timeline = this.currentAttackTimeline ?? getPlayerAttackTimeline(this.comboIndex, this.grounded);
+      const attackRange = this.getAttackRangeForTimeline(timeline);
+      const textureIdx = this.getAttackFrameAtElapsedMs(attackRange, this.attackElapsedMs, timeline.reverseAnim);
+      this.erdaAnimFrame = textureIdx;
+      this.erdaSprite.texture = this.erdaFrames[textureIdx];
+      this.updateAttackWeaponPose(textureIdx);
       return;
     }
-    // 콤보 hold ??attack 종료 직후 콤보 ?�도???�는 3?� endLag) ?�안 마�?�?attack
-    // frame ??hold ??�????�세 + weapon pose ?��?. ?�음 콤보 ?�력 ???�연?�럽�?
-    // ?�음 swing ?�로 ?�결, ?�도??만료/?�프/?�???�으�?캔슬?�면 idle �?복�?.
-    // ?�프·?�?�·공중�? hold 깨고 ?�연 ?�이 (fsmState 가??.
+    // ?袁좊걞??hold ??attack ??リ턁筌?嶺뚯쉳????袁좊걞?????덉┣?????裕?3?? endLag) ???덊닱 嶺뚮씭??嶺?attack
+    // frame ??hold ???????????+ weapon pose ???. ???깅쾳 ?袁좊걞?????놁졑 ?????????댁벀??
+    // ???깅쾳 swing ??怨쀬Ŧ ??⑤슡?? ???덉┣??嶺뚮씭??쭩???믨퀡???????繹먮냱紐드슖?嶺?????濡?듆 idle ???곌랜踰?.
+    // ??믨퀡?꾢ㅇ????節뗰폁??鍮녘눧? hold 濚밸?紐????????熬곣뫗逾?(fsmState ?띠럾???.
     if (this.erdaAnim === 'attack'
+        && !this.attackVisualReleased
         && (this.comboWindowTimer > 0 || this.endLagTimer > 0)
         && this.grounded
         && (fsmState === 'idle' || fsmState === 'run')) {
@@ -2481,17 +2893,17 @@ export class Player extends Entity implements CombatEntity {
       return;
     }
     if (this.erdaAnim === 'attack') {
-      // attack 종료 ??지�?공중???�라 idle/run/air �?복�?.
+      // attack ??リ턁筌???嶺뚯솘?嶺???ㅻ쾴鸚????⑤벡逾?idle/run/air ???곌랜踰?.
       this.erdaAnim = this.getGroundOrAirAnimationState();
       this.erdaAnimFrame = 0;
       this.erdaAnimTimer = 0;
     }
     this.hideAttackWeapon();
 
-    // ?��? 감�? ??grounded 변???�간?�만 ?�브 ?�테?�트 ?�이.
+    // ?影? ?띠룆흮? ??grounded ?곌떠?????蹂?뜟???異???類λ땹 ???댟??袁⑤콦 ?熬곣뫗逾?
     if (this.erdaPrevGrounded && !this.grounded) {
-      // ?�륙. vy < 0 = ?�프 ?�력 ??takeoff(4) ?�퀀??
-      // vy ??0 = 벼랑 ?�하 ???�브 ?�테?�트 그�?�?idle) ?��?, ?�레???�려 공중?�서 idle ?�즈 ?��?.
+      // ???筌? vy < 0 = ??믨퀡?????놁졑 ??takeoff(4) ???궰???
+      // vy ??0 = ?뺢퀣??????곕┃ ????類λ땹 ???댟??袁⑤콦 ?잙갭梨???idle) ???, ?熬곣뫁?????怨쀬졎 ??ㅻ쾴鸚?????idle ??藥??筌?.
       this.erdaJumpedOff = this.vy < 0;
       if (this.erdaJumpedOff) {
         this.erdaAnim = 'takeoff';
@@ -2499,7 +2911,7 @@ export class Player extends Entity implements CombatEntity {
         this.erdaAnimFrame = 0;
       }
     } else if (!this.erdaPrevGrounded && this.grounded) {
-      // 착�?. ?�프?�?�면 6??, ?�하?�?�면 7�??�생.
+      // 嶺뚢뼰維?. ??믨퀡?????寃밸듆 6??, ???곕┃????寃밸듆 7嶺???繹?
       this.erdaAnim = 'land';
       this.erdaAnimTimer = 0;
       this.erdaAnimFrame = this.erdaJumpedOff ? 0 : 1;
@@ -2533,8 +2945,8 @@ export class Player extends Entity implements CombatEntity {
         break;
       }
       case 'land': {
-        // 반응???�선: 좌우 ?�동??걸리�?land �??�고 run ?�로 ?�프�?
-        // ?�점?�는 ?�음 ?�레??grounded ?��?가 takeoff �??�동 ?�이?�킴.
+        // ?꾩룇瑗?????⑥ろ맖: ??レ뒩????????濾곌쑬梨?怨살춺?land ????袁ぢ?run ??怨쀬Ŧ ??믨퀡???
+        // ????熬곣뫀裕????깅쾳 ?熬곣뫁???grounded ?影??띠럾? takeoff ?????吏??熬곣뫗逾???る?.
         if (this.isGroundLocomotionActive()) {
           this.erdaAnim = 'run';
           this.erdaAnimFrame = 0;
@@ -2542,14 +2954,14 @@ export class Player extends Entity implements CombatEntity {
           textureIdx = 8;
           break;
         }
-        // sub 0 ???�레??6, sub 1 ???�레??7.
+        // sub 0 ???熬곣뫁???6, sub 1 ???熬곣뫁???7.
         textureIdx = 6 + this.erdaAnimFrame;
         if (this.erdaAnimTimer >= Player.ANIM_LAND_FRAME_MS) {
           this.erdaAnimTimer = 0;
           if (this.erdaAnimFrame === 0) {
             this.erdaAnimFrame = 1;
           } else {
-            // 착�? 복구 종료 ??idle 루프 진입.
+            // 嶺뚢뼰維? ?곌랜踰????リ턁筌???idle ?猷먮쳜??嶺뚯쉳???
             this.erdaAnim = 'idle';
             this.erdaAnimFrame = 0;
           }
@@ -2557,7 +2969,7 @@ export class Player extends Entity implements CombatEntity {
         break;
       }
       case 'run': {
-        // 지?�일 ?�만 ?�레??진행 ??벼랑 ?�하 중엔 마�?�?run ?�레?�을 공중?�서 ?��?.
+        // 嶺뚯솘???⑤챷逾????異??熬곣뫁???嶺뚯쉳?듸쭛????뺢퀣??????곕┃ 繞벿살탳??嶺뚮씭??嶺?run ?熬곣뫁??熬곣뫗諭???ㅻ쾴鸚????????.
         if (this.grounded) {
           while (this.erdaAnimTimer >= Player.ANIM_RUN_FRAME_MS) {
             this.erdaAnimTimer -= Player.ANIM_RUN_FRAME_MS;
@@ -2569,7 +2981,7 @@ export class Player extends Entity implements CombatEntity {
       }
       case 'idle':
       default: {
-        // 지?�일 ?�만 ?�레??진행 ??벼랑 ?�하 중에??마�?�?idle ?�레?�을 공중?�서 ?��?.
+        // 嶺뚯솘???⑤챷逾????異??熬곣뫁???嶺뚯쉳?듸쭛????뺢퀣??????곕┃ 繞벿살탳???嶺뚮씭??嶺?idle ?熬곣뫁??熬곣뫗諭???ㅻ쾴鸚????????.
         if (this.grounded) {
           while (this.erdaAnimTimer >= this.getErdaFrameDurationMs(this.erdaAnimFrame, Player.ANIM_IDLE_FRAME_MS)) {
             this.erdaAnimTimer -= this.getErdaFrameDurationMs(this.erdaAnimFrame, Player.ANIM_IDLE_FRAME_MS);
@@ -2587,7 +2999,7 @@ export class Player extends Entity implements CombatEntity {
   render(alpha: number): void {
     super.render(alpha);
 
-    // ?�성 ?�각(Graphics placeholder ?�는 Sprite) 참조 ??깜박???�립???�일 ?�?�에 ?�용.
+    // ??戮?뎽 ??蹂?뜜(Graphics placeholder ???裕?Sprite) 嶺뚣볦굣????濚밸Ŋ裕녻?????逾?????됰뎄 ????⑤챶????⑤챷??
     const activeVisual = this.erdaSprite ?? this.sprite;
 
     // Flash when invincible (blink)
@@ -2609,19 +3021,19 @@ export class Player extends Entity implements CombatEntity {
 
     // Flip visual based on facing.
     if (this.erdaSprite) {
-      // Sprite ??anchor(0.5, 1) 기�??��?�?scale.x �??�집?�면 중심 �??�전.
+      // Sprite ??anchor(0.5, 1) ?リ옇????????scale.x 嶺????깆뗄??寃밸듆 繞벿살탳?????????
       this.erdaSprite.scale.x = this.facingRight ? 1 : -1;
       if (this.weaponSprite?.visible && this.erdaAnim === 'attack') {
         this.updateAttackWeaponPose(this.erdaAnimFrame);
         this.weaponSprite.alpha = this.erdaSprite.alpha;
       }
     } else {
-      // Placeholder Graphics ??top-left 기�? ??x 보정 ?�요 (기존 로직 ?��?).
+      // Placeholder Graphics ??top-left ?リ옇?? ??x ?곌랜????熬곣뫗??(?リ옇????β돦裕뉐퐲????).
       this.sprite.scale.x = this.facingRight ? 1 : -1;
       this.sprite.x = this.facingRight ? 0 : this.width;
     }
 
-    // Update attack visual position on flip. Debug ?��???중간??꺼�?�?즉시 ?��?.
+    // Update attack visual position on flip. Debug ?????繞벿살탪????怨쀫닔?嶺?嶺뚯빖留?????.
     this.attackSprite.visible = this.attackActive && Debug.visible;
     if (this.attackSprite.visible) {
       const step = this.getAttackStep(this.comboIndex) ?? COMBO_STEPS[this.comboIndex];
@@ -2629,3 +3041,4 @@ export class Player extends Entity implements CombatEntity {
     }
   }
 }
+

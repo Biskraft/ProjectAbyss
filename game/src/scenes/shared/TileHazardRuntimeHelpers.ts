@@ -12,6 +12,7 @@ import {
   CYRO_FROZEN_MS,
   CYRO_TICK_MS,
   CYRO_TICK_PCT,
+  type HazardTarget,
   MAGMA_BURN_DURATION_MS,
 } from '@systems/TileHazards';
 
@@ -57,11 +58,44 @@ interface ApplyEnemyTileHazardsInput {
   dtMs: number;
 }
 
+function createPlayerHazardTarget(player: Player): HazardTarget {
+  const box = player.getHurtAABB();
+  return {
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+    get hp() { return player.hp; },
+    set hp(value: number) { player.hp = value; },
+    get maxHp() { return player.maxHp; },
+    get invincible() { return player.invincible; },
+    get burnRemainingMs() { return player.burnRemainingMs; },
+    set burnRemainingMs(value: number | undefined) { player.burnRemainingMs = value ?? 0; },
+    get burnTickAccum() { return player.burnTickAccum; },
+    set burnTickAccum(value: number | undefined) { player.burnTickAccum = value ?? 0; },
+    get chargedTickAccum() { return player.chargedTickAccum; },
+    set chargedTickAccum(value: number | undefined) { player.chargedTickAccum = value ?? 0; },
+    get acidTickAccum() { return player.acidTickAccum; },
+    set acidTickAccum(value: number | undefined) { player.acidTickAccum = value ?? 0; },
+    get prevInElectric() { return player.prevInElectric; },
+    set prevInElectric(value: boolean | undefined) { player.prevInElectric = value ?? false; },
+    get electricTickAccum() { return player.chargedTickAccum; },
+    set electricTickAccum(value: number | undefined) { player.chargedTickAccum = value ?? 0; },
+    get chargedStateMs() { return player.chargedStateMs; },
+    set chargedStateMs(value: number | undefined) { player.chargedStateMs = value ?? 0; },
+    get cyroTickAccum() { return player.cyroTickAccum; },
+    set cyroTickAccum(value: number | undefined) { player.cyroTickAccum = value ?? 0; },
+    get cyroSlowRemainingMs() { return player.cyroSlowRemainingMs; },
+    set cyroSlowRemainingMs(value: number | undefined) { player.cyroSlowRemainingMs = value ?? 0; },
+    extinguishFireDebuffs: () => player.extinguishFireDebuffs(),
+  };
+}
+
 export function applyPlayerTileHazardsWithFeedback(input: ApplyPlayerTileHazardsInput): void {
   const { player } = input;
   if (player.hp <= 0) return;
 
-  applyTileHazards(player, input.grid, input.tileMutator, input.dtMs, {
+  applyTileHazards(createPlayerHazardTarget(player), input.grid, input.tileMutator, input.dtMs, {
     onDamage: (amount, src) => {
       if (player.invincible) return;
       const dmg = Math.max(1, Math.floor(amount));
@@ -130,11 +164,12 @@ export function applyPlayerWaterfallHazardsWithFeedback(
   input: ApplyPlayerWaterfallHazardsInput,
 ): void {
   const { player } = input;
+  const playerBox = player.getHurtAABB();
   const waterfallType = input.fluidSpawners.queryFluidAtAabb(
-    player.x,
-    player.y,
-    player.width,
-    player.height,
+    playerBox.x,
+    playerBox.y,
+    playerBox.width,
+    playerBox.height,
     input.grid,
   );
   if (waterfallType === 'water') {

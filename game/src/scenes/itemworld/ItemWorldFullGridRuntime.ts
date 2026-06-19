@@ -5,11 +5,14 @@ import {
   IW_GRID_H,
   IW_GRID_W,
   IW_ROOM_H_TILES,
+  IW_ROOM_SOCKET_TILES,
   IW_ROOM_W_TILES,
 } from './ItemWorldMapController';
 
 const TILE_SOLID = 1;
+const TILE_AIR = 0;
 const CLOSED_VERTICAL_EXIT_SEAL_TILES = 2;
+const OPEN_VERTICAL_EXIT_CARVE_TILES = 4;
 
 export class ItemWorldFullGridRuntime {
   createInitialGrid(widthRooms: number = IW_GRID_W, heightRooms: number = IW_GRID_H): number[][] {
@@ -29,10 +32,21 @@ export class ItemWorldFullGridRuntime {
     col: number,
     absRow: number,
   ): void {
-    const offR = absRow * IW_ROOM_H_TILES;
-    const offC = col * IW_ROOM_W_TILES;
+    const offR = cell.tileRect?.y ?? absRow * IW_ROOM_H_TILES;
+    const offC = cell.tileRect?.x ?? col * IW_ROOM_W_TILES;
+    const roomW = cell.tileRect?.w ?? ldtkLevel.collisionGrid[0]?.length ?? IW_ROOM_W_TILES;
+    const roomH = cell.tileRect?.h ?? (ldtkLevel.collisionGrid.length || IW_ROOM_H_TILES);
     this.copyRoomCollision(fullGrid, ldtkLevel.collisionGrid, offR, offC);
-    this.sealClosedVerticalExits(fullGrid, cell, offR, offC);
+    if (cell.templateId) return;
+    this.openVerticalExits(fullGrid, cell, offR, offC, roomW, roomH);
+    this.sealClosedVerticalExits(
+      fullGrid,
+      cell,
+      offR,
+      offC,
+      roomW,
+      roomH,
+    );
   }
 
   addBoundaryCollision(fullGrid: number[][], gridW: number, gridH: number): void {
@@ -60,9 +74,11 @@ export class ItemWorldFullGridRuntime {
   ): void {
     const roomH = roomGrid.length;
     const roomW = roomGrid[0]?.length ?? 0;
-    for (let tr = 0; tr < roomH && tr < IW_ROOM_H_TILES; tr++) {
-      for (let tc = 0; tc < roomW && tc < IW_ROOM_W_TILES; tc++) {
-        fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
+    for (let tr = 0; tr < roomH; tr++) {
+      for (let tc = 0; tc < roomW; tc++) {
+        if (fullGrid[offR + tr]?.[offC + tc] !== undefined) {
+          fullGrid[offR + tr][offC + tc] = roomGrid[tr][tc];
+        }
       }
     }
   }
@@ -72,23 +88,47 @@ export class ItemWorldFullGridRuntime {
     cell: UnifiedRoomCell,
     offR: number,
     offC: number,
+    roomW: number,
+    roomH: number,
   ): void {
-    if (!cell.exits.up) {
-      this.fillRoomRect(
-        fullGrid,
-        offR,
-        offR + CLOSED_VERTICAL_EXIT_SEAL_TILES,
-        offC,
-        offC + IW_ROOM_W_TILES,
-      );
-    }
     if (!cell.exits.down) {
       this.fillRoomRect(
         fullGrid,
-        offR + IW_ROOM_H_TILES - CLOSED_VERTICAL_EXIT_SEAL_TILES,
-        offR + IW_ROOM_H_TILES,
+        offR + roomH - CLOSED_VERTICAL_EXIT_SEAL_TILES,
+        offR + roomH,
         offC,
-        offC + IW_ROOM_W_TILES,
+        offC + roomW,
+      );
+    }
+  }
+
+  private openVerticalExits(
+    fullGrid: number[][],
+    cell: UnifiedRoomCell,
+    offR: number,
+    offC: number,
+    roomW: number,
+    roomH: number,
+  ): void {
+    const socketW = Math.min(roomW, IW_ROOM_SOCKET_TILES);
+    const socketC0 = offC + Math.floor((roomW - socketW) / 2);
+    const socketC1 = socketC0 + socketW;
+    if (cell.exits.up) {
+      this.clearRoomRect(
+        fullGrid,
+        offR,
+        offR + OPEN_VERTICAL_EXIT_CARVE_TILES,
+        socketC0,
+        socketC1,
+      );
+    }
+    if (cell.exits.down) {
+      this.clearRoomRect(
+        fullGrid,
+        offR + roomH - OPEN_VERTICAL_EXIT_CARVE_TILES,
+        offR + roomH,
+        socketC0,
+        socketC1,
       );
     }
   }
@@ -106,6 +146,24 @@ export class ItemWorldFullGridRuntime {
       for (let c = colStart; c < colEnd; c++) {
         if (r >= 0 && r < fullH && c >= 0 && c < fullW) {
           fullGrid[r][c] = TILE_SOLID;
+        }
+      }
+    }
+  }
+
+  private clearRoomRect(
+    fullGrid: number[][],
+    rowStart: number,
+    rowEnd: number,
+    colStart: number,
+    colEnd: number,
+  ): void {
+    const fullH = fullGrid.length;
+    const fullW = fullGrid[0]?.length ?? 0;
+    for (let r = rowStart; r < rowEnd; r++) {
+      for (let c = colStart; c < colEnd; c++) {
+        if (r >= 0 && r < fullH && c >= 0 && c < fullW) {
+          fullGrid[r][c] = TILE_AIR;
         }
       }
     }

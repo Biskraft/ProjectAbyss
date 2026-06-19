@@ -1,8 +1,7 @@
 /**
  * EgoDialogue.ts — Erda + Rustborn buddy dialogue data + state tracking.
  *
- * All dialogue strings live in Sheets/Content_Localization.csv (key: ego.*).
- * This file only assembles LoreLine[] structures keyed via t('ego.*').
+ * Rustborn/Ego dialogue is intentionally empty while the dialogue set is rewritten.
  *
  * Triggers are fired from LdtkWorldScene / ItemWorldScene at specific events.
  *
@@ -18,206 +17,102 @@
  */
 
 import type { LoreLine } from '@ui/LoreDisplay';
-import { GameAction, actionKey } from '@core/InputManager';
-import { t } from '@i18n';
 
-// ── Visual constants ──────────────────────────────────────────────
-const ERDA_SPEAKER = 'Erda';
-const ERDA_COLOR = 0x88cccc; // teal — survey crew uniform
-const ERDA_PORTRAIT = 'erda';
-
-const RUST_SPEAKER = 'Rustborn';
-const RUST_COLOR = 0xcc9966; // warm rust
-const RUST_PORTRAIT = 'rustborn';
-
-/** Helper to build an Erda dialogue line. */
-function erda(text: string, autoCloseMs?: number): LoreLine {
-  return {
-    text,
-    speaker: ERDA_SPEAKER,
-    speakerColor: ERDA_COLOR,
-    portrait: ERDA_PORTRAIT,
-    autoCloseMs,
-  };
-}
-
-/** Helper to build a Rustborn dialogue line. */
-function rust(text: string, autoCloseMs?: number): LoreLine {
-  return {
-    text,
-    speaker: RUST_SPEAKER,
-    speakerColor: RUST_COLOR,
-    portrait: RUST_PORTRAIT,
-    autoCloseMs,
-  };
-}
 
 // ── Dialogue data ─────────────────────────────────────────────────
 //
-// String content is resolved via t() at module-load time. Phase 2 has a fixed
-// build-time locale so const arrays are correct. Phase 3 runtime-switching
-// (System_Localization_Core.md §4.8) will refactor these to lazy functions.
+// Dialogue arrays are kept as exported no-op hooks so existing trigger code
+// can remain wired while the Rustborn dialogue set is rebuilt.
 
 /** T01: Ego wakes up after pickup (freeze=true) */
-export const EGO_WAKE: LoreLine[] = [
-  rust(t('ego.wake.0')),
-  rust(t('ego.wake.1')),
-  erda(t('ego.wake.2')),
-  rust(t('ego.wake.3')),
-];
+export const EGO_WAKE: LoreLine[] = [];
 
 /** T02: First movement after pickup (freeze=true, input to advance) */
-export const EGO_FIRST_WALK: LoreLine[] = [
-  rust(t('ego.first_walk.0')),
-  rust(t('ego.first_walk.1')),
-  rust(t('ego.first_walk.2')),
-];
+export const EGO_FIRST_WALK: LoreLine[] = [];
 
 /**
  * Rustborn discovery — player 가 Rustborn 근처 도달 시 발화 (사용자 결정 2026-05-03).
  * 기존 EGO_FIRST_WALK 의 자리를 대체. discovery pulse 종료 후 dispatch.
  */
-export const EGO_RUSTBORN_AWAKEN: LoreLine[] = [
-  rust(t('ego.rustborn_awaken.0')),
-  rust(t('ego.rustborn_awaken.1')),
-  rust(t('ego.rustborn_awaken.2')),
-  rust(t('ego.rustborn_awaken.3')),
-];
+export const EGO_RUSTBORN_AWAKEN: LoreLine[] = [];
 
 /** DLG-05 / T03: Anvil 도달 (사용자 결정 2026-05-04 — 1 줄로 단순화) */
-export const EGO_ANVIL: LoreLine[] = [
-  rust(t('ego.anvil.0'), 3000),
-];
+export const EGO_ANVIL: LoreLine[] = [];
 
 /** 2026-05-24: 첫 anvil 사용 → 터널 열림. 1회 한정 발화. ItemWorld 진입 방향 cue. */
-export const EGO_TUNNEL_OPEN: LoreLine[] = [
-  rust(t('ego.tunnel_open.0'), 2500),
-];
+export const EGO_TUNNEL_OPEN: LoreLine[] = [];
 
 /**
  * 첫 IW 보스 처치 전에 player 가 인벤토리 키를 누르면 — Rustborn 소유 시 발화.
  * (사용자 결정 2026-05-03) 보스 처치 전엔 인벤토리 잠금 상태이며 Ego 가 모루로
  * 유도. Rustborn 미소유 시는 Ego 발화 없이 단순 'Locked' 토스트.
  */
-export const EGO_INVENTORY_LOCKED: LoreLine[] = [
-  rust(t('ego.inventory_locked.0'), 3000),
-];
+export const EGO_INVENTORY_LOCKED: LoreLine[] = [];
 
 /** DLG-07 / T04: Plaza 첫 낙하 — Item world landing (사용자 결정 2026-05-04) */
-export const EGO_IW_ENTER: LoreLine[] = [
-  rust(t('ego.iw_enter.0')),
-];
+export const EGO_IW_ENTER: LoreLine[] = [];
 
 /** T05: First distortion monster on camera (freeze=false, auto) */
-export const EGO_MONSTER_FIRST: LoreLine[] = [
-  rust(t('ego.monster_first.0'), 3500),
-  rust(t('ego.monster_first.1'), 2000),
-];
+export const EGO_MONSTER_FIRST: LoreLine[] = [];
 
 /** T06: First enemy kill (freeze=false, auto) */
-export const EGO_FIRST_KILL: LoreLine[] = [
-  rust(t('ego.first_kill.0'), 3000),
-  rust(t('ego.first_kill.1'), 2500),
-];
+export const EGO_FIRST_KILL: LoreLine[] = [];
 
 /** T07: Room 3 clear (freeze=false, auto) */
-export const EGO_ROOM_CLEAR: LoreLine[] = [
-  rust(t('ego.room_clear.0'), 3000),
-];
+export const EGO_ROOM_CLEAR: LoreLine[] = [];
 
 /** T08: Innocent first visible (freeze=false, auto) */
-export const EGO_INNOCENT_FOUND: LoreLine[] = [
-  rust(t('ego.innocent_found.0'), 3500),
-  rust(t('ego.innocent_found.1'), 3500),
-  rust(t('ego.innocent_found.2'), 3500),
-];
+export const EGO_INNOCENT_FOUND: LoreLine[] = [];
 
 /** T09: Innocent stabilized (freeze=false, auto) */
-export const EGO_INNOCENT_STABLE: LoreLine[] = [
-  rust(t('ego.innocent_stable.0'), 3500),
-  rust(t('ego.innocent_stable.1'), 2500),
-];
+export const EGO_INNOCENT_STABLE: LoreLine[] = [];
 
 // T10: Boss appear — removed (DEC-033 feedback: unnecessary)
 
 /** T11: Player death -> respawn (freeze=false, auto) */
-export const EGO_PLAYER_DEATH: LoreLine[] = [
-  rust(t('ego.player_death.0'), 4000),
-];
+export const EGO_PLAYER_DEATH: LoreLine[] = [];
 
 /** DLG-09 / T12: Boss 처치 직후 (사용자 결정 2026-05-04) */
-export const EGO_BOSS_KILLED: LoreLine[] = [
-  rust(t('ego.boss_killed.0')),
-];
+export const EGO_BOSS_KILLED: LoreLine[] = [];
 
 /** DLG-08: Boss 룸 첫 진입 (사용자 결정 2026-05-04) */
-export const EGO_BOSS_ROOM_ENTER: LoreLine[] = [
-  rust(t('ego.boss_room_enter.0')),
-];
+export const EGO_BOSS_ROOM_ENTER: LoreLine[] = [];
 
 /** DLG-10: Memory Shard 회상 (Forgotten → Recalled 전환 시, 첫 1회만) */
-export const EGO_SHARD_RECALL: LoreLine[] = [
-  rust(t('ego.shard_recall.0'), 4000),
-];
+export const EGO_SHARD_RECALL: LoreLine[] = [];
 
 /** DLG-11: Trapdoor 포탈 (Trapdoor entity spawn 시점, 첫 1회만) */
-export const EGO_TRAPDOOR_THANKS: LoreLine[] = [
-  rust(t('ego.trapdoor_thanks.0'), 3500),
-];
+export const EGO_TRAPDOOR_THANKS: LoreLine[] = [];
 
 /** T13: Exit altar proximity (freeze=false, auto) */
-export const EGO_EXIT_ALTAR: LoreLine[] = [
-  rust(t('ego.exit_altar.0'), 3500),
-  rust(t('ego.exit_altar.1'), 3500),
-];
+export const EGO_EXIT_ALTAR: LoreLine[] = [];
 
 /** T14: World return — after exiting item world (freeze=false, auto) */
-export const EGO_WORLD_RETURN: LoreLine[] = [
-  rust(t('ego.world_return.0'), 3500),
-  rust(t('ego.world_return.1'), 3500),
-];
+export const EGO_WORLD_RETURN: LoreLine[] = [];
 
 // ── Re-entry (dialogue decay) ────────────────────────────────────
 
 /** R01: 2nd entry */
-export const EGO_REENTRY_2: LoreLine[] = [
-  rust(t('ego.reentry_2.0'), 2500),
-];
+export const EGO_REENTRY_2: LoreLine[] = [];
 
 /** R02: 2nd entry boss kill */
-export const EGO_REENTRY_2_BOSS: LoreLine[] = [
-  rust(t('ego.reentry_2_boss.0'), 2500),
-];
+export const EGO_REENTRY_2_BOSS: LoreLine[] = [];
 
 /** R03: 3rd entry */
-export const EGO_REENTRY_3: LoreLine[] = [
-  rust(t('ego.reentry_3.0'), 2000),
-];
+export const EGO_REENTRY_3: LoreLine[] = [];
 
 // 4th+ entry: silence (no data needed)
 
 // ── Special events ───────────────────────────────────────────────
 
 /** S01: Player equips a stronger weapon */
-export const EGO_WEAPON_SWAP: LoreLine[] = [
-  rust(t('ego.weapon_swap.0'), 2500),
-  rust(t('ego.weapon_swap.1'), 3000),
-  rust(t('ego.weapon_swap.2'), 3500),
-  erda(t('ego.weapon_swap.3'), 2500),
-];
+export const EGO_WEAPON_SWAP: LoreLine[] = [];
 
 /** S02: Re-entering Rustborn's item world after S01 */
-export const EGO_SWAP_RETURN: LoreLine[] = [
-  rust(t('ego.swap_return.0'), 2000),
-  rust(t('ego.swap_return.1'), 3000),
-];
+export const EGO_SWAP_RETURN: LoreLine[] = [];
 
 /** S03: Stratum 2 clear — affinity awakening (freeze=true) */
-export const EGO_AFFINITY_MAX: LoreLine[] = [
-  rust(t('ego.affinity_max.0')),
-  rust(t('ego.affinity_max.1')),
-  erda(t('ego.affinity_max.2')),
-];
+export const EGO_AFFINITY_MAX: LoreLine[] = [];
 
 // ── Town of Orphaned Shadows (DEC-038) ───────────────────────────
 //
@@ -229,39 +124,20 @@ export const EGO_AFFINITY_MAX: LoreLine[] = [
 // Recalled-Aware (50%+) 단계는 후속 폴리시에서 추가.
 
 /** TOWN-01: Gatekeeper @ Plaza (hub) — 첫 만남 */
-export const EGO_GATEKEEPER_FIRST: LoreLine[] = [
-  rust(t('ego.gatekeeper_first.0'), 3500),
-  rust(t('ego.gatekeeper_first.1'), 3500),
-  rust(t('ego.gatekeeper_first.2'), 4000),
-];
+export const EGO_GATEKEEPER_FIRST: LoreLine[] = [];
 
 /** TOWN-02: Gatekeeper @ Plaza — 재회 (동일 무기 2회+ 진입) */
-export const EGO_GATEKEEPER_FAMILIAR: LoreLine[] = [
-  rust(t('ego.gatekeeper_familiar.0'), 3500),
-  rust(t('ego.gatekeeper_familiar.1'), 4000),
-  rust(t('ego.gatekeeper_familiar.2'), 3500),
-];
+export const EGO_GATEKEEPER_FAMILIAR: LoreLine[] = [];
 
 /** TOWN-03: Archivist @ Archive (shrine) — 첫 만남 */
-export const EGO_ARCHIVIST_FIRST: LoreLine[] = [
-  rust(t('ego.archivist_first.0'), 3500),
-  rust(t('ego.archivist_first.1'), 4000),
-  rust(t('ego.archivist_first.2'), 3000),
-];
+export const EGO_ARCHIVIST_FIRST: LoreLine[] = [];
 
 /** TOWN-04: Archivist @ Archive — 재회 */
-export const EGO_ARCHIVIST_FAMILIAR: LoreLine[] = [
-  rust(t('ego.archivist_familiar.0'), 3000),
-  rust(t('ego.archivist_familiar.1'), 4000),
-  rust(t('ego.archivist_familiar.2'), 2500),
-];
+export const EGO_ARCHIVIST_FAMILIAR: LoreLine[] = [];
 
 /** S04: First ItemDrop pickup after first IW boss clear — anvil retired + inventory hint */
 export function getEgoAnvilRetired(): LoreLine[] {
-  return [
-    rust(t('ego.anvil_retired.0')),
-    rust(t('ego.anvil_retired.1', { key: actionKey(GameAction.INVENTORY) })),
-  ];
+  return [];
 }
 
 // ── Ego weapon IDs ───────────────────────────────────────────────

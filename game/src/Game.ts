@@ -302,6 +302,12 @@ export class Game {
               const toast = (this.sceneManager.active as { toast?: { show: (msg: string, color?: number) => void } } | null)?.toast;
               toast?.show(`Zoom ${this.camera.zoom.toFixed(1)}x`, 0xffa41b);
             }
+            // Shift+Y: debug slow animation/gameplay time to 0.1x for frame inspection.
+            if (this.input.shiftDown && this.input.isJustPressedKeyCode('KeyY')) {
+              Debug.animationTimeScale = Debug.animationTimeScale === 1 ? 0.1 : 1;
+              const toast = (this.sceneManager.active as { toast?: { show: (msg: string, color?: number) => void } } | null)?.toast;
+              toast?.show(`Animation ${Debug.animationTimeScale === 1 ? '1.0x' : '0.1x'}`, 0xffa41b);
+            }
           }
           // Shift+P ???꾩뿭 hard reset. ?몄씠釉?+ ?ㅻ낫??preset(localStorage) 紐⑤몢 ??젣 ??reload.
           // ?대뼡 ?ъ뿉?쒕룄 ?묐룞?섎룄濡?Game.ts ?⑥쑝濡??쇱썝??(?댁쟾??LdtkWorldScene 留?泥섎━).
@@ -313,11 +319,12 @@ export class Game {
             window.location.reload();
             return;
           }
-          this.transitionDirector.update(FIXED_STEP);
+          const sceneStep = FIXED_STEP * Debug.animationTimeScale;
+          this.transitionDirector.update(sceneStep);
           this.stats.playTimeMs += FIXED_STEP;
           if (!this.transitionDirector.blocksSceneUpdate) {
             PerfMonitor.begin('scene.update');
-            this.sceneManager.update(FIXED_STEP);
+            this.sceneManager.update(sceneStep);
             PerfMonitor.end('scene.update');
           }
         }

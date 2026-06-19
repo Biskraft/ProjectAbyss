@@ -1,21 +1,27 @@
 import type { UnifiedGridData, UnifiedRoomCell } from '@level/RoomGrid';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import { PRNG } from '@utils/PRNG';
-import { IW_ROOM_H_PX, IW_ROOM_W_PX } from './ItemWorldMapController';
+import { IW_ROOM_H_TILES, IW_ROOM_W_TILES, TILE_SIZE } from './ItemWorldMapController';
+
+export interface PopulatedItemWorldFullMapRoom {
+  cell: UnifiedRoomCell;
+  ldtkLevel: LdtkLevel;
+  col: number;
+  absRow: number;
+  roomTileX: number;
+  roomTileY: number;
+  roomX: number;
+  roomY: number;
+  roomW: number;
+  roomH: number;
+}
 
 interface PopulateFullMapRoomsOptions {
   unifiedGrid: UnifiedGridData;
   itemUid: number;
   pickTemplate: (cell: UnifiedRoomCell, rng: PRNG) => LdtkLevel | null;
   shouldSkipTemplate: (ldtkLevel: LdtkLevel) => boolean;
-  onRoom: (options: {
-    cell: UnifiedRoomCell;
-    ldtkLevel: LdtkLevel;
-    col: number;
-    absRow: number;
-    roomX: number;
-    roomY: number;
-  }) => void;
+  onRoom: (options: PopulatedItemWorldFullMapRoom) => void;
 }
 
 export function populateItemWorldFullMapRooms(options: PopulateFullMapRoomsOptions): number {
@@ -31,9 +37,13 @@ export function populateItemWorldFullMapRooms(options: PopulateFullMapRoomsOptio
       const ldtkLevel = pickTemplate(cell, rng);
       if (!ldtkLevel || shouldSkipTemplate(ldtkLevel)) continue;
 
-      const roomX = col * IW_ROOM_W_PX;
-      const roomY = absRow * IW_ROOM_H_PX;
-      onRoom({ cell, ldtkLevel, col, absRow, roomX, roomY });
+      const roomTileX = cell.tileRect?.x ?? col * IW_ROOM_W_TILES;
+      const roomTileY = cell.tileRect?.y ?? absRow * IW_ROOM_H_TILES;
+      const roomW = ldtkLevel.pxWid;
+      const roomH = ldtkLevel.pxHei;
+      const roomX = roomTileX * TILE_SIZE;
+      const roomY = roomTileY * TILE_SIZE;
+      onRoom({ cell, ldtkLevel, col, absRow, roomTileX, roomTileY, roomX, roomY, roomW, roomH });
       roomCount++;
     }
   }

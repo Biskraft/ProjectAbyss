@@ -2,9 +2,7 @@ import type { LdtkLevel } from '@level/LdtkLoader';
 import type { UnifiedGridData } from '@level/RoomGrid';
 import { playerTopLeftFromBottomCenter } from '@scenes/shared/PlayerPlacementHelpers';
 import {
-  IW_ROOM_H_PX,
   IW_ROOM_H_TILES,
-  IW_ROOM_W_PX,
   IW_ROOM_W_TILES,
   TILE_SIZE,
 } from './ItemWorldMapController';
@@ -19,19 +17,44 @@ interface PlayerSize {
   height: number;
 }
 
+interface PlaceablePlayer extends PlayerSize {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  savePrevPosition(): void;
+}
+
+interface RoomRectTiles {
+  tileX: number;
+  tileY: number;
+  tileW: number;
+  tileH: number;
+}
+
 interface ItemWorldPlayerSpawnRuntimeDeps {
   getCollisionGrid: () => number[][];
+  getPlayer: () => PlaceablePlayer;
   getPlayerSize: () => PlayerSize;
-  computeSpawnPoints: (grid: number[][], roomLeftTile: number, roomTopTile: number) => SpawnPoint[];
+  snapCamera: (x: number, y: number) => void;
+  computeSpawnPoints: (
+    grid: number[][],
+    roomLeftTile: number,
+    roomTopTile: number,
+    roomWidthTiles?: number,
+    roomHeightTiles?: number,
+  ) => SpawnPoint[];
 }
 
 export class ItemWorldPlayerSpawnRuntime {
   private readonly ldtkSpawnByStratum = new Map<number, SpawnPoint>();
+  private readonly roomRects = new Map<string, RoomRectTiles>();
 
   constructor(private readonly deps: ItemWorldPlayerSpawnRuntimeDeps) {}
 
   clear(): void {
     this.ldtkSpawnByStratum.clear();
+    this.roomRects.clear();
   }
 
   captureFromRoom(
@@ -42,6 +65,13 @@ export class ItemWorldPlayerSpawnRuntime {
     roomX: number,
     roomY: number,
   ): void {
+    this.roomRects.set(this.roomKey(col, absRow), {
+      tileX: Math.floor(roomX / TILE_SIZE),
+      tileY: Math.floor(roomY / TILE_SIZE),
+      tileW: Math.max(1, Math.floor(ldtkLevel.pxWid / TILE_SIZE)),
+      tileH: Math.max(1, Math.floor(ldtkLevel.pxHei / TILE_SIZE)),
+    });
+
     const stratumStartMatch = unifiedGrid.stratumStartRooms?.find(
       start => start.col === col && start.absoluteRow === absRow,
     );
@@ -66,20 +96,53 @@ export class ItemWorldPlayerSpawnRuntime {
     );
   }
 
+  placeAtRoom(
+    stratumIndex: number,
+    col: number,
+    absoluteRow: number,
+    options: { snapCamera?: boolean } = {},
+  ): void {
+    this.placeAt(this.resolveForRoom(stratumIndex, col, absoluteRow), options);
+  }
+
+  placeAtFloor(
+    col: number,
+    absoluteRow: number,
+    options: { snapCamera?: boolean } = {},
+  ): void {
+    this.placeAt(this.resolveFloorSpawn(col, absoluteRow), options);
+  }
+
   resolveFloorSpawn(col: number, absoluteRow: number): SpawnPoint {
     const fullGrid = this.deps.getCollisionGrid();
     const playerSize = this.deps.getPlayerSize();
-    const roomLeftTile = col * IW_ROOM_W_TILES;
-    const roomTopTile = absoluteRow * IW_ROOM_H_TILES;
-    const roomLeftPx = col * IW_ROOM_W_PX;
-    const roomRightPx = roomLeftPx + IW_ROOM_W_PX;
-    const roomTopPx = absoluteRow * IW_ROOM_H_PX;
-    const roomBottomPx = roomTopPx + IW_ROOM_H_PX;
-    const targetCenterX = roomLeftPx + IW_ROOM_W_PX / 2;
+    const rect = this.roomRects.get(this.roomKey(col, absoluteRow)) ?? {
+      tileX: col * IW_ROOM_W_TILES,
+      tileY: absoluteRow * IW_ROOM_H_TILES,
+      tileW: IW_ROOM_W_TILES,
+      tileH: IW_ROOM_H_TILES,
+    };
+    const roomLeftTile = rect.tileX;
+    const roomTopTile = rect.tileY;
+    const roomWidthTiles = rect.tileW;
+    const roomHeightTiles = rect.tileH;
+    const roomLeftPx = roomLeftTile * TILE_SIZE;
+    const roomRightPx = (roomLeftTile + roomWidthTiles) * TILE_SIZE;
+    const roomTopPx = roomTopTile * TILE_SIZE;
+    const roomBottomPx = (roomTopTile + roomHeightTiles) * TILE_SIZE;
+    const targetCenterX = roomLeftPx + (roomWidthTiles * TILE_SIZE) / 2;
 
-    const floor = this.findFloor(fullGrid, roomLeftTile, roomTopTile, targetCenterX, roomBottomPx);
+    const floor = this.findFloor(
+      fullGrid,
+      roomLeftTile,
+      roomTopTile,
+      roomWidthTiles,
+      roomHeightTiles,
+      targetCenterX,
+      roomBottomPx,
+    );
     const spawnCenterX = floor?.x ?? targetCenterX;
-    const floorY = floor?.y ?? (roomTopPx + IW_ROOM_H_PX / 2);
+    const floorY = floor?.y ?? (roomTopPx + (roomHeightTiles * TILE_SIZE) / 2);
     const minX = roomLeftPx + TILE_SIZE;
     const maxX = roomRightPx - TILE_SIZE - playerSize.width;
 
@@ -107,6 +170,8 @@ export class ItemWorldPlayerSpawnRuntime {
     fullGrid: number[][],
     roomLeftTile: number,
     roomTopTile: number,
+    roomWidthTiles: number,
+    roomHeightTiles: number,
     targetCenterX: number,
     roomBottomPx: number,
   ): SpawnPoint | null {
@@ -123,15 +188,21 @@ export class ItemWorldPlayerSpawnRuntime {
       return current;
     };
 
-    for (const pt of this.deps.computeSpawnPoints(fullGrid, roomLeftTile, roomTopTile)) {
+    for (const pt of this.deps.computeSpawnPoints(
+      fullGrid,
+      roomLeftTile,
+      roomTopTile,
+      roomWidthTiles,
+      roomHeightTiles,
+    )) {
       best = chooseBetter(best, pt.x + TILE_SIZE / 2, pt.y);
     }
     if (best) return { x: best.x, y: best.y };
 
     const colStart = roomLeftTile + 1;
-    const colEnd = roomLeftTile + IW_ROOM_W_TILES - 1;
+    const colEnd = roomLeftTile + roomWidthTiles - 1;
     const rowStart = roomTopTile + 1;
-    const rowEnd = roomTopTile + IW_ROOM_H_TILES - 1;
+    const rowEnd = roomTopTile + roomHeightTiles - 1;
     for (let tr = rowStart; tr < rowEnd; tr++) {
       for (let tc = colStart; tc < colEnd; tc++) {
         const here = fullGrid[tr]?.[tc] ?? 1;
@@ -142,5 +213,21 @@ export class ItemWorldPlayerSpawnRuntime {
       }
     }
     return best ? { x: best.x, y: best.y } : null;
+  }
+
+  private placeAt(spawn: SpawnPoint, options: { snapCamera?: boolean }): void {
+    const player = this.deps.getPlayer();
+    player.x = spawn.x;
+    player.y = spawn.y;
+    player.vx = 0;
+    player.vy = 0;
+    player.savePrevPosition();
+    if (options.snapCamera) {
+      this.deps.snapCamera(player.x + player.width / 2, player.y + player.height / 2);
+    }
+  }
+
+  private roomKey(col: number, absRow: number): string {
+    return `${col}:${absRow}`;
   }
 }

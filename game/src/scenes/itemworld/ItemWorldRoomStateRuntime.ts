@@ -20,6 +20,7 @@ export class ItemWorldRoomStateRuntime {
       for (let c = 0; c < unifiedGrid.totalWidth; c++) {
         const cell = unifiedGrid.cells[r][c];
         if (!cell) continue;
+        if (cell.isFiller) continue;
         const key = `${c},${r}`;
         cell.visited = visited.has(key);
         cell.cleared = cleared.has(key);
@@ -55,6 +56,7 @@ export class ItemWorldRoomStateRuntime {
       for (let c = 0; c < unifiedGrid.totalWidth; c++) {
         const cell = unifiedGrid.cells[r][c];
         if (!cell) continue;
+        if (cell.isFiller) continue;
         const key = `${c},${r}`;
         if (cell.visited) visited.push(key);
         if (cell.cleared) cleared.push(key);
@@ -90,7 +92,7 @@ export class ItemWorldRoomStateRuntime {
     for (let r = 0; r < unifiedGrid.totalHeight; r++) {
       for (let c = 0; c < unifiedGrid.totalWidth; c++) {
         const cell = unifiedGrid.cells[r][c];
-        if (cell && cell.type !== 0) total++;
+        if (cell && !cell.isFiller && cell.type !== 0) total++;
       }
     }
     return total;

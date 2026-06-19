@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECHORIS Attack Timeline Tool</title>
+<style>
+  :root{--bg:#101113;--panel:#191c21;--panel2:#232833;--line:#343b4a;--txt:#e8edf5;--muted:#96a0b2;--hot:#ff8a3d;--hit:#ff4d4d;--fx:#67d7ff;--cancel:#6ee07d;--lock:#d8bf5d;--lunge:#c98bff}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(circle at 20% 0,#263143 0,#101113 42%);color:var(--txt);font:14px/1.45 "Segoe UI",system-ui,sans-serif;min-height:100vh}
+  header{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(25,28,33,.92);position:sticky;top:0;z-index:2}
+  h1{font-size:16px;margin:0;letter-spacing:.4px}
+  .tag{color:var(--muted);font-size:12px}
+  .status{margin-left:auto;color:var(--muted);font-size:12px}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:8px 12px;cursor:pointer}
+  button.primary{background:var(--hot);border-color:var(--hot);color:#1b1008;font-weight:700}
+  main{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px}
+  aside,.work{background:rgba(25,28,33,.86);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.32)}
+  aside{padding:12px;height:calc(100vh - 92px);overflow:auto}
+  .row{padding:10px;border:1px solid transparent;border-radius:9px;cursor:pointer;margin-bottom:8px;background:rgba(255,255,255,.03)}
+  .row:hover,.row.sel{border-color:var(--hot);background:rgba(255,138,61,.13)}
+  .row b{display:block}.row span{color:var(--muted);font-size:12px}
+  .work{padding:16px;min-width:0}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin:14px 0}
+  label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px}
+  input,select{background:#0c0e12;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:7px 8px;font:inherit}
+  input[type=checkbox]{width:18px;height:18px}
+  .timeline{position:relative;height:156px;background:#0b0d11;border:1px solid var(--line);border-radius:10px;margin:18px 0 10px;overflow:hidden}
+  .frames{display:flex;height:100%}
+  .frame{position:relative;border-right:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015));min-width:36px}
+  .frame:nth-child(even){background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.025))}
+  .frame .n{position:absolute;left:6px;top:6px;font-size:12px;color:var(--txt)}
+  .frame .d{position:absolute;left:6px;bottom:6px;font-size:11px;color:var(--muted)}
+  .sprite{position:absolute;left:50%;top:30px;width:48px;height:48px;transform:translateX(-50%) scale(1.45);transform-origin:top center;background-image:url('/erda_atlas.png');background-repeat:no-repeat;image-rendering:pixelated;filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+  .marker{position:absolute;top:0;bottom:0;width:2px;transform:translateX(-1px);box-shadow:0 0 0 1px #000;cursor:ew-resize;z-index:4}
+  .marker:hover{width:4px;transform:translateX(-2px);filter:brightness(1.25)}
+  .marker::after{position:absolute;top:8px;left:5px;padding:2px 5px;border-radius:5px;color:#050507;font-size:11px;font-weight:800;white-space:nowrap}
+  .marker.dragging{width:4px;transform:translateX(-2px);filter:brightness(1.45)}
+  .hitS,.hitE{background:var(--hit)} .hitS::after{content:"hit on";background:var(--hit)} .hitE::after{content:"hit off";background:var(--hit);top:30px}
+  .fx{background:var(--fx)} .fx::after{content:"fx";background:var(--fx);top:52px}
+  .cancelS,.cancelE{background:var(--cancel)} .cancelS::after{content:"cancel";background:var(--cancel);top:74px}.cancelE::after{content:"cancel end";background:var(--cancel);top:96px}
+  .lungeS,.lungeE{background:var(--lunge)} .lungeS::after{content:"lunge";background:var(--lunge);top:18px}.lungeE::after{content:"lunge end";background:var(--lunge);top:40px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+  .pill{display:inline-flex;align-items:center;gap:5px}.sw{width:10px;height:10px;border-radius:2px;background:var(--hot)}
+  .fxedit{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18);padding:12px}
+  .fxhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .fxhead h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .fxstage{position:relative;height:180px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),#080a0e;background-size:16px 16px;overflow:hidden}
+  .fxorigin{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--hot);box-shadow:0 0 0 1px #000;z-index:5}
+  .fxbody{position:absolute;border:1px solid rgba(255,138,61,.8);background:rgba(255,138,61,.08);z-index:1}
+  .fxerda{position:absolute;width:48px;height:48px;background-image:url('/erda_atlas.png');background-repeat:no-repeat;image-rendering:pixelated;background-size:2736px 48px;transform-origin:top left;opacity:.95;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45));z-index:2}
+  .fxsprite{position:absolute;width:96px;height:64px;background-image:url('/fx_slash_02_atlas.png');background-repeat:no-repeat;background-size:384px 64px;image-rendering:pixelated;opacity:.85;cursor:grab;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35));transform-origin:top left;z-index:3}
+  .fxsprite.dragging{cursor:grabbing;filter:brightness(1.25) drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+  .note{color:var(--muted);font-size:12px;margin-top:10px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#202633;border:1px solid var(--line);padding:9px 14px;border-radius:8px;opacity:0;transition:.16s}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Attack Timeline Tool</h1>
+  <span class="tag">CSV: Sheets/Content_PlayerAttackTimeline.csv</span>
+  <button onclick="location.href='/'">HUD Tool</button>
+  <button class="primary" id="save">Save</button>
+  <button id="reload">Reload</button>
+  <span class="status" id="status">connecting...</span>
+</header>
+<main>
+  <aside id="list"></aside>
+  <section class="work">
+    <h2 id="title">Select attack</h2>
+    <div class="timeline" id="timeline"></div>
+    <div class="legend">
+      <span class="pill"><i class="sw" style="background:var(--hit)"></i>hitbox</span>
+      <span class="pill"><i class="sw" style="background:var(--fx)"></i>effect</span>
+      <span class="pill"><i class="sw" style="background:var(--cancel)"></i>cancel</span>
+      <span class="pill"><i class="sw" style="background:var(--lunge)"></i>lunge</span>
+    </div>
+    <div class="fxedit">
+      <div class="fxhead">
+        <h3>FX Position</h3>
+        <label style="max-width:180px">Type<select id="fx-type"></select></label>
+        <span class="tag" id="fx-row-label"></span>
+      </div>
+      <div class="fxstage" id="fx-stage">
+        <div class="fxbody" id="fx-body"></div>
+        <div class="fxerda" id="fx-erda"></div>
+        <div class="fxorigin"></div>
+        <div class="fxsprite" id="fx-sprite" title="Drag to adjust FxOffsetX/Y"></div>
+      </div>
+      <div class="grid" id="fx-form"></div>
+    </div>
+    <div class="grid" id="form"></div>
+    <p class="note">Frame fields are relative to AnimTag. VisualTotalMs = auto uses the Aseprite JSON duration sum for that tag. Save, then reload the game/dev server if Vite does not hot-reload CSV imports.</p>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const API = location.origin;
+let data = { headers:[], rows:[], atlas:{tags:{}} };
+let selected = 0;
+let selectedFxType = 'Blade';
+const numericFields = ['ComboIndex','HitStartFrame','HitEndFrame','FxFrame','CancelStartFrame','CancelEndFrame','InputLockEndFrame','MoveLockEndFrame','LungeStartFrame','LungeEndFrame','ComboWindowMs','EndLagMs','PreDelayMs'];
+const boolFields = ['Airborne','ReverseAnim'];
+const editable = ['AttackId','ComboIndex','Airborne','AnimTag','ReverseAnim','VisualTotalMs','HitStartFrame','HitEndFrame','FxFrame','CancelStartFrame','CancelEndFrame','InputLockEndFrame','MoveLockEndFrame','LungeStartFrame','LungeEndFrame','ComboWindowMs','EndLagMs','PreDelayMs'];
+const $ = s => document.querySelector(s);
+let dragMarker = null;
+let dragFx = null;
+function row(){ return data.rows[selected]; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.className='toast show'; clearTimeout(toast.t); toast.t=setTimeout(()=>t.className='toast',2200); }
+function renderList(){
+  const list=$('#list'); list.innerHTML='';
+  data.rows.forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='row'+(i===selected?' sel':'');
+    d.innerHTML=`<b>${r.AttackId}</b><span>combo ${r.ComboIndex} / ${r.AnimTag}${r.Airborne==='true'?' / air':''}</span>`;
+    d.onclick=()=>{ selected=i; render(); };
+    list.appendChild(d);
+  });
+}
+function frameStartMs(tag, frame){
+  const ds = tag?.durations ?? [];
+  const f = Math.max(0, Math.min(ds.length - 1, Number(frame)||0));
+  let ms = 0; for(let i=0;i<f;i++) ms += Number(ds[i])||100;
+  return ms;
+}
+function frameEndMs(tag, frame){
+  const ds = tag?.durations ?? [];
+  const f = Math.max(0, Math.min(ds.length - 1, Number(frame)||0));
+  return frameStartMs(tag,f) + (Number(ds[f])||100);
+}
+function nearestFrameAtClientX(tag, timelineEl, clientX, mode='start'){
+  const rect = timelineEl.getBoundingClientRect();
+  const ds = tag?.durations ?? [];
+  const total = tag.totalMs || ds.reduce((a,b)=>a+b,0) || 1;
+  const targetMs = Math.max(0, Math.min(total, ((clientX - rect.left) / rect.width) * total));
+  let best = 0;
+  let bestDist = Infinity;
+  let acc = 0;
+  for(let i=0;i<ds.length;i++){
+    const markerMs = mode === 'end' ? acc + (Number(ds[i]) || 100) : acc;
+    const dist = Math.abs(markerMs - targetMs);
+    if(dist < bestDist){ best = i; bestDist = dist; }
+    acc += Number(ds[i]) || 100;
+  }
+  return best;
+}
+function setMarkerField(field, value){
+  const r = row();
+  const tag = data.atlas.tags[r.AnimTag];
+  const max = Math.max(0, (tag?.durations?.length ?? 1) - 1);
+  r[field] = String(Math.max(0, Math.min(max, Number(value)||0)));
+  renderTimeline();
+  renderForm();
+  renderList();
+}
+function beginMarkerDrag(e){
+  const marker = e.currentTarget;
+  dragMarker = { field: marker.dataset.field, mode: marker.dataset.mode || 'start' };
+  marker.classList.add('dragging');
+  marker.setPointerCapture?.(e.pointerId);
+  moveMarkerDrag(e);
+  e.preventDefault();
+  e.stopPropagation();
+}
+function moveMarkerDrag(e){
+  if(!dragMarker) return;
+  const r = row();
+  const tag = data.atlas.tags[r.AnimTag];
+  const timelineEl = $('#timeline');
+  const frame = nearestFrameAtClientX(tag, timelineEl, e.clientX, dragMarker.mode);
+  setMarkerField(dragMarker.field, frame);
+}
+function endMarkerDrag(){
+  document.querySelectorAll('.marker.dragging').forEach(m=>m.classList.remove('dragging'));
+  dragMarker = null;
+}
+function renderTimeline(){
+  const r=row(); const tag=data.atlas.tags[r.AnimTag];
+  const el=$('#timeline'); el.innerHTML='';
+  if(!tag){ el.textContent='Unknown AnimTag'; return; }
+  const total = tag.totalMs || tag.durations.reduce((a,b)=>a+b,0) || 1;
+  const reverse = String(r.ReverseAnim).toLowerCase() === 'true';
+  const frames=document.createElement('div'); frames.className='frames';
+  tag.durations.forEach((d,i)=>{
+    const displayIndex = reverse ? tag.durations.length - 1 - i : i;
+    const f=document.createElement('div'); f.className='frame';
+    f.style.flexBasis=((d||100)/total*100)+'%';
+    const absoluteFrame = Number(tag.from) + displayIndex;
+    const frameW = data.atlas.frameW || 48;
+    const frameH = data.atlas.frameH || 48;
+    const imageW = data.atlas.imageW || frameW * (Number(tag.to) + 1);
+    const imageH = data.atlas.imageH || frameH;
+    f.innerHTML=`<span class="n">${displayIndex} <small style="color:var(--muted)">#${absoluteFrame}</small></span><span class="sprite"></span><span class="d">${d||100}ms</span>`;
+    const spr = f.querySelector('.sprite');
+    spr.style.width = frameW + 'px';
+    spr.style.height = frameH + 'px';
+    spr.style.backgroundSize = `${imageW}px ${imageH}px`;
+    spr.style.backgroundPosition = `${-absoluteFrame * frameW}px 0px`;
+    frames.appendChild(f);
+  });
+  el.appendChild(frames);
+  const add=(cls,ms,field,mode='start')=>{ const m=document.createElement('div'); m.className='marker '+cls; m.dataset.field=field; m.dataset.mode=mode; m.title=`Drag ${field}`; m.style.left=(Math.max(0,Math.min(1,ms/total))*100)+'%'; m.addEventListener('pointerdown', beginMarkerDrag); el.appendChild(m); };
+  add('hitS', frameStartMs(tag,r.HitStartFrame), 'HitStartFrame'); add('hitE', frameEndMs(tag,r.HitEndFrame), 'HitEndFrame', 'end');
+  add('fx', frameStartMs(tag,r.FxFrame), 'FxFrame');
+  add('cancelS', frameStartMs(tag,r.CancelStartFrame), 'CancelStartFrame'); add('cancelE', frameEndMs(tag,r.CancelEndFrame), 'CancelEndFrame', 'end');
+  add('lungeS', frameStartMs(tag,r.LungeStartFrame), 'LungeStartFrame'); add('lungeE', frameStartMs(tag,r.LungeEndFrame), 'LungeEndFrame');
+}
+function renderForm(){
+  const f=$('#form'); f.innerHTML=''; const r=row();
+  for(const key of editable){
+    const lab=document.createElement('label'); lab.textContent=key;
+    let input;
+    if(key==='AnimTag'){
+      input=document.createElement('select');
+      for(const name of Object.keys(data.atlas.tags)){
+        const opt=document.createElement('option'); opt.value=name; opt.textContent=name; input.appendChild(opt);
+      }
+      input.value=r[key] ?? '';
+    } else if(boolFields.includes(key)){
+      input=document.createElement('input'); input.type='checkbox'; input.checked=String(r[key]).toLowerCase()==='true';
+    } else {
+      input=document.createElement('input'); input.type=numericFields.includes(key)?'number':'text'; input.value=r[key] ?? '';
+    }
+    input.oninput=input.onchange=()=>{
+      r[key]=input.type==='checkbox' ? String(input.checked) : String(input.value);
+      renderList(); renderTimeline();
+    };
+    lab.appendChild(input); f.appendChild(lab);
+  }
+}
+function fxTypes(){
+  return [...new Set((data.fx?.rows ?? []).map(r=>r.Type).filter(Boolean))];
+}
+function fxRow(){
+  const r = row();
+  const step = String((Number(r.ComboIndex)||0) + 1);
+  return (data.fx?.rows ?? []).find(x => x.Type === selectedFxType && String(x.Step) === step)
+    ?? (data.fx?.rows ?? [])[0];
+}
+function fxAtlasFrameIndex(fxSprite, comboIndex){
+  if(fxSprite === 'fx_slash_1') return Math.min(2, 1 + (Number(comboIndex)||0));
+  if(fxSprite === 'fx_slash_2') return Math.min(5, 3 + (Number(comboIndex)||0));
+  return Math.max(0, Math.min(3, Number(row()?.FxFrame) || 0));
+}
+function erdaFrameForFx(){
+  const r = row();
+  const tag = data.atlas.tags[r.AnimTag];
+  if(!tag) return 0;
+  const count = tag.durations?.length ?? 1;
+  const sourceRelative = Math.max(0, Math.min(count - 1, Number(r.FxFrame)||0));
+  const relative = String(r.ReverseAnim).toLowerCase() === 'true'
+    ? count - 1 - sourceRelative
+    : sourceRelative;
+  return Number(tag.from) + relative;
+}
+function renderFxEditor(){
+  const typeSel = $('#fx-type');
+  const types = fxTypes();
+  if(!types.includes(selectedFxType)) selectedFxType = types.includes('Blade') ? 'Blade' : (types[0] ?? '');
+  typeSel.innerHTML = '';
+  for(const t of types){
+    const opt=document.createElement('option'); opt.value=t; opt.textContent=t; typeSel.appendChild(opt);
+  }
+  typeSel.value = selectedFxType;
+  typeSel.onchange = () => { selectedFxType = typeSel.value; renderFxEditor(); };
+
+  const fx = fxRow();
+  if(!fx){ $('#fx-row-label').textContent='no fx row'; return; }
+  $('#fx-row-label').textContent = `${fx.Type} step ${fx.Step} / ${fx.FxSprite}`;
+  const spr = $('#fx-sprite');
+  const ox = Number(fx.FxOffsetX) || 0;
+  const oy = Number(fx.FxOffsetY) || 0;
+  const sx = Number(fx.FxScaleX) || 1;
+  const sy = Number(fx.FxScaleY) || 1;
+  const frameIdx = fxAtlasFrameIndex(fx.FxSprite, row()?.ComboIndex);
+  const erdaIdx = erdaFrameForFx();
+  const stage = $('#fx-stage');
+  const stageW = stage.clientWidth || 640;
+  const stageH = stage.clientHeight || 180;
+  const previewScale = 2;
+  const playerW = 14;
+  const playerH = 24;
+  const erdaW = data.atlas.frameW || 48;
+  const erdaH = data.atlas.frameH || 48;
+  const slashW = 96;
+  const slashH = 64;
+  const slashRefX = 0;
+  const slashRefY = 24;
+  const originX = Math.round(stageW * 0.5);
+  const originY = Math.round(stageH * 0.68);
+  const erdaTopLeftX = playerW / 2 - erdaW / 2;
+  const erdaTopLeftY = playerH - erdaH;
+  const fxLocalX = erdaTopLeftX - slashRefX + ox;
+  const fxLocalY = erdaTopLeftY - slashRefY + oy;
+
+  const origin = $('.fxorigin');
+  origin.style.left = originX + 'px';
+  origin.style.top = originY + 'px';
+
+  const body = $('#fx-body');
+  body.style.left = originX + 'px';
+  body.style.top = originY + 'px';
+  body.style.width = (playerW * previewScale) + 'px';
+  body.style.height = (playerH * previewScale) + 'px';
+
+  const erda = $('#fx-erda');
+  erda.style.backgroundSize = `${data.atlas.imageW || 2736}px ${data.atlas.imageH || 48}px`;
+  erda.style.backgroundPosition = `${-erdaIdx * (data.atlas.frameW || 48)}px 0px`;
+  erda.style.left = (originX + erdaTopLeftX * previewScale) + 'px';
+  erda.style.top = (originY + erdaTopLeftY * previewScale) + 'px';
+  erda.style.transform = `scale(${previewScale})`;
+
+  spr.style.left = (originX + fxLocalX * previewScale) + 'px';
+  spr.style.top = (originY + fxLocalY * previewScale) + 'px';
+  spr.style.transform = `scale(${sx*previewScale}, ${sy*previewScale})`;
+  spr.style.backgroundPosition = `${-frameIdx * 96}px 0px`;
+
+  const form = $('#fx-form'); form.innerHTML='';
+  for(const key of ['FxOffsetX','FxOffsetY','FxScaleX','FxScaleY','FxColor']){
+    const lab=document.createElement('label'); lab.textContent=key;
+    const input=document.createElement('input');
+    input.type = key === 'FxColor' ? 'text' : 'number';
+    input.step = key.startsWith('FxScale') ? '0.05' : '1';
+    input.value = fx[key] ?? '';
+    input.oninput = () => { fx[key] = String(input.value); renderFxEditor(); };
+    lab.appendChild(input); form.appendChild(lab);
+  }
+}
+function beginFxDrag(e){
+  const fx = fxRow(); if(!fx) return;
+  dragFx = { sx:e.clientX, sy:e.clientY, ox:Number(fx.FxOffsetX)||0, oy:Number(fx.FxOffsetY)||0, scale:2 };
+  $('#fx-sprite').classList.add('dragging');
+  e.preventDefault();
+}
+function moveFxDrag(e){
+  if(!dragFx) return;
+  const fx = fxRow(); if(!fx) return;
+  fx.FxOffsetX = String(Math.round(dragFx.ox + (e.clientX - dragFx.sx) / dragFx.scale));
+  fx.FxOffsetY = String(Math.round(dragFx.oy + (e.clientY - dragFx.sy) / dragFx.scale));
+  renderFxEditor();
+}
+function endFxDrag(){
+  dragFx = null;
+  $('#fx-sprite')?.classList.remove('dragging');
+}
+function render(){
+  const r=row(); $('#title').textContent = r ? `${r.AttackId} / ${r.AnimTag}` : 'Select attack';
+  renderList(); renderTimeline(); renderFxEditor(); renderForm();
+}
+async function boot(){
+  data = await (await fetch(API+'/api/attack-timeline')).json();
+  selected = 0;
+  $('#status').textContent = `${data.rows.length} attacks / ${Object.keys(data.atlas.tags).length} tags`;
+  render();
+}
+async function save(){
+  const res=await fetch(API+'/api/attack-timeline/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({headers:data.headers,rows:data.rows})});
+  const j=await res.json();
+  const fxRes=await fetch(API+'/api/fx-weapon-type/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({headers:data.fx.headers,rows:data.fx.rows})});
+  const fxJ=await fxRes.json();
+  toast(j.ok && fxJ.ok ? `Saved timeline ${j.count}, fx ${fxJ.count}` : `Save failed: ${j.error || fxJ.error}`);
+}
+$('#save').onclick=save; $('#reload').onclick=boot;
+window.addEventListener('pointermove', moveMarkerDrag);
+window.addEventListener('pointerup', endMarkerDrag);
+window.addEventListener('pointercancel', endMarkerDrag);
+window.addEventListener('pointermove', moveFxDrag);
+window.addEventListener('pointerup', endFxDrag);
+window.addEventListener('pointercancel', endFxDrag);
+$('#fx-sprite').addEventListener('pointerdown', beginFxDrag);
+boot().catch(e=>{ $('#status').textContent='offline'; toast(String(e)); });
+</script>
+</body>
+</html>

@@ -191,3 +191,8 @@ Prevention rules:
 - CinderImp chase no longer applies raw vertical impulse (y=-210) for height differences. It now routes chase through base moveTowardTarget(), so swarmer pursuit uses the shared platform navgraph and planned jump validation.
 - Bulwark now has JumpTiles=8 in Sheets/Content_Enemy.csv and its chase movement routes through moveTowardTarget() instead of direct x assignment. Bulwark still restores acingRight from delayed guardFacingRight after base update so shield facing delay remains intact.
 - Prevention rule: enemy-specific chase code should not add raw navigation jumps; use the shared ground movement/navgraph path unless the jump is an explicit attack move.
+
+## 2026-06-11 - Platform nav jump plan ownership
+- Platform jump edges now cache the validated `JumpPlan` plus exact `startX/startY` takeoff position when the navgraph edge is created.
+- Ground enemies execute that cached plan after snapping to the validated takeoff point; Shift+I jump debug renders the same cached plan instead of recomputing a separate visual-only arc.
+- Prevention rule: do not fix platform jump desync by increasing `JumpTiles` or redrawing debug arcs separately. The selected nav edge must own both the displayed arc and the executed jump plan.

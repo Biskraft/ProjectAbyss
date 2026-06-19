@@ -59,6 +59,15 @@ export interface GroundProbe {
   detail: string;
 }
 
+export interface CollisionDebugBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind: 'collision' | 'hurtbox';
+  owner: 'player' | 'enemy';
+}
+
 /** 타일 id → 색. air(0)/미정의 타일은 null(미렌더). */
 function tileColor(tileId: number): number | null {
   switch (tileId) {
@@ -134,7 +143,13 @@ export class CollisionDebugOverlay {
    * grid 는 row-major number[][] (셀 = TILE_SIZE px).
    * probe 를 넘기면 플레이어 발밑 충돌 소스를 월드 AABB + 화면 라벨로 진단 표시.
    */
-  update(grid: number[][], camera: Camera, probe?: GroundProbe, builder?: BuilderGrid): void {
+  update(
+    grid: number[][],
+    camera: Camera,
+    probe?: GroundProbe,
+    builder?: BuilderGrid,
+    boxes: CollisionDebugBox[] = [],
+  ): void {
     if (!Debug.visible) {
       if (this.container.visible) {
         this.container.visible = false;
@@ -147,6 +162,24 @@ export class CollisionDebugOverlay {
     this.container.visible = true;
     this.redraw(grid, camera, builder);
     this.drawProbe(probe, camera);
+    this.drawDebugBoxes(boxes);
+  }
+
+  private drawDebugBoxes(boxes: CollisionDebugBox[]): void {
+    const p = this.probeGfx;
+    for (const box of boxes) {
+      const color =
+        box.kind === 'collision'
+          ? (box.owner === 'player' ? 0xffffff : 0x66ccff)
+          : (box.owner === 'player' ? 0xfff06a : 0xff66cc);
+      const alpha = box.kind === 'collision' ? 1 : 0.95;
+      const width = box.kind === 'collision' ? 1 : 2;
+      p.rect(box.x, box.y, box.w, box.h).stroke({ color, alpha, width });
+      if (box.kind === 'hurtbox') {
+        p.rect(box.x + 1, box.y + 1, Math.max(0, box.w - 2), Math.max(0, box.h - 2))
+          .stroke({ color, alpha: 0.45, width: 1 });
+      }
+    }
   }
 
   private drawProbe(probe: GroundProbe | undefined, camera: Camera): void {

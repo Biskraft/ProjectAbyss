@@ -19,9 +19,16 @@ interface ItemWorldHudRuntimeDeps {
   getUnifiedGrid: () => UnifiedGridData;
   getCurrentStratumIndex: () => number;
   getEarnedExp: () => number;
+  isAbsorbActive: () => boolean;
+  isExitFade: () => boolean;
+  isPostClearHold: () => boolean;
+  isRoomTransitionActive: () => boolean;
+  isEscapeConfirmVisible: () => boolean;
 }
 
 export class ItemWorldHudRuntime {
+  private readonly gameplayHudBlocks = new Set<string>();
+
   constructor(private readonly deps: ItemWorldHudRuntimeDeps) {}
 
   getClearedStrataFlags(): boolean[] {
@@ -52,6 +59,32 @@ export class ItemWorldHudRuntime {
       EXP_PER_LEVEL,
     );
     this.updateText();
+  }
+
+  setGameplayHudBlock(reason: string, blocked: boolean): void {
+    if (blocked) this.gameplayHudBlocks.add(reason);
+    else this.gameplayHudBlocks.delete(reason);
+    this.reconcileGameplayHudVisibility();
+  }
+
+  reconcileGameplayHudVisibility(): void {
+    const hud = this.deps.getHud();
+    const visible =
+      this.gameplayHudBlocks.size === 0
+      && !this.deps.isAbsorbActive()
+      && !this.deps.isExitFade()
+      && !this.deps.isPostClearHold()
+      && !this.deps.isRoomTransitionActive()
+      && !this.deps.isEscapeConfirmVisible();
+    hud.container.visible = visible;
+  }
+
+  hideForCinematic(): void {
+    const hud = this.deps.getHud();
+    hud.container.visible = false;
+    hud.hideBossHP();
+    hud.hideDepthGauge();
+    hud.hideItemExp();
   }
 
   updateText(): void {

@@ -1,4 +1,4 @@
-import { BitmapText, Graphics, Sprite } from 'pixi.js';
+﻿import { BitmapText, Graphics, Sprite } from 'pixi.js';
 import { Entity } from './Entity';
 import {
   resolveX,
@@ -29,14 +29,14 @@ const TILE_SIZE = 16;
 const ENEMY_SLOPE_2X1_SNAP_PX = 4;
 
 /**
- * Chase ???�회 hysteresis + cooldown + 관???��? (?�용??결정 2026-05-04, Q1+Q3).
- * base Enemy.moveTowardTarget ??same-level 분기가 �??�레??dir ???�계?�해
- * ?�레?�어가 바로 ??겹친 ?�태?�서 sub-pixel ?�치 차이�?vx 가 +/- ?��?�?
- * 좌우�?"?�바바밧" ?�리???�상 차단. 모든 ground ?�·보??공통 ?�용.
+ * Chase ???좏쉶 hysteresis + cooldown + 愿???뺤? (?ъ슜??寃곗젙 2026-05-04, Q1+Q3).
+ * base Enemy.moveTowardTarget ??same-level 遺꾧린媛 留??꾨젅??dir ???ш퀎?고빐
+ * ?뚮젅?댁뼱媛 諛붾줈 ??寃뱀튇 ?곹깭?먯꽌 sub-pixel ?꾩튂 李⑥씠濡?vx 媛 +/- ?ㅺ?硫?
+ * 醫뚯슦濡?"?뚮컮諛붾갊" ?⑤━???꾩긽 李⑤떒. 紐⑤뱺 ground ?겶룸낫??怨듯넻 ?곸슜.
  *
- *   - HYSTERESIS_PX:  ?�레?�어가 ??거리 ?�에 ?�으�?chaseDir ?��?
- *   - COOLDOWN_MS:    ?�번 ?�회?????�음 ?�회까�? 강제 ?��?
- *   - PAUSE_MS:       ?�회 직후 vx=0 ?�로 짧게 멈춰 모션 ??강조 (?? ?�레??
+ *   - HYSTERESIS_PX:  ?뚮젅?댁뼱媛 ??嫄곕━ ?덉뿉 ?덉쑝硫?chaseDir ?좎?
+ *   - COOLDOWN_MS:    ?쒕쾲 ?좏쉶?????ㅼ쓬 ?좏쉶源뚯? 媛뺤젣 ?湲?
+ *   - PAUSE_MS:       ?좏쉶 吏곹썑 vx=0 ?쇰줈 吏㏐쾶 硫덉떠 紐⑥뀡 ??媛뺤“ (?? ?꾨젅??
  */
 const CHASE_TURN_HYSTERESIS_PX = 8;
 const CHASE_TURN_COOLDOWN_MS = 300;
@@ -68,7 +68,10 @@ interface PlatformSegment {
 
 interface PlatformJumpEdge {
   takeoffX: number;
+  startX: number;
+  startY: number;
   landing: JumpCandidate;
+  plan: JumpPlan;
   score: number;
 }
 
@@ -79,7 +82,10 @@ interface PlatformNavStep {
   fromId: number;
   toId: number;
   takeoffX: number;
+  startX?: number;
+  startY?: number;
   landing?: JumpCandidate;
+  plan?: JumpPlan;
   score: number;
 }
 
@@ -101,8 +107,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   facingRight = false;
   alive = true;
 
-  // Tile hazard status (TileHazards.ts HazardTarget ?�환).
-  // GDD: Documents/System/System_World_TileSystem.md §2.6-2.13
+  // Tile hazard status (TileHazards.ts HazardTarget ?명솚).
+  // GDD: Documents/System/System_World_TileSystem.md 짠2.6-2.13
   burnRemainingMs = 0;
   burnTickAccum = 0;
   chargedTickAccum = 0;
@@ -127,19 +133,19 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
    */
   oilSlipRemainingMs = 0;
 
-  // ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
+  // ?????????????????????????????????????????????????????????????
   // Element affinity (per-enemy elemental identity for resistance
   // / immunity / weakness). Subclasses override the default
   // `affinity = 'neutral'` in their constructor (or via CSV stats
   // later). Explicit Sets win over family-affinity default.
-  // ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
+  // ?????????????????????????????????????????????????????????????
   /** Enemy's elemental family. 'neutral' means no innate resist/weak. */
   affinity: ElementAffinity = 'neutral';
   /** Sources that deal 0 damage regardless of family rules. */
   elementImmune: Set<ElementAffinity> | null = null;
-  /** Sources that deal 0.5× damage. */
+  /** Sources that deal 0.5횞 damage. */
   elementResist: Set<ElementAffinity> | null = null;
-  /** Sources that deal 1.5× damage. */
+  /** Sources that deal 1.5횞 damage. */
   elementWeak: Set<ElementAffinity> | null = null;
 
   /**
@@ -165,18 +171,18 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   private moveRemainderY = 0;
 
   // Environment state (for VFX: WaterSplash / WaterBubbles / IceSkidStreak).
-  // Player ?� ?�일???��?�??��??�다:
-  //  - inWater: AABB 중심??water ?�????
-  //  - submerged: 머리까�? ?��? (중심?�서 2 ?�???�도 water)
-  //  - waterTransition: ?�번 ?�레?�의 enter(+1) / exit(-1) / none(0)
+  // Player ? ?숈씪???섎?瑜??좎??쒕떎:
+  //  - inWater: AABB 以묒떖??water ?????
+  //  - submerged: 癒몃━源뚯? ?좉? (以묒떖?먯꽌 2 ????꾨룄 water)
+  //  - waterTransition: ?대쾲 ?꾨젅?꾩쓽 enter(+1) / exit(-1) / none(0)
   inWater = false;
   submerged = false;
   waterTransition: 0 | 1 | -1 = 0;
   private prevInWater = false;
 
-  // Ground/jump transition events ??Player ?� ?�일??consume ?�턴.
-  //  - landedFallSpeed: ?�번 ?�레?�에 착�??�으�?|?�전 vy|, ?�니�?null
-  //  - jumpedThisFrame: ?�번 ?�레?�에 grounded ?�서 ?�륙?�고 vy < 0
+  // Ground/jump transition events ??Player ? ?숈씪??consume ?⑦꽩.
+  //  - landedFallSpeed: ?대쾲 ?꾨젅?꾩뿉 李⑹??덉쑝硫?|?댁쟾 vy|, ?꾨땲硫?null
+  //  - jumpedThisFrame: ?대쾲 ?꾨젅?꾩뿉 grounded ?먯꽌 ?대쪠?덇퀬 vy < 0
   private landedFallSpeed: number | null = null;
   private jumpedThisFrame = false;
   private prevGrounded = false;
@@ -189,12 +195,12 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected attackCooldown: number;
   protected cooldownTimer = 0;
 
-  // Chase ?�회 ?�태 ??base moveTowardTarget ??same-level 분기?�서 ?�용.
-  /** ?�재 ?�긴 ?�평 추격 방향. �??�레???�계?�하지 ?�고 hysteresis + cooldown ?�로 갱신. */
+  // Chase ?좏쉶 ?곹깭 ??base moveTowardTarget ??same-level 遺꾧린?먯꽌 ?ъ슜.
+  /** ?꾩옱 ?좉릿 ?섑룊 異붽꺽 諛⑺뼢. 留??꾨젅???ш퀎?고븯吏 ?딄퀬 hysteresis + cooldown ?쇰줈 媛깆떊. */
   protected chaseDir: 1 | -1 = 1;
-  /** ?�음 ?�회 가?�까지 ?��? ?�간 (ms). */
+  /** ?ㅼ쓬 ?좏쉶 媛?κ퉴吏 ?⑥? ?쒓컙 (ms). */
   protected turnCooldownMs = 0;
-  /** ?�회 직후 vx=0 ?�로 멈추???�여 ?�간 (ms). 모션 ?? */
+  /** ?좏쉶 吏곹썑 vx=0 ?쇰줈 硫덉텛???붿뿬 ?쒓컙 (ms). 紐⑥뀡 ?? */
   protected turnPauseMs = 0;
 
   // Super armor ??if true, hits don't interrupt actions (no hitstun/knockback)
@@ -287,9 +293,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   // Sakurai: Flash overlay for hit feedback
   private flashOverlay: Sprite | Graphics | null = null;
   /**
-   * ?�식 ?�래?��? own PNG/Atlas Sprite �??�록?�면 hit flash 가 �?sprite ??
-   * ?�파 채널 모양 그�?�??�색?�로 발광 (?�용??결정 2026-05-04). 미등록이�?
-   * 기존 Graphics rect fallback.
+   * ?먯떇 ?대옒?ㅺ? own PNG/Atlas Sprite 瑜??깅줉?섎㈃ hit flash 媛 洹?sprite ??
+   * ?뚰뙆 梨꾨꼸 紐⑥뼇 洹몃?濡??곗깋?쇰줈 諛쒓킅 (?ъ슜??寃곗젙 2026-05-04). 誘몃벑濡앹씠硫?
+   * 湲곗〈 Graphics rect fallback.
    */
   protected mainSprite: Sprite | null = null;
 
@@ -526,10 +532,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     // Jump cooldown
     if (this.jumpCooldownTimer > 0) this.jumpCooldownTimer -= dt;
 
-    // Facing ??chase / attack / cooldown / hit / detect ?�안 chaseDir �??�금.
-    // target.x 직접 추적?� player 가 가까이??좌우�??�직이거나 ?�로 ?�프?�면
-    // dx 부?��? �??�레???�집?� "빙�?빙�?" facing 깜빡???�발.
-    // patrol ?� subclass 가 super ?�출 ??patrolDir �???��?�다 (Skeleton).
+    // Facing ??chase / attack / cooldown / hit / detect ?숈븞 chaseDir 濡??좉툑.
+    // target.x 吏곸젒 異붿쟻? player 媛 媛源뚯씠??醫뚯슦濡??吏곸씠嫄곕굹 ?꾨줈 ?먰봽?섎㈃
+    // dx 遺?멸? 留??꾨젅???ㅼ쭛? "鍮숆?鍮숆?" facing 源쒕묀???좊컻.
+    // patrol ? subclass 媛 super ?몄텧 ??patrolDir 濡???뼱?대떎 (Skeleton).
     if (this.target) {
       const s = this.fsm.currentState;
       if (s === 'chase' || s === 'attack' || s === 'cooldown' || s === 'hit' || s === 'detect') {
@@ -539,11 +545,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       }
     }
 
-    // Water/submerged ?�태 + enter/exit ?�이 기록 ???�에??�??�레??enemy �?
-    // ?�회?�며 VFX(WaterSplash / WaterBubbles) �??�리거할 ???�용.
+    // Water/submerged ?곹깭 + enter/exit ?꾩씠 湲곕줉 ???ъ뿉??留??꾨젅??enemy 瑜?
+    // ?쒗쉶?섎ŉ VFX(WaterSplash / WaterBubbles) 瑜??몃━嫄고븷 ???ъ슜.
     if (this.roomData.length > 0) {
       this.inWater = isInWater(this.x, this.y, this.width, this.height, this.roomData);
-      // 머리 부??중심?�서 -2 ?�?? ??water �?submerged
+      // 癒몃━ 遺??以묒떖?먯꽌 -2 ??? ??water 硫?submerged
       const headInWater = isInWater(
         this.x, this.y - TILE_SIZE * 2, this.width, this.height, this.roomData,
       );
@@ -557,7 +563,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     else this.waterTransition = 0;
     this.prevInWater = this.inWater;
 
-    // Land/jump ?�이 감�? (flying ?� grounded 가 ??�� false ?��?�??�연?�럽�??�외??
+    // Land/jump ?꾩씠 媛먯? (flying ? grounded 媛 ??긽 false ?대?濡??먯뿰?ㅻ읇寃??쒖쇅??
     if (!this.prevGrounded && this.grounded && this.prevVy > 0) {
       this.landedFallSpeed = this.prevVy;
       this.resolvePlannedJumpLanding();
@@ -602,8 +608,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       this.sprite.x = this.facingRight ? 0 : this.width;
 
       // Sakurai: White flash overlay on hit (emphasize impact moment).
-      // mainSprite ?�록 ??같�? texture ??Sprite overlay + blendMode 'add' �?
-      // ?�파 채널 모양 그�?�??�색 발광. 미등록이�?기존 Graphics rect fallback.
+      // mainSprite ?깅줉 ??媛숈? texture ??Sprite overlay + blendMode 'add' 濡?
+      // ?뚰뙆 梨꾨꼸 紐⑥뼇 洹몃?濡??곗깋 諛쒓킅. 誘몃벑濡앹씠硫?湲곗〈 Graphics rect fallback.
       if (this.flashTimer > 0) {
         const intensity = Math.min(0.8, this.flashTimer / 40);
         if (this.mainSprite) {
@@ -620,7 +626,7 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
             this.container.addChild(flash);
             this.flashOverlay = flash;
           }
-          // �??�레??갱신 ??atlas frame 변�?+ facing flip 추적.
+          // 留??꾨젅??媛깆떊 ??atlas frame 蹂寃?+ facing flip 異붿쟻.
           this.flashOverlay.texture = this.mainSprite.texture;
           this.flashOverlay.scale.x = this.mainSprite.scale.x;
           this.flashOverlay.scale.y = this.mainSprite.scale.y;
@@ -861,11 +867,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       return;
     }
 
-    if (!step.landing) return;
-    const plan = this.createJumpPlanFrom(step.takeoffX - this.width / 2, current.row * TILE_SIZE - this.height, step.landing);
-    if (!plan) return;
-    const startX = step.takeoffX - this.width / 2;
-    const startY = current.row * TILE_SIZE - this.height;
+    if (!step.landing || !step.plan || step.startX === undefined || step.startY === undefined) return;
+    const plan = step.plan;
+    const startX = step.startX;
+    const startY = step.startY;
     const durationSec = plan.durationMs / 1000;
     const steps = Math.max(8, Math.ceil(plan.durationMs / 50));
     let prevX = startX + this.width / 2 - this.x;
@@ -912,26 +917,26 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   protected moveTowardTarget(speed: number): void {
     if (!this.target) return;
 
-    // Flying enemies: direct XY movement toward target (§2.4)
+    // Flying enemies: direct XY movement toward target (짠2.4)
     if (this.movementType === 'flying') {
       this.moveTowardTargetFlying(speed);
       return;
     }
 
-    // Ground enemies ??공중(?�프/?�하 ?�중)?�선 추격 ?�계???�킵.
-    // ???�는 ?�프 ?�안 player ?�??X 차이가 부??진동?�면 chaseDir ??�??�레??
-    // ?�집?� 좌우�??�리???�상 (?�용??결정 2026-05-08). ?�륙 ??vx/chaseDir
-    // ??고정??채로 ?�물???�동�??�행, 착�? ???�시 추격 ?��?.
+    // Ground enemies ??怨듭쨷(?먰봽/?숉븯 ?꾩쨷)?먯꽑 異붽꺽 ?ш퀎???ㅽ궢.
+    // ???섎뒗 ?먰봽 ?숈븞 player ???X 李⑥씠媛 遺??吏꾨룞?섎㈃ chaseDir ??留??꾨젅??
+    // ?ㅼ쭛? 醫뚯슦濡??⑤━???꾩긽 (?ъ슜??寃곗젙 2026-05-08). ?대쪠 ??vx/chaseDir
+    // ??怨좎젙??梨꾨줈 ?щЪ???대룞留??섑뻾, 李⑹? ???ㅼ떆 異붽꺽 ?됯?.
     if (!this.grounded) return;
 
-    // Ground enemies: vertical chase rules (§2.2-A)
+    // Ground enemies: vertical chase rules (짠2.2-A)
     const targetCY = this.target.y + this.target.height / 2;
     const myCY = this.y + this.height / 2;
     const heightDiff = targetCY - myCY; // positive = player below
     const HEIGHT_THRESHOLD = TILE_SIZE * 2;
 
     if (heightDiff > HEIGHT_THRESHOLD) {
-      // Player is below ??find floor gap and drop (§2.2-A Case 2)
+      // Player is below ??find floor gap and drop (짠2.2-A Case 2)
       this.moveTowardEdgeDrop(speed);
     } else if (heightDiff < -HEIGHT_THRESHOLD && this.jumpTiles > 0) {
       // Player is above: use lightweight platform graph first, then legacy gap search.
@@ -939,8 +944,8 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         this.moveTowardCeilingGap(speed);
       }
     } else {
-      // Same level ??horizontal chase (§2.2-A Case 3) + ?�회 hysteresis + cooldown + pause.
-      // ?�회 직후 turnPauseMs ?�안 vx=0 ?�로 짧게 멈춤 (모션 ??강조 + ?�림 차단).
+      // Same level ??horizontal chase (짠2.2-A Case 3) + ?좏쉶 hysteresis + cooldown + pause.
+      // ?좏쉶 吏곹썑 turnPauseMs ?숈븞 vx=0 ?쇰줈 吏㏐쾶 硫덉땄 (紐⑥뀡 ??媛뺤“ + ?⑤┝ 李⑤떒).
       if (this.turnPauseMs > 0) {
         this.vx = 0;
         return;
@@ -961,9 +966,9 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
   }
 
   /**
-   * Subclass ??chase state enter() ?�서 ?�출 권장. chaseDir ??즉시 target
-   * ?�치 기�??�로 ?�고 cooldown/pause 0 ??진입 �??�레?�에 ?�도�??��?
-   * vx=0 pause 가 발생?��? ?�도�?
+   * Subclass ??chase state enter() ?먯꽌 ?몄텧 沅뚯옣. chaseDir ??利됱떆 target
+   * ?꾩튂 湲곗??쇰줈 ?↔퀬 cooldown/pause 0 ??吏꾩엯 泥??꾨젅?꾩뿉 ?섎룄移??딆?
+   * vx=0 pause 媛 諛쒖깮?섏? ?딅룄濡?
    */
   protected initChaseDir(): void {
     if (!this.target) return;
@@ -1300,21 +1305,29 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
       return true;
     }
 
-    if (!step.landing) return false;
+    if (!step.landing || !step.plan || step.startX === undefined || step.startY === undefined) {
+      this.markJumpDebug('nav-plan-missing', step.takeoffX, current.row * TILE_SIZE);
+      return false;
+    }
     if (!this.grounded || this.jumpCooldownTimer > 0 || this.jumpFailCooldownMs > 0) {
       this.vx = 0;
       return true;
     }
 
-    const plan = this.createJumpPlan(step.landing);
-    if (!plan) {
+    if (!this.canStandAtPixel(step.startX, step.startY)) {
       this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN * 2;
       this.jumpFailCooldownMs = 1200;
-      this.markJumpDebug('nav-arc-fail', step.landing.x + this.width / 2, step.landing.y + this.height);
+      this.markJumpDebug('nav-snap-blocked', step.startX + this.width / 2, step.startY + this.height);
       return true;
     }
 
-    this.startPlannedJump(plan);
+    this.x = step.startX;
+    this.y = step.startY;
+    this.prevX = this.x;
+    this.prevY = this.y;
+    this.moveRemainderX = 0;
+    this.moveRemainderY = 0;
+    this.startPlannedJump(step.plan);
     this.jumpCooldownTimer = Enemy.JUMP_COOLDOWN;
     return true;
   }
@@ -1397,7 +1410,10 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
           fromId: from.id,
           toId: to.id,
           takeoffX: jump.takeoffX,
+          startX: jump.startX,
+          startY: jump.startY,
           landing: jump.landing,
+          plan: jump.plan,
           score: jump.score + this.scorePlatformTowardTarget(to, target),
         });
         continue;
@@ -1475,10 +1491,11 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
         const takeoffX = takeoffCol * TILE_SIZE + TILE_SIZE / 2;
         const startX = takeoffX - this.width / 2;
         if (!this.canStandAtPixel(startX, currentY)) continue;
-        if (!this.createJumpPlanFrom(startX, currentY, landing)) continue;
+        const plan = this.createJumpPlanFrom(startX, currentY, landing);
+        if (!plan) continue;
         const currentCenterX = this.x + this.width / 2;
         const score = Math.abs(takeoffX - currentCenterX) + landing.score * 0.5 + Math.max(0, target.row - current.row) * 64;
-        const edge = { takeoffX, landing, score };
+        const edge = { takeoffX, startX, startY: currentY, landing, plan, score };
         if (!best || edge.score < best.score) best = edge;
       }
     }
@@ -1634,3 +1651,4 @@ export abstract class Enemy<S extends string = EnemyState> extends Entity implem
     }
   }
 }
+

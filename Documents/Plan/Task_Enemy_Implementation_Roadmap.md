@@ -82,7 +82,7 @@ Phase A (Foundation) ──► Phase B (M1 rust 슬라이스, 검증 게이트)
 | ID | 작업 | 의존 |
 |:--|:--|:--|
 | **IMPL-23** | 표면 부착 이동 모듈(중력 반전·표면 감지·경로) + 스폰 지오메트리(천장/벽 타일 감지) | IMPL-03 + 방 지오메트리 보장 검증 |
-| **IMPL-24** | 벽/천장 거동(B48~B52) 활성화, shadow 권속과 데뷔 | IMPL-23 · Phase D |
+| **IMPL-24** | 벽/천장 거동(B48~B52) 활성화, shadow 계열과 데뷔 | IMPL-23 · Phase D |
 
 > 선결조건 통과 후 착수(§6.2 주석). M1~D 와 독립.
 
@@ -92,7 +92,7 @@ Phase A (Foundation) ──► Phase B (M1 rust 슬라이스, 검증 게이트)
 
 | ID | 작업 | 의존 |
 |:--|:--|:--|
-| **IMPL-25** | 말소자 4 스킨(Blankmaw·Palewraith·Nullcrawler·Effacer) — 권속 풀 제외, Ch.4/5/6 세트피스 수동 배치, 속성 무바인딩, 디졸브 연출 | Phase D · 연출 |
+| **IMPL-25** | 말소자 4 스킨(Blankmaw·Palewraith·Nullcrawler·Effacer) — 계열 풀 제외, Ch.4/5/6 세트피스 수동 배치, 속성 무바인딩, 디졸브 연출 | Phase D · 연출 |
 
 ---
 

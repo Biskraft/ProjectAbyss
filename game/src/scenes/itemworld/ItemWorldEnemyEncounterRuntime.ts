@@ -1,10 +1,11 @@
-import { getSpawnTable, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
+import { getBossEntry, getFamilyPool, pickWeightedEnemy } from '@data/itemWorldSpawnTable';
+import { getEnemyRole, getEnemyResponse } from '@data/enemyStats';
+import type { EnemyRole } from '@data/enemyStats';
 import type { StrataConfig } from '@data/StrataConfig';
 import type { Enemy } from '@entities/Enemy';
 import type { ItemInstance } from '@items/ItemInstance';
 import { PRNG } from '@utils/PRNG';
 import { markBossEnemy } from '@entities/EnemyMetadata';
-import { IW_ROOM_H_PX, IW_ROOM_W_PX } from './ItemWorldMapController';
 import type {
   ItemWorldEnemySpawnContext,
   ItemWorldEnemySpawnRuntime,
@@ -13,6 +14,27 @@ import type { ItemWorldMemoryShardSpawnRuntime } from './ItemWorldMemoryShardSpa
 import type { ItemWorldSpawnController } from './ItemWorldSpawnController';
 
 type CombatRoomType = 'Combat' | 'Treasure' | 'Boss' | string;
+
+/**
+ * Role budget ratios — RES-IWS-01 §7.1 M1 constant split
+ * (Content_RoleComposition.csv weapon-type bias is an M2 work item).
+ */
+const ROLE_RATIOS: ReadonlyArray<{ role: EnemyRole; weight: number }> = [
+  { role: 'swarmer', weight: 45 },
+  { role: 'bruiser', weight: 30 },
+  { role: 'ranged', weight: 20 },
+  { role: 'lieutenant', weight: 5 },
+];
+
+function pickRole(roll: number): EnemyRole {
+  const total = ROLE_RATIOS.reduce((s, r) => s + r.weight, 0);
+  let cumulative = 0;
+  for (const r of ROLE_RATIOS) {
+    cumulative += r.weight;
+    if (roll * total < cumulative) return r.role;
+  }
+  return ROLE_RATIOS[0].role;
+}
 
 interface ItemWorldEnemyEncounterRuntimeDeps {
   getItem: () => ItemInstance;
@@ -43,7 +65,7 @@ export class ItemWorldEnemyEncounterRuntime {
     const startRoom = this.deps.getStartRoom();
     const dist = Math.abs(args.col - startRoom.col) + Math.abs(args.absRow - startRoom.absoluteRow);
     const distScale = 1 + dist * 0.1;
-    const spawnTable = getSpawnTable(item.rarity, args.stratumIndex + 1);
+    const stratum = args.stratumIndex + 1;
     const cycle = this.deps.getCycle();
     const roomSeed = item.uid * 999 + args.col * 77 + args.absRow * 33;
 
@@ -52,11 +74,12 @@ export class ItemWorldEnemyEncounterRuntime {
       return;
     }
 
-    if (args.isBossRoom && spawnTable.boss) {
-      const bossEntry = spawnTable.boss;
+    if (args.isBossRoom) {
+      const bossEntry = getBossEntry(stratum);
+      if (!bossEntry) return;
       const boss = this.deps.getSpawnController().createEnemyFromType(
         bossEntry.enemyType,
-        bossEntry.level + cycle,
+        1 + cycle,
       );
       markBossEnemy(boss);
       boss.hp = boss.maxHp = Math.max(1, Math.floor(boss.hp * stratumDef.bossHpMul * distScale));
@@ -65,44 +88,75 @@ export class ItemWorldEnemyEncounterRuntime {
       return;
     }
 
-    const normalEntries = spawnTable.normal;
-    if (normalEntries.length === 0) return;
+    // Role-budget fill loop (RES-IWS-01 §7.1 M1-B) — replaces single-pick.
+    // Pool = weapon temperamentPrimary family, filtered by stratum depth window.
+    const pool = getFamilyPool(item.def.temperamentPrimary, stratum);
+    if (pool.length === 0) return;
 
-    const pickSeed = roomSeed;
-    const picked = pickWeightedEnemy(normalEntries, new PRNG(pickSeed).next());
-    if (!picked) return;
-
-    const countRng = new PRNG(pickSeed + picked.enemyType.charCodeAt(0) * 17);
-    const range = picked.maxCount - picked.minCount;
-    const rolledCount = range > 0
-      ? picked.minCount + countRng.nextInt(0, range)
-      : picked.minCount;
-
+    const targetCount = Math.max(1, stratumDef.baseEnemyCount + stratumDef.enemyCountBonus);
+    const rng = new PRNG(roomSeed);
+    const seenResponses = new Set<string>();
+    let lieutenantSpawned = false;
+    let spawned = 0;
     let spawnIndex = 0;
-    for (let i = 0; i < rolledCount; i++) {
-      const spawnRng = new PRNG(pickSeed + spawnIndex);
-      spawnIndex++;
+    let guard = 0;
 
-      if (this.deps.getMemoryShardSpawnRuntime().trySpawn({
-        roll: spawnRng.next(),
-        seedForArchetype: item.uid + args.col * 13 + args.absRow * 7 + spawnIndex,
-        stratumIndex: args.stratumIndex,
-        spawnContext: args.spawnContext,
-        spawnRng,
-      })) {
-        continue;
+    while (spawned < targetCount && guard++ < targetCount * 6) {
+      let role = pickRole(rng.next());
+      if (role === 'lieutenant' && lieutenantSpawned) role = 'swarmer'; // 방당 리테넌트 캡 1
+
+      let candidates = pool.filter(e => getEnemyRole(e.enemyType) === role);
+      if (candidates.length === 0) candidates = pool;
+
+      // 대응 동사 다양성 가드 — 예산 막바지에 distinct Response < 2 면
+      // 다른 Response 후보를 우선해 "단일 동사 방"을 방지한다.
+      if (seenResponses.size < 2 && spawned > 0 && targetCount - spawned <= 2) {
+        const alt = candidates.filter(e => {
+          const r = getEnemyResponse(e.enemyType);
+          return r !== undefined && !seenResponses.has(r);
+        });
+        if (alt.length > 0) candidates = alt;
       }
 
-      const enemy = this.deps.getSpawnController().createEnemyFromType(
-        picked.enemyType,
-        picked.level + cycle,
-      );
-      this.applyNormalScaling(enemy, stratumDef.hpMul, stratumDef.atkMul, distScale);
-      this.deps.getEnemySpawnRuntime().spawnAt(
-        enemy,
-        args.spawnContext.roomKey,
-        this.deps.getEnemySpawnRuntime().pickSpawn(args.spawnContext, spawnRng, enemy.height),
-      );
+      const picked = pickWeightedEnemy(candidates, rng.next());
+      if (!picked) break;
+
+      const clusterRange = picked.clusterMax - picked.clusterMin;
+      const rolledCluster = clusterRange > 0
+        ? picked.clusterMin + rng.nextInt(0, clusterRange)
+        : picked.clusterMin;
+      const cluster = Math.max(1, Math.min(rolledCluster, targetCount - spawned));
+
+      for (let i = 0; i < cluster && spawned < targetCount; i++) {
+        const spawnRng = new PRNG(roomSeed + spawnIndex);
+        spawnIndex++;
+
+        if (this.deps.getMemoryShardSpawnRuntime().trySpawn({
+          roll: spawnRng.next(),
+          seedForArchetype: item.uid + args.col * 13 + args.absRow * 7 + spawnIndex,
+          stratumIndex: args.stratumIndex,
+          spawnContext: args.spawnContext,
+          spawnRng,
+        })) {
+          continue;
+        }
+
+        const enemy = this.deps.getSpawnController().createEnemyFromType(
+          picked.enemyType,
+          1 + cycle,
+        );
+        this.applyNormalScaling(enemy, stratumDef.hpMul, stratumDef.atkMul, distScale);
+        this.deps.getEnemySpawnRuntime().spawnAt(
+          enemy,
+          args.spawnContext.roomKey,
+          this.deps.getEnemySpawnRuntime().pickSpawn(args.spawnContext, spawnRng, enemy.height),
+        );
+        spawned++;
+      }
+
+      if (getEnemyRole(picked.enemyType) === 'lieutenant') lieutenantSpawned = true;
+      const resp = getEnemyResponse(picked.enemyType);
+      if (resp !== undefined) seenResponses.add(resp);
     }
   }
 
@@ -127,6 +181,8 @@ export class ItemWorldEnemyEncounterRuntime {
       context.roomTopCol,
       context.roomTopRow,
       16,
+      context.roomWidthTiles,
+      context.roomHeightTiles,
     );
     let position: { x: number; y: number };
 
@@ -136,8 +192,8 @@ export class ItemWorldEnemyEncounterRuntime {
       position = this.deps.getEnemySpawnRuntime().pickSpawn(context, bossRng, boss.height);
     } else {
       position = {
-        x: context.offX + IW_ROOM_W_PX / 2 - boss.width / 2,
-        y: context.offY + IW_ROOM_H_PX / 2 - boss.height,
+        x: context.offX + context.roomWidthPx / 2 - boss.width / 2,
+        y: context.offY + context.roomHeightPx / 2 - boss.height,
       };
     }
 

@@ -1333,9 +1333,10 @@ export class FluidSystem {
   }
 
   /**
-   * Create a fading droplet at the cell's center+bottom that scales down to
-   * zero over EVAP_FADE_MS. Anchored at the bottom-center so the shrink
-   * visually settles into the floor instead of vanishing in mid-air.
+   * Create a fading droplet at the cell's center+bottom whose height shrinks
+   * to zero over EVAP_FADE_MS. Width stays full-cell; only the water level
+   * descends (anchored at the bottom edge), so the fluid reads as soaking
+   * into the floor instead of pinching toward a point.
    */
   private spawnEvaporatingDrop(gx: number, gy: number, color: number): void {
     const cx = (gx + 0.5) * TILE;
@@ -1363,13 +1364,16 @@ export class FluidSystem {
       const d = this.evaporatingDrops[i];
       d.age += dtMs;
       const k = Math.min(1, d.age / d.life);
-      // Linear shrink from full cell → 0, anchored at center-bottom so the
-      // square sinks evenly into the floor (bottom edge stays put, top edge
-      // descends toward bottom).
-      const scale = 1 - k;
-      const w = TILE * scale;
-      const h = TILE * scale;
-      const alpha = 0.85 * (1 - k * 0.4);
+      // Ease-out water-level descent: the surface drops quickly at first,
+      // then lingers as a thin film near the floor before dissolving.
+      const ke = 1 - (1 - k) * (1 - k);
+      // Width stays full-cell; only height shrinks (bottom edge anchored) —
+      // the water level recedes straight down instead of pinching inward.
+      const w = TILE;
+      const h = TILE * (1 - ke);
+      // Stronger end-fade so the last thin film turns translucent instead
+      // of cutting off as a dark sliver.
+      const alpha = 0.85 * (1 - ke * 0.7);
       d.gfx.clear();
       // Rect anchored: x from -w/2..+w/2, y from -h..0 (bottom edge at y=0).
       d.gfx.rect(-w / 2, -h, w, h).fill({ color: d.color, alpha });

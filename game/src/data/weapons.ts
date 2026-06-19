@@ -24,6 +24,7 @@ const TOPOLOGY_VALUES: ReadonlySet<string> = new Set<TopologyKind>([
   'linear_right',
   'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
   'two_arc_pocketed',
+  'horizontal_descent',
 ]);
 
 export type Rarity = 'normal' | 'magic' | 'rare' | 'legendary' | 'ancient';
@@ -116,6 +117,20 @@ export interface WeaponDef {
  * random drop pools and rarity-template lookups.
  */
 export const STARTER_ONLY_IDS: ReadonlySet<string> = new Set(['sword_broken']);
+
+/**
+ * Dev/QA family-test weapons (one per temperament). Excluded from drop pools
+ * so they don't pollute normal gameplay, but — unlike STARTER_ONLY_IDS — they
+ * are NOT dive-blocked: their whole purpose is Item World family verification.
+ * Obtain via LDtk ItemSpawner (ItemId = the weapon id).
+ */
+export const TEST_ONLY_IDS: ReadonlySet<string> = new Set([
+  'sword_test_forge',
+  'sword_test_iron',
+  'sword_test_rust',
+  'sword_test_spark',
+  'sword_test_shadow',
+]);
 
 /** Sword weapon definitions — parsed from Content_Stats_Weapon_List.csv */
 export const SWORD_DEFS: WeaponDef[] = [];

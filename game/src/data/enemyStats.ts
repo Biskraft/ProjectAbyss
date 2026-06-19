@@ -12,6 +12,13 @@ import { resolveGenericFluidType } from './ItemWorldFluidMapping';
 
 export type MovementType = 'ground' | 'flying' | 'surface';
 
+/** Composition role bucket (RES-IWS-01 §7.1 — Content_Enemy.csv Role column). */
+export type EnemyRole = 'swarmer' | 'bruiser' | 'ranged' | 'lieutenant' | 'treasure' | 'boss';
+
+const VALID_ROLES: ReadonlySet<EnemyRole> = new Set<EnemyRole>([
+  'swarmer', 'bruiser', 'ranged', 'lieutenant', 'treasure', 'boss',
+]);
+
 /**
  * Enemy elemental attribute. Empty CSV Attribute means the Item World
  * temperament resolves the final attribute through resolveEnemyAttribute().
@@ -62,6 +69,10 @@ interface EnemyBehaviorEntry {
   movementType: MovementType;
   attribute?: EnemyAttribute;
   archetype: string;
+  /** Composition role bucket. Undefined when the CSV row omits it. */
+  role?: EnemyRole;
+  /** Response verb tag (R1~R6, R11 — Task_Enemy_00_DistinctnessAudit SSoT). */
+  response?: string;
 }
 
 const DEFAULT_BEHAVIOR: Omit<EnemyBehaviorEntry, 'type' | 'level'> = {
@@ -110,9 +121,26 @@ for (const row of parseCsvRows(behaviorCsvText)) {
     movementType,
     attribute: parseAttribute(value(row, 'Attribute')),
     archetype: value(row, 'Archetype'),
+    role: parseRole(value(row, 'Role')),
+    response: value(row, 'Response') || undefined,
   };
   if (!entry.type) continue;
   ENEMY_BEHAVIORS.set(entry.type, entry);
+}
+
+function parseRole(raw: string): EnemyRole | undefined {
+  const v = raw.toLowerCase();
+  return VALID_ROLES.has(v as EnemyRole) ? (v as EnemyRole) : undefined;
+}
+
+/** Composition role bucket for a type. Undefined for unlisted types. */
+export function getEnemyRole(type: string): EnemyRole | undefined {
+  return ENEMY_BEHAVIORS.get(type)?.role;
+}
+
+/** Response verb tag (R1~R6, R11) for the composition diversity guard. */
+export function getEnemyResponse(type: string): string | undefined {
+  return ENEMY_BEHAVIORS.get(type)?.response;
 }
 
 function key(type: string, level: number): string {

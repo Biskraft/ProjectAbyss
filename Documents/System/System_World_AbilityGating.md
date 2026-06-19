@@ -1,13 +1,14 @@
 # 능력 게이트 시스템 (Ability Gating System)
 
+> 📦 **획득 위치·게이트 배분 archived 2026-06-18 (RelicGateReset).** 이 문서의 획득 층위·Critical Path 순서·층위별 배치 맵은 미결정. 재정의 전까지 인용 보류. 보존 경로: `Documents/Terms/_archive/RelicGateReset_2026-06-18/RelicGateReset_Archive.md`
+
 ## 구현 현황 (Implementation Status)
 
 > **준거 상위 (Authority):** T-03, D-20, D-04
-> **최근 업데이트:** 2026-06-01
-> **문서 상태:** `초안 (Draft)`
+> **최근 업데이트:** 2026-06-18 (RelicGateReset — 배분 미결정)
+> **문서 상태:** `미결정 (Gate placement TBD)`
 > **2-Space:** World
 > **기둥:** 탐험가 (Explorer)
-> v3 정합 (D-20): 7구역 게이트 + 상승 축
 
 | 기능 ID | 분류 | 기능명 | 우선순위 | 구현 상태 | 비고 |
 | :--- | :--- | :--- | :---: | :--- | :--- |

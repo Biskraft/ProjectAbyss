@@ -51,6 +51,8 @@ const TIER_COLORS: Record<string, number> = {
 };
 
 const DEFAULT_TIER_COLOR = 0x5A7A8C;
+const MINIMAP_VIEW_TILES_X = 40;
+const MINIMAP_VIEW_TILES_Y = 24;
 
 function getTierColor(id: string): number {
   for (const key of Object.keys(TIER_COLORS)) {
@@ -61,6 +63,7 @@ function getTierColor(id: string): number {
 
 export class WorldMinimapRuntime {
   private minimap: Container | null = null;
+  private contentLayer: Container | null = null;
   private minimapDot: Graphics | null = null;
   private blinkTimer = 0;
   private viewportLeft = 0;
@@ -69,6 +72,8 @@ export class WorldMinimapRuntime {
   private scaleY = 1;
   private panelWidth = 0;
   private panelHeight = 0;
+  private contentOffsetX = 0;
+  private contentOffsetY = 0;
   private builderLayer: Graphics | null = null;
 
   constructor(private readonly deps: WorldMinimapRuntimeDeps) {}
@@ -101,6 +106,7 @@ export class WorldMinimapRuntime {
     if (!this.minimap) return;
     destroyDisplayObject(this.minimap, { children: true });
     this.minimap = null;
+    this.contentLayer = null;
     this.minimapDot = null;
     this.builderLayer = null;
   }
@@ -117,52 +123,50 @@ export class WorldMinimapRuntime {
 
     this.minimap = new Container();
     this.minimap.visible = false;
+    this.contentLayer = null;
     this.minimapDot = null;
     this.builderLayer = null;
 
     const uiScale = this.deps.game.uiScale;
     const panelWidth = 112 * uiScale;
     const panelHeight = 60 * uiScale;
-    const viewportWidth = 3840;
-    const viewportHeight = viewportWidth * (panelHeight / panelWidth);
+    const cellSize = Math.min(
+      panelWidth / MINIMAP_VIEW_TILES_X,
+      panelHeight / MINIMAP_VIEW_TILES_Y,
+    );
+    const contentOffsetX = (panelWidth - MINIMAP_VIEW_TILES_X * cellSize) / 2;
+    const contentOffsetY = (panelHeight - MINIMAP_VIEW_TILES_Y * cellSize) / 2;
 
-    const currentCenterX = currentLevel.worldX + currentLevel.pxWid / 2;
-    const currentCenterY = currentLevel.worldY + currentLevel.pxHei / 2;
-    const viewportLeft = currentCenterX - viewportWidth / 2;
-    const viewportTop = currentCenterY - viewportHeight / 2;
-    const scaleX = panelWidth / viewportWidth;
-    const scaleY = panelHeight / viewportHeight;
+    const scaleX = cellSize / TILE_SIZE;
+    const scaleY = cellSize / TILE_SIZE;
 
-    this.viewportLeft = viewportLeft;
-    this.viewportTop = viewportTop;
     this.scaleX = scaleX;
     this.scaleY = scaleY;
     this.panelWidth = panelWidth;
     this.panelHeight = panelHeight;
+    this.contentOffsetX = contentOffsetX;
+    this.contentOffsetY = contentOffsetY;
 
     const visitedIds = this.deps.getVisitedLevels();
     const clearedIds = this.deps.getClearedLevels();
     const adjacentIds = this.collectAdjacentIds(visitedIds);
 
     const content = new Container();
+    this.contentLayer = content;
     const clipMask = new Graphics();
     clipMask.rect(0, 0, panelWidth, panelHeight).fill(0xffffff);
     this.minimap.addChild(clipMask);
     content.mask = clipMask;
 
     const project = (room: { x: number; y: number; w: number; h: number }) => {
-      const rx = (room.x - viewportLeft) * scaleX;
-      const ry = (room.y - viewportTop) * scaleY;
+      const rx = room.x * scaleX;
+      const ry = room.y * scaleY;
       const rw = Math.max(1, room.w * scaleX);
       const rh = Math.max(1, room.h * scaleY);
-      const visible = rx + rw > 0 && rx < panelWidth && ry + rh > 0 && ry < panelHeight;
-      return { rx, ry, rw, rh, visible };
+      return { rx, ry, rw, rh, visible: true };
     };
 
     for (const room of worldMap) {
-      if (room.x + room.w < viewportLeft || room.x > viewportLeft + viewportWidth) continue;
-      if (room.y + room.h < viewportTop || room.y > viewportTop + viewportHeight) continue;
-
       const isCurrent = room.id === currentLevel.identifier;
       const visited = visitedIds.has(room.id);
       const adjacent = adjacentIds.has(room.id);
@@ -190,8 +194,9 @@ export class WorldMinimapRuntime {
     content.addChild(this.builderLayer);
     this.updateBuilderLayer();
 
-    this.drawMarkers(content, worldMap, visitedIds, clearedIds, viewportLeft, viewportTop, viewportWidth, viewportHeight, scaleX, scaleY, panelWidth, panelHeight, uiScale);
-    this.drawPlayerDot(content, currentLevel, viewportLeft, viewportTop, scaleX, scaleY, panelWidth, panelHeight, uiScale);
+    this.drawMarkers(content, worldMap, visitedIds, clearedIds, scaleX, scaleY, uiScale);
+    this.drawPlayerDot(uiScale);
+    this.updateViewportOffset(currentLevel);
 
     this.minimap.addChild(content);
     this.minimap.scale.set(1);
@@ -208,23 +213,11 @@ export class WorldMinimapRuntime {
     if (!this.minimap || !this.minimap.visible || !currentLevel) return;
 
     this.blinkTimer = (this.blinkTimer + dt) % 800;
+    this.updateViewportOffset(currentLevel);
     this.updateBuilderLayer();
 
     if (this.minimapDot) {
-      const uiScale = this.deps.game.uiScale;
-      const dotSize = 3 * uiScale;
-      const player = this.deps.getPlayer();
-      const px = Math.min(
-        this.panelWidth - dotSize,
-        Math.max(dotSize, (player.x + currentLevel.worldX - this.viewportLeft) * this.scaleX),
-      );
-      const py = Math.min(
-        this.panelHeight - dotSize,
-        Math.max(dotSize, (player.y + currentLevel.worldY - this.viewportTop) * this.scaleY),
-      );
       this.minimapDot.alpha = this.blinkTimer < 400 ? 1.0 : 0.3;
-      this.minimapDot.x = px - dotSize / 2;
-      this.minimapDot.y = py - dotSize / 2;
     }
 
     this.minimap.alpha = this.deps.getEnemies().some((enemy) => enemy.hp > 0 && !enemy.shouldRemove) ? 0.4 : 0.7;
@@ -241,27 +234,14 @@ export class WorldMinimapRuntime {
 
     const originWorldX = currentLevel.worldX + builder.container.x;
     const originWorldY = currentLevel.worldY + builder.container.y;
-    const viewRight = this.viewportLeft + this.panelWidth / this.scaleX;
-    const viewBottom = this.viewportTop + this.panelHeight / this.scaleY;
-    const builderRight = originWorldX + builder.widthPx;
-    const builderBottom = originWorldY + builder.heightPx;
-    if (
-      builderRight < this.viewportLeft ||
-      originWorldX > viewRight ||
-      builderBottom < this.viewportTop ||
-      originWorldY > viewBottom
-    ) {
-      return;
-    }
-
     const tileW = Math.max(0.5, TILE_SIZE * this.scaleX);
     const tileH = Math.max(0.5, TILE_SIZE * this.scaleY);
-    const col0 = Math.max(0, Math.floor((this.viewportLeft - originWorldX) / TILE_SIZE));
-    const col1 = Math.min(builder.widthTiles - 1, Math.ceil((viewRight - originWorldX) / TILE_SIZE));
-    const row0 = Math.max(0, Math.floor((this.viewportTop - originWorldY) / TILE_SIZE));
-    const row1 = Math.min(builder.heightTiles - 1, Math.ceil((viewBottom - originWorldY) / TILE_SIZE));
-    const baseX = (originWorldX - this.viewportLeft) * this.scaleX;
-    const baseY = (originWorldY - this.viewportTop) * this.scaleY;
+    const col0 = 0;
+    const col1 = builder.widthTiles - 1;
+    const row0 = 0;
+    const row1 = builder.heightTiles - 1;
+    const baseX = originWorldX * this.scaleX;
+    const baseY = originWorldY * this.scaleY;
 
     for (let ty = row0; ty <= row1; ty++) {
       const row = builder.collisionGrid[ty];
@@ -364,25 +344,17 @@ export class WorldMinimapRuntime {
     worldMap: WorldMinimapRoom[],
     visitedIds: Set<string>,
     clearedIds: Set<string>,
-    viewportLeft: number,
-    viewportTop: number,
-    viewportWidth: number,
-    viewportHeight: number,
     scaleX: number,
     scaleY: number,
-    panelWidth: number,
-    panelHeight: number,
     uiScale: number,
   ): void {
     for (const room of worldMap) {
       if (!visitedIds.has(room.id)) continue;
-      if (room.x + room.w < viewportLeft || room.x > viewportLeft + viewportWidth) continue;
-      if (room.y + room.h < viewportTop || room.y > viewportTop + viewportHeight) continue;
       const level = this.deps.loader.getLevel(room.id);
       if (!level) continue;
 
-      const mx = Math.min(panelWidth - 2 * uiScale, Math.max(2 * uiScale, (room.x - viewportLeft) * scaleX + (room.w * scaleX) / 2));
-      const my = Math.min(panelHeight - 2 * uiScale, Math.max(2 * uiScale, (room.y - viewportTop) * scaleY + (room.h * scaleY) / 2));
+      const mx = room.x * scaleX + (room.w * scaleX) / 2;
+      const my = room.y * scaleY + (room.h * scaleY) / 2;
 
       if (level.entities.some((entity) => entity.type === 'GameSaver')) {
         const marker = new Graphics();
@@ -403,26 +375,29 @@ export class WorldMinimapRuntime {
   }
 
   private drawPlayerDot(
-    content: Container,
-    currentLevel: LdtkLevel,
-    viewportLeft: number,
-    viewportTop: number,
-    scaleX: number,
-    scaleY: number,
-    panelWidth: number,
-    panelHeight: number,
     uiScale: number,
   ): void {
     const dotSize = 3 * uiScale;
     const dot = new Graphics();
     dot.rect(0, 0, dotSize, dotSize).fill(0xffffff);
-    const player = this.deps.getPlayer();
-    const px = Math.min(panelWidth - dotSize, Math.max(dotSize, (player.x + currentLevel.worldX - viewportLeft) * scaleX));
-    const py = Math.min(panelHeight - dotSize, Math.max(dotSize, (player.y + currentLevel.worldY - viewportTop) * scaleY));
-    dot.x = px - dotSize / 2;
-    dot.y = py - dotSize / 2;
+    dot.x = this.contentOffsetX + (MINIMAP_VIEW_TILES_X * TILE_SIZE * this.scaleX) / 2 - dotSize / 2;
+    dot.y = this.contentOffsetY + (MINIMAP_VIEW_TILES_Y * TILE_SIZE * this.scaleY) / 2 - dotSize / 2;
     this.minimapDot = dot;
-    content.addChild(dot);
+    this.minimap?.addChild(dot);
+  }
+
+  private updateViewportOffset(currentLevel: LdtkLevel): void {
+    const content = this.contentLayer;
+    if (!content) return;
+    const player = this.deps.getPlayer();
+    const playerWorldX = currentLevel.worldX + player.x;
+    const playerWorldY = currentLevel.worldY + player.y;
+    const viewWorldWidth = MINIMAP_VIEW_TILES_X * TILE_SIZE;
+    const viewWorldHeight = MINIMAP_VIEW_TILES_Y * TILE_SIZE;
+    this.viewportLeft = playerWorldX - viewWorldWidth / 2;
+    this.viewportTop = playerWorldY - viewWorldHeight / 2;
+    content.x = this.contentOffsetX - this.viewportLeft * this.scaleX;
+    content.y = this.contentOffsetY - this.viewportTop * this.scaleY;
   }
 
 }

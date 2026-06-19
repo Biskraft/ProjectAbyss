@@ -28,3 +28,9 @@ last_updated: 2026-06-09
 - `Sheets/Content_ItemWorld_SpawnTable.csv` — 스폰 규칙(M1-B 재구조 예정)
 - `Sheets/Content_StrataConfig.csv` + `game/src/data/StrataConfig.ts` — BaseEnemyCount 예산
 - `game/src/scenes/itemworld/ItemWorldEnemyEncounterRuntime.ts` — spawnForRoom(M1-B 재작성)
+
+## 2026-06-13 - Rarity target count enforcement
+- Item World combat rooms now treat `BaseEnemyCount + EnemyCountBonus` as the target count of actual spawned enemies, not merely a cluster/spawn-attempt budget.
+- `ItemWorldEnemyEncounterRuntime.spawnForRoom()` increments the filled count only after an enemy is actually spawned. Memory shard replacement spawns no longer consume monster count budget.
+- Rarity density targets in `Sheets/Content_StrataConfig.csv`: normal 5, magic 6/7, rare 8/9/10, legendary 10/11/12/13, ancient 12/13/15/16.
+- Prevention rule: if combat-room density feels wrong, first inspect actual spawned enemy count vs `StrataConfig` target before tuning `ClusterMin/ClusterMax` or spawn weights.

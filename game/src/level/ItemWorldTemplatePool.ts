@@ -20,6 +20,39 @@ import { assetPath } from '@core/AssetLoader';
 let pool: LdtkLevel[] | null = null;
 let loadPromise: Promise<LdtkLevel[]> | null = null;
 
+function fieldHasDebugTag(value: unknown): boolean {
+  if (value === true) return true;
+  if (Array.isArray(value)) return value.some(fieldHasDebugTag);
+  return String(value ?? '')
+    .toLowerCase()
+    .split(/[,\s]+/)
+    .includes('debug');
+}
+
+export function isExcludedItemWorldRandomTemplate(level: LdtkLevel): boolean {
+  return level.identifier.startsWith('ItemStratum_Prologue_') || isExcludedItemWorldTemplatePoolEntry(level);
+}
+
+function isExcludedItemWorldTemplatePoolEntry(level: LdtkLevel): boolean {
+  const id = level.identifier.toLowerCase();
+  const tags = level.tags ?? [];
+  return id.includes('debug')
+    || id.includes('test')
+    || level.roomType === 'Debug'
+    || tags.includes('debug')
+    || tags.includes('test')
+    || fieldHasDebugTag(level.fields['Tags'])
+    || fieldHasDebugTag(level.fields['tags'])
+    || fieldHasDebugTag(level.fields['Tag'])
+    || fieldHasDebugTag(level.fields['tag'])
+    || fieldHasDebugTag(level.fields['Debug'])
+    || fieldHasDebugTag(level.fields['debug']);
+}
+
+function filterPlayableTemplates(templates: LdtkLevel[]): LdtkLevel[] {
+  return templates.filter(level => !isExcludedItemWorldTemplatePoolEntry(level));
+}
+
 /** Sync access — null 이면 아직 로드 중 또는 미시작. */
 export function getItemWorldTemplatesIfReady(): LdtkLevel[] | null {
   return pool;
@@ -32,8 +65,8 @@ export function getItemWorldTemplatesIfReady(): LdtkLevel[] | null {
  */
 export function seedItemWorldTemplates(templates: LdtkLevel[]): void {
   if (pool || loadPromise || templates.length === 0) return;
-  pool = templates;
-  loadPromise = Promise.resolve(templates);
+  pool = filterPlayableTemplates(templates);
+  loadPromise = Promise.resolve(pool);
 }
 
 /** Lazy load + cache. 여러 번 호출해도 한 번만 fetch. */
@@ -44,7 +77,7 @@ export function prepareItemWorldTemplates(): Promise<LdtkLevel[]> {
     const json = await fetch(assetPath('assets/World_ProjectAbyss.ldtk')).then(r => r.json());
     const loader = new LdtkLoader();
     loader.load(json, 'ItemStratum');
-    pool = loader.getLevelIds().map(id => loader.getLevel(id)!);
+    pool = filterPlayableTemplates(loader.getLevelIds().map(id => loader.getLevel(id)!));
     return pool;
   })();
   return loadPromise;

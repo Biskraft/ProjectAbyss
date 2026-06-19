@@ -16,7 +16,7 @@
 2. **밀도 우선(density-first).** Greater Rift의 1순위 변수는 몬스터 밀도다. 강한 적 소수보다 적당한 적 다수가 핵앤슬래시 손맛·진행감을 만든다. 현재 ECHORIS의 "방당 단일 종 2~4마리"는 밀도·다양성 양쪽에서 미달이다.
 3. **단일 아키타입 금지 — 기능 보완 조성.** D4 몬스터 패밀리는 한 조우에 스워머+레인지+리테넌트를 섞어 전술 레이어를 만든다. 방은 단일 종이 아니라 **기능 예산(role budget)** 으로 채워야 한다.
 4. **보장 + 변동(guarantee + fishing).** Greater Rift는 변동(rift fishing)으로 리플레이성을, 밀도 하한으로 최소 품질을 동시에 보장한다. ECHORIS는 지층 예산 하한(보장)과 패밀리/조성 변주(변동)를 함께 둔다.
-5. **ECHORIS는 이미 절반을 갖고 있다.** 5기질(forge/iron/rust/spark/shadow) → fluid 속성 → 무기 아키타입 매핑이 존재한다. 이 5기질을 **5개 몬스터 패밀리(권속)** 로 승격하면 "정체성 축"이 완성된다. 무기의 주색이 패밀리를, 무기 종류가 기능 조성 편향을 결정한다.
+5. **ECHORIS는 이미 절반을 갖고 있다.** 5기질(forge/iron/rust/spark/shadow) → fluid 속성 → 무기 아키타입 매핑이 존재한다. 이 5기질을 **5개 몬스터 패밀리(계열)** 로 승격하면 "정체성 축"이 완성된다. 무기의 주색이 패밀리를, 무기 종류가 기능 조성 편향을 결정한다.
 
 ---
 
@@ -85,7 +85,7 @@ D4는 모든 적을 **20개 몬스터 패밀리**로 묶는다(Bandits, Cannibal
 
 **설계 합리:** 조우는 **우선순위 표적(샤먼·레인지) → 스워머 정리** 의 전술 레이어를 만든다. 환경 메커닉(거미줄·부활·버프)이 정적 플레이를 처벌한다.
 
-> 핵심 차용: **(지역→패밀리) = (무기 정체성→몬스터 권속)**. 패밀리 내부는 기능 조성으로 채운다. 이것이 사용자 요구 (c)의 골격이다.
+> 핵심 차용: **(지역→패밀리) = (무기 정체성→몬스터 계열)**. 패밀리 내부는 기능 조성으로 채운다. 이것이 사용자 요구 (c)의 골격이다.
 
 ### 1.5. 로그라이크 — 데이터 주도 스폰 테이블
 
@@ -116,9 +116,9 @@ bracketproductions(Rust 로그라이크 튜토리얼)의 표준 패턴:
 | 축 | 담당 | 결정 변수 | 레퍼런스 |
 |:---|:---|:---|:---|
 | **강도축(Intensity)** | 레어리티 × 지층 | HP·ATK 배율, 마릿수 예산, 엘리트 밀도, 방 변조자 수 | GR ×1.17/lv, Pit 티어=lv, NMD 어픽스 계단 |
-| **정체성축(Identity)** | 무기 (기질 + 종류) | 어떤 몬스터 패밀리(권속)가, 어떤 기능 조성으로 나오는가 | D4 Monster Family, GR 33세트 |
+| **정체성축(Identity)** | 무기 (기질 + 종류) | 어떤 몬스터 패밀리(계열)가, 어떤 기능 조성으로 나오는가 | D4 Monster Family, GR 33세트 |
 
-두 축은 직교한다. **NORMAL(강도 최저)** 이라도 무기 기질이 다르면 다른 권속이 나온다 → 요구 (c) 충족.
+두 축은 직교한다. **NORMAL(강도 최저)** 이라도 무기 기질이 다르면 다른 계열이 나온다 → 요구 (c) 충족.
 
 ### P2 — 밀도 우선 + 단일 아키타입 금지
 
@@ -153,21 +153,21 @@ SYS-ENM-ARC 명제 1: "몬스터는 무기 패시브의 검증 장치다." 무�
 변조자(modifier)= 지층 깊이에 따라 0→N (엘리트 어픽스·속성 폭발 등)
 ```
 
-### 3.2. 정체성 축 — 5기질 → 5 몬스터 권속 (★ 핵심)
+### 3.2. 정체성 축 — 5기질 → 5 몬스터 계열 (★ 핵심)
 
-ECHORIS는 이미 `RoomGraphArchetypes` 에서 5기질을 정의하고, SYS-ENM-ARC §1.1에서 **기질→fluid 속성** 자동 바인딩을 캐논화했다(forge→magma, iron→cyro/water, rust→acid, spark→charged, shadow→oil). 이 5기질을 **5개 몬스터 권속**으로 승격한다.
+ECHORIS는 이미 `RoomGraphArchetypes` 에서 5기질을 정의하고, SYS-ENM-ARC §1.1에서 **기질→fluid 속성** 자동 바인딩을 캐논화했다(forge→magma, iron→cyro/water, rust→acid, spark→charged, shadow→oil). 이 5기질을 **5개 몬스터 계열**으로 승격한다.
 
-| 무기 기질 | fluid 속성 | 몬스터 권속(Family) | 권속 정서 | 현 로스터 매핑(예) |
+| 무기 기질 | fluid 속성 | 몬스터 계열(Family) | 계열 정서 | 현 로스터 매핑(예) |
 |:---|:---|:---|:---|:---|
-| **forge** | magma | 용광로 권속 (Foundry) | 공격적·돌진·열폭발 | CinderImp, MawDrone, Skeleton |
-| **iron** | cyro/water | 냉각 권속 (Coolant) | 질서·방어·정렬 | Bulwark, Sentry, Sentinel |
-| **rust** | acid | 부식 권속 (Corrosion) | 소모·지속·붕괴 | Lurker, Slime(산성), Lobber |
-| **spark** | charged | 방전 권속 (Conduit) | 고속·원거리·연쇄 | SparkBat, Conduit, Sentry(전격) |
-| **shadow** | oil | 은닉 권속 (Umbra) | 매복·기습·교란 | Ghost, Lurker, Ambusher |
+| **forge** | magma | 용광로 계열 (Foundry) | 공격적·돌진·열폭발 | CinderImp, MawDrone, Skeleton |
+| **iron** | cyro/water | 냉각 계열 (Coolant) | 질서·방어·정렬 | Bulwark, Sentry, Sentinel |
+| **rust** | acid | 부식 계열 (Corrosion) | 소모·지속·붕괴 | Lurker, Slime(산성), Lobber |
+| **spark** | charged | 방전 계열 (Conduit) | 고속·원거리·연쇄 | SparkBat, Conduit, Sentry(전격) |
+| **shadow** | oil | 은닉 계열 (Umbra) | 매복·기습·교란 | Ghost, Lurker, Ambusher |
 
-- 무기의 **주색(temperamentPrimary)** 이 권속을, **부색(temperamentSecondary)** 이 혼합 비율(부색 권속 20~30% 혼입)을 결정한다 → "순수형 vs 혼합형" 변별이 그래프 아키타입과 동일 키로 정합.
-- **결과:** NORMAL forge 검과 NORMAL shadow 검은 같은 강도지만 **용광로 권속 vs 은닉 권속** 으로 완전히 다른 얼굴 → 요구 (c) 충족.
-- fluid 속성이 권속에 자동 바인딩되므로 화학 반응 매트릭스(`Design_ChemicalReactions_FullMatrix.md`)와도 일관 — forge 권속은 magma를 남기고, 플레이어 빌드가 그 속성에 대응하게 강제.
+- 무기의 **주색(temperamentPrimary)** 이 계열을, **부색(temperamentSecondary)** 이 혼합 비율(부색 계열 20~30% 혼입)을 결정한다 → "순수형 vs 혼합형" 변별이 그래프 아키타입과 동일 키로 정합.
+- **결과:** NORMAL forge 검과 NORMAL shadow 검은 같은 강도지만 **용광로 계열 vs 은닉 계열** 으로 완전히 다른 얼굴 → 요구 (c) 충족.
+- fluid 속성이 계열에 자동 바인딩되므로 화학 반응 매트릭스(`Design_ChemicalReactions_FullMatrix.md`)와도 일관 — forge 계열은 magma를 남기고, 플레이어 빌드가 그 속성에 대응하게 강제.
 
 ### 3.3. 방당 기능 조성 (단일 아키타입 문제 해결)
 
@@ -194,7 +194,7 @@ D4 패밀리 복합성을 차용. 각 전투방은 **기능 예산**으로 채�
 방 채우기:
   while spawned < budget:
     role  = 기능 예산에서 가중 선택 (swarmer 우세)
-    enemy = 권속 풀에서 role·깊이창 만족하는 종 가중 추첨
+    enemy = 계열 풀에서 role·깊이창 만족하는 종 가중 추첨
     cluster = min(remaining, role별 군집 크기)
     spawn(cluster)
   기억 파편은 별도 예산 → budget 잠식 금지
@@ -225,16 +225,16 @@ D4 패밀리 복합성을 차용. 각 전투방은 **기능 예산**으로 채�
 
 | 변조자 예 | 효과 | 등장 깊이 |
 |:---|:---|:---|
-| 속성 과포화 | 권속 fluid 잔류물 2배(반응 위험↑) | St2+ |
+| 속성 과포화 | 계열 fluid 잔류물 2배(반응 위험↑) | St2+ |
 | 정예 각성 | 엘리트 1마리 추가 + 어픽스 1 | St3+ |
-| 은닉 심화 | shadow 권속 매복 반경↑ | Ancient |
+| 은닉 심화 | shadow 계열 매복 반경↑ | Ancient |
 
 NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변조자 위주**로 가져가되, 보상(추가 기억 회복률)으로 상쇄.
 
 ### 3.7. 보장 + 변동 (P4 구현)
 
-- **보장(시드 무관):** 지층 floorTotal 하한, 방당 최소 2기능군, 권속 일관성.
-- **변동(시드 의존):** 권속 내 종 선택, 기능 비율 ±10%, 엘리트 어픽스, 혼합 권속 비율. → 같은 무기·레어리티라도 다이브마다 다른 조성(GR fishing의 건전한 축소판). 단, ECHORIS는 프리미엄(비-라이브서비스) 지향이므로 fishing을 **강제 그라인드가 아닌 변주 다양성**으로만 사용.
+- **보장(시드 무관):** 지층 floorTotal 하한, 방당 최소 2기능군, 계열 일관성.
+- **변동(시드 의존):** 계열 내 종 선택, 기능 비율 ±10%, 엘리트 어픽스, 혼합 계열 비율. → 같은 무기·레어리티라도 다이브마다 다른 조성(GR fishing의 건전한 축소판). 단, ECHORIS는 프리미엄(비-라이브서비스) 지향이므로 fishing을 **강제 그라인드가 아닌 변주 다양성**으로만 사용.
 
 ---
 
@@ -242,7 +242,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ### 4.1. 무기 종류 → 기능 조성 편향 (검증 장치)
 
-무기 **종류**는 권속을 바꾸지 않고, **기능 조성을 편향**시켜 그 무기의 강점 축이 시험받게 한다(SYS-ENM-ARC 명제 1).
+무기 **종류**는 계열을 바꾸지 않고, **기능 조성을 편향**시켜 그 무기의 강점 축이 시험받게 한다(SYS-ENM-ARC 명제 1).
 
 | 무기 종류 | 강점 | 조성 편향(해당 무기를 시험) |
 |:---|:---|:---|
@@ -252,27 +252,27 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 | **Harpoon**(중거리 견제) | 라인 유지 | Bruiser 돌진 비중↑ — 거리 유지력 검증 |
 | **Chain**(군중 제어) | 다수 견제 | Swarmer + Jumper 혼합 — 산개 대응 검증 |
 | **Railbow**(원거리 정밀) | 안전 딜 | Flier·Ambusher 비중↑ — 접근 차단·사각 대응 검증 |
-| **Emitter**(원소 지속) | 속성 시너지 | 권속 fluid 상극 조성 — 화학 반응 운용 검증 |
+| **Emitter**(원소 지속) | 속성 시너지 | 계열 fluid 상극 조성 — 화학 반응 운용 검증 |
 
 ### 4.2. 종합 — 정체성 결정 트리
 
 ```
 무기
- ├─ temperamentPrimary  → 몬스터 권속(5)         [누가 나오나]
- ├─ temperamentSecondary→ 혼합 권속 비율(20~30%) [얼마나 섞이나]
+ ├─ temperamentPrimary  → 몬스터 계열(5)         [누가 나오나]
+ ├─ temperamentSecondary→ 혼합 계열 비율(20~30%) [얼마나 섞이나]
  ├─ type(7)             → 기능 조성 편향          [어떻게 싸우나]
  └─ rarity × stratum    → 강도·마릿수·엘리트·변조자[얼마나 센가]
 ```
 
 **워크 예시 — 같은 NORMAL, 다른 얼굴:**
 
-| 무기(NORMAL) | 권속 | 조성 편향 | 체감 |
+| 무기(NORMAL) | 계열 | 조성 편향 | 체감 |
 |:---|:---|:---|:---|
-| `sword_caretaker`(Blade, iron) | 냉각 권속 | Ranged↑ | 정렬된 방어형 적이 원거리로 압박, 접근전 강제 |
-| `sword_rustborn`(Blade, rust) | 부식 권속 | Ranged↑ | 산성 잔류·소모전, 같은 Blade라도 지형이 산으로 더럽혀짐 |
+| `sword_caretaker`(Blade, iron) | 냉각 계열 | Ranged↑ | 정렬된 방어형 적이 원거리로 압박, 접근전 강제 |
+| `sword_rustborn`(Blade, rust) | 부식 계열 | Ranged↑ | 산성 잔류·소모전, 같은 Blade라도 지형이 산으로 더럽혀짐 |
 | `dagger_normal`(Shiv) | (기질 미부여 → forge fallback) | Elite↑ | 우선 표적 중심, 단일 폭딜 시험 |
 
-→ 동일 레어리티·동일 강도에서 **권속·조성·속성**이 전부 달라진다.
+→ 동일 레어리티·동일 강도에서 **계열·조성·속성**이 전부 달라진다.
 
 ---
 
@@ -280,8 +280,8 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 | 설계 요소 | 현행 | 변경/신설 |
 |:---|:---|:---|
-| 스폰 풀 키 | `rarity:stratum` (`Content_ItemWorld_SpawnTable.csv`) | **Family·Role·MinStratum·MaxStratum 칼럼 추가** → 깊이 창 + 권속 + 기능 |
-| 권속 선택 | 없음 | 무기 `temperamentPrimary` → Family 매핑(신규 `MonsterFamily.ts` 또는 SYS-ENM-ARC 표) |
+| 스폰 풀 키 | `rarity:stratum` (`Content_ItemWorld_SpawnTable.csv`) | **Family·Role·MinStratum·MaxStratum 칼럼 추가** → 깊이 창 + 계열 + 기능 |
+| 계열 선택 | 없음 | 무기 `temperamentPrimary` → Family 매핑(신규 `MonsterFamily.ts` 또는 SYS-ENM-ARC 표) |
 | 방 조성 | 단일 종 1픽 (`ItemWorldEnemyEncounterRuntime`) | **기능 예산 채우기 루프**(§3.4)로 교체 |
 | 마릿수 예산 | `minCount/maxCount` 단종 | `BaseEnemyCount` + `enemyCountBonus`(미사용 활성화) |
 | 강도 | `StrataConfig.hpMul/atkMul` + distScale | 유지(검증만) |
@@ -297,25 +297,25 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ## 6. 미해결 / 다음 단계
 
-1. **권속 로스터 확정:** 현 13종 적(Bulwark·CinderImp·Conduit·Ghost·GoldenMonster·Guardian·Lobber·Lurker·MawDrone·Sentry·Skeleton·Slime·SparkBat)을 5권속 × 4기능군 그리드에 배치 → 빈칸(미존재 조합) 도출. **권속당 최소 3종(스워머+근접+레인지)** 필요.
+1. **계열 로스터 확정:** 현 13종 적(Bulwark·CinderImp·Conduit·Ghost·GoldenMonster·Guardian·Lobber·Lurker·MawDrone·Sentry·Skeleton·Slime·SparkBat)을 5계열 × 4기능군 그리드에 배치 → 빈칸(미존재 조합) 도출. **계열당 최소 3종(스워머+근접+레인지)** 필요.
 2. **BaseEnemyCount·엘리트 곡선 플레이테스트:** §3.4 시작 수치를 30분 슬라이스에서 검증(지층당 floorTotal 미달 0회 목표).
-3. **혼합 권속 비율:** 부색 혼입 20~30%가 정체성을 흐리지 않는지 변별 테스트.
+3. **혼합 계열 비율:** 부색 혼입 20~30%가 정체성을 흐리지 않는지 변별 테스트.
 4. **변조자 도입 시점:** Phase 2 후반 vs Phase 3. ECHORIS 톤상 부정 변조자 과다는 고독→피로로 전환될 위험 — 보상 균형 설계 선행.
 5. **설계 문서 승격:** 본 리서치 → `System_ItemWorld_MonsterSpawn.md`(5단계 구조) 신설, SYS-ENM-ARC·`System_ItemWorld_FloorGen.md` 와 교차참조.
 
 ---
 
-## 6.1. 권속 그리드 & 신규 6종 거동 스펙 (2026-06-09 확정)
+## 6.1. 계열 그리드 & 신규 6종 거동 스펙 (2026-06-09 확정)
 
 ### 전제
 
-- **데이터 사실:** `Content_Stats_Enemy.csv` 의 Attribute 칼럼은 13종 전부 공란. 현재 어떤 적도 권속이 하드코딩돼 있지 않다. 아래 배치는 **색·거동 기반 자연 친화도 제안**이며, 공란 적(Slime·Skeleton·MawDrone)은 권속 무관 **중립 리스킨 충원재**다.
+- **데이터 사실:** `Content_Stats_Enemy.csv` 의 Attribute 칼럼은 13종 전부 공란. 현재 어떤 적도 계열이 하드코딩돼 있지 않다. 아래 배치는 **색·거동 기반 자연 친화도 제안**이며, 공란 적(Slime·Skeleton·MawDrone)은 계열 무관 **중립 리스킨 충원재**다.
 - **그리드 제외 2종:** GoldenMonster(보물 몹·도주형), Guardian(보스). 전투 조성 충원재가 아니다. → **전투 로스터 = 11종.**
 - **기능군 정의:** Swarmer(A-06/02) · Bruiser(A-01/04) · Ranged·교란(A-03a/03b/05/**07**) · Lieutenant(A-08/10/09, 선택). ※ A-07 Ambusher는 4기능군에 단독 슬롯이 없어 Ranged를 "Ranged·교란"으로 확장 수용.
 
 ### 배치 그리드 (현 11종, 중립 3종 최적 배분)
 
-| 권속 | Swarmer | Bruiser | Ranged·교란 | Lieutenant(선택) |
+| 계열 | Swarmer | Bruiser | Ranged·교란 | Lieutenant(선택) |
 |:--|:--|:--|:--|:--|
 | **forge** 용광로 | CinderImp ✓ | MawDrone ⚠ | Lobber ✓ | ✗ |
 | **iron** 냉각 | Slime ⚠ | Bulwark ✓ | Sentry ✓ | Sentry(Sentinel 겸용) |
@@ -327,27 +327,27 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ### 정량 결론
 
-코어 최소 = 5권속 × 3기능(S+B+R) = **15칸**. 하드 6 + 중립 3 = 9 충족. **빈칸 6 = 신규 6종.**
+코어 최소 = 5계열 × 3기능(S+B+R) = **15칸**. 하드 6 + 중립 3 = 9 충족. **빈칸 6 = 신규 6종.**
 
-| 권속 | 신규 코어 | 비고 |
+| 계열 | 신규 코어 | 비고 |
 |:--|:--|:--|
 | forge / iron | 0 | MawDrone·Slime 배분으로 코어 완성 |
 | **rust** | Swarmer·Ranged (2) | 시그니처 0종 — 정체성 공백 최대 |
 | **spark** | Swarmer·Bruiser (2) | 근접·다수 부재 |
 | **shadow** | Swarmer·Bruiser (2) | 교란형(Lurker+Ghost)으로만 쏠림 |
 
-선택적 Lieutenant(엘리트 깊이용) 전권속 충족 시 forge·rust·shadow에 **+3종**(총 9종).
+선택적 Lieutenant(엘리트 깊이용) 전계열 충족 시 forge·rust·shadow에 **+3종**(총 9종).
 
 ### 구조적 발견
 
 1. **shadow 불균형:** 교란형 2종(Lurker·Ghost)만 보유, Swarmer·Bruiser 통째로 공백. 정체성은 강하나 조성 쏠림.
-2. **rust 공백:** 부식 계열 고유 적 0종. 5권속 중 정체성 공백 최대.
+2. **rust 공백:** 부식 계열 고유 적 0종. 5계열 중 정체성 공백 최대.
 
 ### 신규 6종 거동 스펙 초안
 
-> 수치 규약 접지: **Lv1 ATK 23 균일**(DEC-049), HP는 기능대역(글래스 스워머 18~25 / 브루저 96~160 / 레인지 90~130), 레벨 스케일 **HP ×2.5 / ATK ×2 per Lv**(기존 로스터 동일). fluid 속성은 권속 자동 바인딩(rust→acid, spark→charged, shadow→oil).
+> 수치 규약 접지: **Lv1 ATK 23 균일**(DEC-049), HP는 기능대역(글래스 스워머 18~25 / 브루저 96~160 / 레인지 90~130), 레벨 스케일 **HP ×2.5 / ATK ×2 per Lv**(기존 로스터 동일). fluid 속성은 계열 자동 바인딩(rust→acid, spark→charged, shadow→oil).
 
-| 적(신규) | 권속 | 기능 | HP(L1) | ATK | DEF | 속도 | 감지/사거리 | 공격 패턴 | fluid |
+| 적(신규) | 계열 | 기능 | HP(L1) | ATK | DEF | 속도 | 감지/사거리 | 공격 패턴 | fluid |
 |:--|:--|:--|:--|:--|:--|:--|:--|:--|:--|
 | **RustMite** | rust | Swarmer | 22 | 23 | 1 | 60 | 200 / 20 | 위빙 접근 → 근접 물기. **처치 시 산성 웅덩이**(DoT 타일) 생성 | acid |
 | **Spitter** | rust | Ranged | 95 | 23 | 4 | 25 | 260 / 220 | 직선 산성 사출(Lobber 아크와 구분) → 착탄점 **잔류 산웅덩이 ~3s**. 근접 시 후퇴 | acid |
@@ -356,17 +356,17 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 | **Slickling** | shadow | Swarmer | 24 | 23 | 1 | 55 | 190 / 18 | 근접 + **이동 경로에 기름 슬릭**(둔화·인화성 — forge magma와 화학 반응) | oil |
 | **Tarbrute** | shadow | Bruiser | 140 | 23 | 6 | 28 | 170 / 24 | 은폐 전진(Lurker식 alpha 점멸 유지 → **텔레그래프 가독성↓**) + 중타격. 기름 오라 | oil |
 
-설계 의도 — 각 신규는 **권속 fluid를 전장에 남겨** 화학 반응 매트릭스를 강제하고(RustMite·Spitter=산, Slickling=기름, Arcling·Dynamo=전하), 기능 역할로 방 조성을 완성한다. Bulwark(iron, 방향 블록)와 Tarbrute(shadow, 가독성 저하)처럼 **같은 Bruiser라도 위협 메커니즘이 권속별로 다르다** — 단순 리스킨 이상의 변별.
+설계 의도 — 각 신규는 **계열 fluid를 전장에 남겨** 화학 반응 매트릭스를 강제하고(RustMite·Spitter=산, Slickling=기름, Arcling·Dynamo=전하), 기능 역할로 방 조성을 완성한다. Bulwark(iron, 방향 블록)와 Tarbrute(shadow, 가독성 저하)처럼 **같은 Bruiser라도 위협 메커니즘이 계열별로 다르다** — 단순 리스킨 이상의 변별.
 
 ### 결정 (2026-06-09) — 중립 베이스 거동 분기 채택
 
-> **사용자 결정:** 중립 3종을 속성 틴트 리스킨이 아니라 **권속별로 거동을 분기**시킨다("리스킨 이상의 변별"). 거동 분기의 엔진은 **fluid 속성**이며, 이미 캐논인 화학 반응 매트릭스(`Design_ChemicalReactions_FullMatrix.md`)를 재사용한다. 베이스 FSM(이동·공격)은 공유하되, **잔류물 / 접촉 / 처치 효과**가 권속 fluid로 갈린다.
+> **사용자 결정:** 중립 3종을 속성 틴트 리스킨이 아니라 **계열별로 거동을 분기**시킨다("리스킨 이상의 변별"). 거동 분기의 엔진은 **fluid 속성**이며, 이미 캐논인 화학 반응 매트릭스(`Design_ChemicalReactions_FullMatrix.md`)를 재사용한다. 베이스 FSM(이동·공격)은 공유하되, **잔류물 / 접촉 / 처치 효과**가 계열 fluid로 갈린다.
 
-**핵심 효과 — 코어 신규 6 → 1.** Slime(Swarmer 베이스)·Skeleton(Bruiser 베이스)이 권속별 거동 분기로 모든 Swarmer·Bruiser 빈칸을 메운다. Ranged만 베이스가 없어 **rust Ranged(Spitter) 1종만 필수 신규**로 남는다. 나머지(Arcling·Dynamo·Slickling·Tarbrute)는 *권속 정체성 강화용 시그니처*로 격하 — 필수가 아닌 단계적 추가.
+**핵심 효과 — 코어 신규 6 → 1.** Slime(Swarmer 베이스)·Skeleton(Bruiser 베이스)이 계열별 거동 분기로 모든 Swarmer·Bruiser 빈칸을 메운다. Ranged만 베이스가 없어 **rust Ranged(Spitter) 1종만 필수 신규**로 남는다. 나머지(Arcling·Dynamo·Slickling·Tarbrute)는 *계열 정체성 강화용 시그니처*로 격하 — 필수가 아닌 단계적 추가.
 
 **fluid 거동 분기 매트릭스 (베이스 공통 적용):**
 
-| fluid(권속) | 이동 잔류 | 접촉 효과 | 처치 효과 |
+| fluid(계열) | 이동 잔류 | 접촉 효과 | 처치 효과 |
 |:--|:--|:--|:--|
 | magma (forge) | 불타는 타일 | 화상 DoT | 소형 폭발 |
 | cryo (iron) | 서리 슬로우존 | 둔화 | 빙결 파편 |
@@ -376,7 +376,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 **거동 분기 후 그리드 (코어 충족):**
 
-| 권속 | Swarmer | Bruiser | Ranged |
+| 계열 | Swarmer | Bruiser | Ranged |
 |:--|:--|:--|:--|
 | forge | CinderImp | MawDrone / Skeleton(magma) | Lobber |
 | iron | Slime(cryo) | Bulwark | Sentry |
@@ -386,7 +386,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 → **필수 신규 = 1종(Spitter).** 시그니처 신규(선택, 정체성 강화) = Arcling·Dynamo·Slickling·Tarbrute. Lieutenant(선택, 엘리트 깊이) = forge·rust·shadow 3종.
 
-**구현 메모:** 스폰 시스템이 권속 Swarmer 슬롯을 채울 때 `Slime + 권속 fluid 모듈`을, Bruiser는 `Skeleton + fluid 모듈`을 인스턴스화. fluid 모듈이 잔류/접촉/처치 분기를 담당(신규 AI 골격 불요 → 풀 신규 종 대비 저비용). 시그니처는 권속별 변주 피크로 단계 투입.
+**구현 메모:** 스폰 시스템이 계열 Swarmer 슬롯을 채울 때 `Slime + 계열 fluid 모듈`을, Bruiser는 `Skeleton + fluid 모듈`을 인스턴스화. fluid 모듈이 잔류/접촉/처치 분기를 담당(신규 AI 골격 불요 → 풀 신규 종 대비 저비용). 시그니처는 계열별 변주 피크로 단계 투입.
 
 ---
 
@@ -414,16 +414,16 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 |:--|:--|:--|
 | 현재 전투 로스터 | 11 (≈9 템플릿) | 지상-근접 중복(Skeleton·CinderImp·MawDrone·Slime) |
 | **반복 없는 기능 천장** | **약 25** | 유효칸 22 + 서포트 배치 3 |
-| **fluid 변별까지 실용 천장** | **약 40~48** | 봉쇄·잔류·방출 5~6종만 다권속화(×4), 접촉·돌진형 ×1~1.5 |
+| **fluid 변별까지 실용 천장** | **약 40~48** | 봉쇄·잔류·방출 5~6종만 다계열화(×4), 접촉·돌진형 ×1~1.5 |
 | Phase 2 현실 타깃 | 24~30 | 한계효용·웹 스코프·인지 부하 |
 
 이론 최대 48을 다 채우는 건 비효율. **25 기능 템플릿에서 변별의 90%가 나온다.**
 
-### 16 빈칸 → 권속·우선순위 (Q1: 이중 결핍 동시 해소)
+### 16 빈칸 → 계열·우선순위 (Q1: 이중 결핍 동시 해소)
 
 > 결핍 좌표: **rust = 시그니처 0(정체성 공백)** / **shadow = 교란형 편중(Swarmer·Bruiser 공백)**. 새 템플릿을 이 두 결핍에 정조준해 한 종으로 둘을 메운다. ※ shadow엔 **추가 Ranged/교란을 부여하지 않는다**(편중 악화 회피) — 근접·봉쇄 기능만.
 
-| 우선 | 셀(이동-위협) | 템플릿(가칭) | 권속 | fluid | 동시 해소 |
+| 우선 | 셀(이동-위협) | 템플릿(가칭) | 계열 | fluid | 동시 해소 |
 |:--|:--|:--|:--|:--|:--|
 | **P0** | 지상-직선 | **Spitter**(산성 사출) | rust | acid | 신 템플릿 + **rust Ranged 시그니처** |
 | **P0** | 지상-봉쇄 | **부식보행체**(산 웅덩이) | rust | acid | 신 템플릿 + **rust Swarmer·정체성** |
@@ -465,7 +465,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 **권장 시퀀스 (게이트):**
 1. RoomGraph/LDtk 방이 천장·수직벽을 일정 비율 보장하는지 검증 → 미달 시 템플릿에 "천장 행어 포인트" 태그 선(先) 심기.
-2. 1회성 표면 부착 이동 모듈 제작, 데뷔를 **shadow(oil) 권속**과 묶음(천장 매복 = 은닉 정체성 정합 + shadow 근접 결핍 동시 해소).
+2. 1회성 표면 부착 이동 모듈 제작, 데뷔를 **shadow(oil) 계열**과 묶음(천장 매복 = 은닉 정체성 정합 + shadow 근접 결핍 동시 해소).
 3. 동일 모듈로 W-ch·W-dp 저비용 확장.
 
 → **결론: P0 플래그십 유지하되, 선결조건(방 지오메트리 보장 + 이동 모듈) 통과 후 착수.** 통과 시 단일 모듈로 3셀 + 수직성 기둥을 한 번에 산다.
@@ -483,18 +483,18 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ### Phase 0 — 선결 (착수 전)
 
-1. **분류 계약 고정:** 본 문서 권속/기능/fluid/이동 좌표를 CSV 컬럼 스펙 1쪽으로 확정 — `Family, Role, MinStratum, MaxStratum, Fluid, Locomotion, EliteEligible`.
+1. **분류 계약 고정:** 본 문서 계열/기능/fluid/이동 좌표를 CSV 컬럼 스펙 1쪽으로 확정 — `Family, Role, MinStratum, MaxStratum, Fluid, Locomotion, EliteEligible`.
 2. **(벽/천장 포함 시 한정)** 방 지오메트리 보장 + 표면 부착 이동 모듈 게이트(§6.2 주석). M1 슬라이스는 지상 패밀리(rust)라 이 게이트 **불필요** — 후속 마일스톤으로 미룸.
 
 ### ★ M1 — 버티컬 슬라이스 (첫 마일스톤, rust 패밀리)
 
-> **목표 질문:** "권속×기능 2축 모델이 체감상 작동하는가?" 이 한 가지를 최소 비용으로 검증.
+> **목표 질문:** "계열×기능 2축 모델이 체감상 작동하는가?" 이 한 가지를 최소 비용으로 검증.
 > **대상:** rust(시그니처 0 → 검증 가치 최대). 지상 한정 → 이동 모듈 불요.
 
 | 단계 | 산출물 | 비고 |
 |:--|:--|:--|
 | **A. 제작** | rust 핵심 3종 — Spitter(Ranged/acid) + 산성 분기 Swarmer(Slime+acid 모듈) + 산성 분기 Bruiser(Skeleton+acid 모듈). 전부 4좌표 태그째 | fluid 모듈 = 산 웅덩이 DoT 잔류 |
-| **B. 최소 스폰** | 역할 예산 채우기 루프(`spawnForRoom` 신규 분기) — 단일 권속(rust)만, BaseEnemyCount + enemyCountBonus 활성화 | 기존 단일 종 1픽 폐기 |
+| **B. 최소 스폰** | 역할 예산 채우기 루프(`spawnForRoom` 신규 분기) — 단일 계열(rust)만, BaseEnemyCount + enemyCountBonus 활성화 | 기존 단일 종 1픽 폐기 |
 | **C. test map** | rust 전용 test map 1개 — 패밀리 정체성 + **혼합 역할 조성**(swarmer+bruiser+ranged 동시 방) 둘 다 노출 | 단독 패밀리뿐 아니라 role budget 체감 |
 | **D. 조정** | 밀도·역할비·산 잔류 빈도 튜닝 | — |
 
@@ -508,13 +508,13 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 | 마일스톤 | 내용 |
 |:--|:--|
-| **E. 패밀리 확장** | 나머지 4권속 몬스터 제작(검증된 계약·4좌표째). 우선순위 §6.2: P0 잔여(shadow 근접) → P1 |
+| **E. 패밀리 확장** | 나머지 4계열 몬스터 제작(검증된 계약·4좌표째). 우선순위 §6.2: P0 잔여(shadow 근접) → P1 |
 | **F. 개별 검수** | 텔레그래프 가독성·스탯대역·애니 프레임 체크리스트(상시 병행) |
 | **G. CSV 채우기** | 전체 SpawnTable 조립(창작 0) |
 | **H. 경험 검증** | 패밀리별 + 혼합 역할 test map |
 | **I. 전역 튜닝** | 레어리티×지층 강도·엘리트 밀도·변조자 |
 | **J. 실제 적용** | 아이템계 본 스폰 경로 교체 |
-| **(별도) 벽/천장 플래그십** | Phase 0-2 게이트 통과 후, shadow 권속과 묶어 데뷔(§6.2) |
+| **(별도) 벽/천장 플래그십** | Phase 0-2 게이트 통과 후, shadow 계열과 묶어 데뷔(§6.2) |
 
 **전체 규모:** 11(현재) + M1 rust 3 + M2 확장 → Phase 2 타깃 **20~27종**(§6.2). P2 7종은 Phase 3.
 
@@ -522,7 +522,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 
 ## 7.1. Phase 0 — CSV 스키마 계약 (확정 2026-06-09)
 
-> **정규화 결정:** 분리(3 테이블). 행 입자가 다름 — 적 *고유 분류* / *스폰 규칙* / *조성 비율*. 단일 시트는 `권속×지층×역할×fluid` 조합 폭발.
+> **정규화 결정:** 분리(3 테이블). 행 입자가 다름 — 적 *고유 분류* / *스폰 규칙* / *조성 비율*. 단일 시트는 `계열×지층×역할×fluid` 조합 폭발.
 > **Rarity 칼럼 제거:** 정체성=Family, 강도·게이팅=깊이 창(MinStratum) + `StrataConfig(rarity,stratum)`. 깊이 창이 레어리티 게이팅을 겸함(강한 적 MinStratum=3 → 지층 3 보유 Rare+ 에서만 출현).
 
 ### 테이블 1 — `Content_Enemy.csv` (기존 확장) · 적 종당 1행 · 거동/분류
@@ -536,7 +536,7 @@ NMD식 "1긍정+N부정"은 ECHORIS 톤(고독·압박)에 맞춰 **부정 변�
 | 칼럼 | 값 | 설명 |
 |:--|:--|:--|
 | `Role` | swarmer\|bruiser\|ranged\|lieutenant\|treasure\|boss | **조성 예산 버킷**. A-09(보물)·Boss 엣지 때문에 파생 대신 명시 |
-| `IsNeutralBase` | true\|false | true = fluid 분기로 다권속 등장(Slime·Skeleton·MawDrone) |
+| `IsNeutralBase` | true\|false | true = fluid 분기로 다계열 등장(Slime·Skeleton·MawDrone) |
 | `EliteEligible` | true\|false | A-09 엘리트 승격 허용 |
 
 ```
@@ -552,7 +552,7 @@ Spitter,...,acid,A-03a,ranged,false,false   ← M1 신규
 ```
 
 > **파생 항목(칼럼 불요):** `Locomotion` 은 당분간 코드 파생 — `flying→aerial`, `MoveSpeed=0→stationary`, `Archetype=A-07→concealed`, else `ground`. surface(벽/천장) 모드 도입 시(M2+) 명시 칼럼 추가.
-> **Attribute 칼럼:** 종 고유 fluid(시그니처)만 기입. 중립 베이스의 분기 fluid 는 스폰 테이블 Fluid 가 결정(공란 = 권속 fallback).
+> **Attribute 칼럼:** 종 고유 fluid(시그니처)만 기입. 중립 베이스의 분기 fluid 는 스폰 테이블 Fluid 가 결정(공란 = 계열 fallback).
 
 ### ⚠ 실측 정합 보정 (Content_Enemy.csv 기준, §6 재조정)
 
@@ -569,7 +569,7 @@ Spitter,...,acid,A-03a,ranged,false,false   ← M1 신규
 
 | 칼럼 | 값 | 설명 |
 |:--|:--|:--|
-| `Family` | forge\|iron\|rust\|spark\|shadow | 무기 기질 → 권속 풀 키. **속성은 이 값에서 파생.** |
+| `Family` | forge\|iron\|rust\|spark\|shadow | 무기 기질 → 계열 풀 키. **속성은 이 값에서 파생.** |
 | `Behavior` | B01~B52 (또는 거동 EnemyType) | `Task_Enemy_00_BehaviorCatalog.md` 참조. **속성 무관 거동.** Role/Size/Locomotion 은 카탈로그에서 조회. |
 | `FluidOverride` | (선택) magma\|water\|oil\|acid\|charged\|cyro | 빈값=Family 기본 fluid. **지층 속성 혼합 시에만** 명시. |
 | `MinStratum` | 1.. | 깊이 창 시작(레어리티 게이팅 겸) |
@@ -606,16 +606,16 @@ Cleaver,55,30,10,5
 Railbow,40,20,30,10
 ...
 ```
-M1 은 단일 권속이라 **상수 비율(swarmer45/bruiser30/ranged20/lieut5)** 로 대체, 본 테이블은 M2 도입.
+M1 은 단일 계열이라 **상수 비율(swarmer45/bruiser30/ranged20/lieut5)** 로 대체, 본 테이블은 M2 도입.
 
 ### `Content_StrataConfig.csv` 확장 · 마릿수 예산 ✅ 적용 (2026-06-09)
 
 - 신규 칼럼 `BaseEnemyCount`(레어리티당): Normal4 / Magic5 / Rare6 / Legendary7 / Ancient8. **CSV + `StrataConfig.ts` 파서(cols[13]) + `StratumDef.baseEnemyCount` 적용 완료, tsc 통과.**
 - 방당 예산 = `BaseEnemyCount + EnemyCountBonus`. ※ `EnemyCountBonus`는 파싱돼 있으나 **소비(spawnForRoom)는 M1-B**에서 연결.
 
-### 무기 → 권속 해석 (코드, 신규 CSV 불요)
+### 무기 → 계열 해석 (코드, 신규 CSV 불요)
 
-`family = weapon.temperamentPrimary ?? 'forge'`. 부색 혼입(secondary 권속 20~30%)은 M2 연기.
+`family = weapon.temperamentPrimary ?? 'forge'`. 부색 혼입(secondary 계열 20~30%)은 M2 연기.
 
 ### 마이그레이션 영향 (M1-B 작업)
 
@@ -624,6 +624,56 @@ M1 은 단일 권속이라 **상수 비율(swarmer45/bruiser30/ranged20/lieut5)*
 3. `Content_Enemy.csv` 확장 — `Size` 칼럼 추가, `Locomotion` 명시화(이미 Role/EliteEligible 적용 완료).
 4. **Family→Fluid 매핑** 상수/CSV + fluid 모듈 6종을 거동에 pluggable 부착(per-enemy Attribute 폐기).
 5. `StrataConfig.ts` — BaseEnemyCount 파싱(완료), enemyCountBonus 소비.
+
+---
+
+## 6.4. 계열 그리드 v2 — 31종 로스터 & 조성 레시피 (2026-06-13 캐논)
+
+> §6.1(13종 기준)의 후속 갱신. **전 거동 구현 완료(2026-06-10, B07~B58)** 로 변별감사 신규 ~18이 전량 코드에 존재 — M1-A(제작) 종결. 빈칸 충원 전제가 소멸해 그리드를 "충원 계획"에서 **"시그니처 배치 + 조성 레시피"** 로 전환한다.
+
+### 로스터 사실 (2026-06-13 실측)
+
+- 구현 31종 = 전투 29(기존 11 + B-시리즈 18) + Guardian(보스)·GoldenMonster(보물). `EnemyFactory`·`Content_Enemy.csv`·`Content_Stats_Enemy.csv` 3중 일치.
+- **§6.1의 "필수 신규 Spitter"는 B07_Gunner가 거동으로 충족** — B07 × rust = Spitter, B07 × forge = 구 Pyrelance. 코어 15칸은 현 로스터 + 중립 분기로 전부 채워진다.
+- **아이템계 투입 보류 2종:** B50_CeilingDropling·B52_WallGun(surface) — 절차 방 천장/벽 앵커 스폰 검증 전(§6.2 게이트). 당분간 월드 전용.
+
+### 시그니처 배치 그리드 v2
+
+> 거동은 속성 무관(곱셈 레이어) — 모든 계열 투입 가능. 아래는 **정서 친화 기본 배치**(SpawnTable v2 기본 풀).
+
+| 계열 (정서) | Swarmer | Bruiser | Ranged·교란 | Lieutenant |
+|:--|:--|:--|:--|:--|
+| **forge** 공격·돌진·열폭발 | CinderImp · Slime(magma) | B53 Kamikaze · B54 Volatile · B57 AirKamikaze · MawDrone · Skeleton(magma) | Lobber · B25 AirBomber · B07(=Pyrelance) | B56 Rupture |
+| **iron** 질서·방어·정렬 | Slime(cryo) | Bulwark · B35 Bunker · Skeleton(cryo) | Sentry · B24 Gunship | B37 Totem |
+| **rust** 소모·지속·붕괴 | Slime(acid) | Skeleton(acid) · B54(acid 분출) | B07(=Spitter) · B39 Emitter · B46 TrapLayer | B55 Brood · B56 Rupture |
+| **spark** 고속·원거리·연쇄 | B20 Flit · Slime(charged) | Skeleton(charged) · B57(EMP) | SparkBat · B24 Gunship | Conduit · B27 Carrier |
+| **shadow** 매복·기습·교란 | Slime(oil) | Skeleton(oil) · B53(oil 점화) | Ghost · Lurker · B45 HiddenSniper · B46 TrapLayer | B58 AirBrood |
+
+### 조성 레시피 — 방 경험 설계 (기능예산 루프의 목표 체감)
+
+공통 원칙: 최소 2기능군 + **대응 동사(R1~R11) 2~3개 혼합**(1개=단조, 4개+=과부하) + 리테넌트 방당 1기.
+
+| 계열 | 레시피 | 경험 |
+|:--|:--|:--|
+| forge | CinderImp ×3 + B53 ×2 + B54 ×1 | **난전 속 폭탄 식별** — 군집 중 "어느 게 폭탄인가" + Volatile 군집 연쇄 점화 보상 |
+| iron | B35 + Sentry + Bulwark + Slime(cryo) ×2 | **줄어드는 안전각 진지전** — 고정 화망 + cryo 슬로우 처벌. ⚠ 전원 고정 금지(동적 군집 필수 보충) |
+| rust | B07 + B39 + B55 ×1 + Slime(acid) ×2 | **시간이 적, 바닥이 적** — 잔류 산 + DEF 저하 누적 + 브루드. 장기전 불리 → 속전 강요 |
+| spark | B20 ×3 + Skeleton(charged) + Conduit ×1 | **2~3축 시선 관리** — 공중 군집/지상 돌진/앵커. 밀집 감전 연쇄 = 광역 보상 |
+| shadow | B45 + B46 + Lurker ×2 + **Ghost ×1(가시 앵커)** | **3방향 기습** — 단 전부 은신 금지, 보이는 위협 1기로 주의 앵커 제공 |
+
+### 혼합 계열 규칙 (부색 20~30%)
+
+- **최고 시너지 shadow×forge:** oil 슬릭 위 폭발 점화 — 화학 매트릭스 최대 발화.
+- **iron×spark:** cryo/water 존 + charged 감전 전도.
+- **식별 쌍(엘리트 방 전용):** B27 Carrier + B58 AirBrood 동시 배치 — 같은 공중 리테넌트 실루엣, 정반대 킬 인센티브. 실루엣·발광 구분 전제(Task_Enemy_B58 인수 기준 4).
+- **금지:** R11 폭발계 + TrapLayer 좁은 방 과밀(회피 불가 중첩) / 리테넌트 2기 이상(예산).
+
+### 데이터·코드 반영 (2026-06-13)
+
+- `Content_ItemWorld_SpawnTable.csv` → **§7.1 계약 스키마(Family,Behavior,FluidOverride,MinStratum,MaxStratum,Weight,ClusterMin,ClusterMax)로 재작성**, 24종 투입(보류 2종 제외).
+- `ItemWorldEnemyEncounterRuntime.spawnForRoom` → **역할 예산 채우기 루프(M1-B)**: 단일 종 1픽 폐기, BaseEnemyCount+EnemyCountBonus 소비, 상수 비율(45/30/20/5), 리테넌트 캡 1, **대응 동사 2종 보증 가드**.
+- `Content_Enemy.csv` += `Response` 칼럼(R1~R6·R11, 변별감사 SSoT 동기화) — 가드의 데이터 소스.
+- **보류(M2):** FluidOverride 런타임 적용(per-enemy fluid 모듈 부착 — Enemy 엔티티에 attribute 필드 부재), Content_RoleComposition.csv(무기 종류 편향), 부색 혼입, B50/B52 표면 앵커.
 
 ---
 

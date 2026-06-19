@@ -31,16 +31,18 @@ export class ItemWorldSpawnController {
     roomTopCol: number,
     roomTopRow: number,
     minLen: number,
+    roomWidthTiles: number = IW_ROOM_W_TILES,
+    roomHeightTiles: number = IW_ROOM_H_TILES,
   ): { x: number; y: number } | null {
     let best: { row: number; startCol: number; length: number } | null = null;
 
-    for (let localRow = IW_ROOM_H_TILES - 1; localRow >= 0; localRow--) {
+    for (let localRow = roomHeightTiles - 1; localRow >= 0; localRow--) {
       const tr = roomTopRow + localRow;
       if (tr < 0 || tr + 1 >= fullGrid.length) continue;
 
       let runStart = -1;
       let runLen = 0;
-      for (let localCol = 0; localCol < IW_ROOM_W_TILES; localCol++) {
+      for (let localCol = 0; localCol < roomWidthTiles; localCol++) {
         const tc = roomTopCol + localCol;
         const here = fullGrid[tr]?.[tc] ?? 1;
         const below = fullGrid[tr + 1]?.[tc] ?? 1;
@@ -82,14 +84,16 @@ export class ItemWorldSpawnController {
     fullGrid: number[][],
     roomTopCol: number,
     roomTopRow: number,
+    roomWidthTiles: number = IW_ROOM_W_TILES,
+    roomHeightTiles: number = IW_ROOM_H_TILES,
   ): Array<{ x: number; y: number }> {
     const spawnPoints: Array<{ x: number; y: number }> = [];
 
     // Inset 2 tiles from room edges so enemies don't spawn flush against walls.
     const colStart = roomTopCol + 2;
-    const colEnd = roomTopCol + IW_ROOM_W_TILES - 2;       // exclusive
+    const colEnd = roomTopCol + roomWidthTiles - 2;       // exclusive
     const rowStart = roomTopRow + 2;
-    const rowEnd = roomTopRow + IW_ROOM_H_TILES - 2;       // exclusive
+    const rowEnd = roomTopRow + roomHeightTiles - 2;       // exclusive
 
     for (let tr = rowStart; tr < rowEnd; tr++) {
       // Scan the row left-to-right, tracking contiguous flat-floor runs.
@@ -110,7 +114,7 @@ export class ItemWorldSpawnController {
         runLen = 0;
       };
 
-      for (let tc = roomTopCol; tc < roomTopCol + IW_ROOM_W_TILES; tc++) {
+      for (let tc = roomTopCol; tc < roomTopCol + roomWidthTiles; tc++) {
         const here = fullGrid[tr]?.[tc] ?? 1;
         const below = fullGrid[tr + 1]?.[tc] ?? 1;
         const isFloor = here === 0 && isEnemySpawnFloor(below);

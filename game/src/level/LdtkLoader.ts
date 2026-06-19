@@ -67,6 +67,10 @@ export interface LdtkLevel {
    * Corresponds to the RoomType enum defined in the LDtk project.
    */
   roomType: string | null;
+  /** Level custom field values, keyed by LDtk field identifier. */
+  fields: Record<string, unknown>;
+  /** Normalized LDtk level tags and tag-like custom fields. */
+  tags: string[];
   /**
    * RoomType 배열에 'Secret' 이 포함되면 true. 비밀룸 마커 — *방문 전엔
    * minimap/worldmap 에 표시하지 않는다* (인접 outline 비공개). 방문 후엔 정상
@@ -462,6 +466,8 @@ export class LdtkLoader {
     // — RoomType enum 의 'Secret' 값을 비밀룸 마커로 재사용 (2026-05-18, 별도 Bool
     // field 추가 불필요).
     const rawRoomType = this.extractFieldValue(raw.fieldInstances, 'RoomType');
+    const fields = this.flattenFields(raw.fieldInstances);
+    const tags = this.extractLevelTags(raw, fields);
     const roomTypeArr = Array.isArray(rawRoomType)
       ? (rawRoomType as string[])
       : (rawRoomType != null ? [rawRoomType as string] : []);
@@ -542,6 +548,8 @@ export class LdtkLoader {
       gridW,
       gridH,
       roomType,
+      fields,
+      tags,
       secret,
       collisionGrid,
       backgroundTiles,
@@ -718,6 +726,37 @@ export class LdtkLoader {
       result[field.__identifier] = field.__value;
     }
     return result;
+  }
+
+  private extractLevelTags(raw: RawLdtkLevel, fields: Record<string, unknown>): string[] {
+    const values: unknown[] = [
+      (raw as unknown as { __tags?: unknown }).__tags,
+      (raw as unknown as { tags?: unknown }).tags,
+      fields.Tags,
+      fields.tags,
+      fields.Tag,
+      fields.tag,
+      fields.Debug,
+      fields.debug,
+    ];
+    const tags = new Set<string>();
+    const collect = (value: unknown): void => {
+      if (value === true) {
+        tags.add('debug');
+        return;
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) collect(item);
+        return;
+      }
+      const text = String(value ?? '').trim();
+      if (!text) return;
+      for (const part of text.toLowerCase().split(/[,\s]+/)) {
+        if (part) tags.add(part);
+      }
+    };
+    for (const value of values) collect(value);
+    return Array.from(tags);
   }
 
   /**

@@ -55,13 +55,15 @@ export type TopologyKind =
   | 'layer_cake'
   | 'ring'
   | 'spine_pockets'
-  | 'two_arc_pocketed';
+  | 'two_arc_pocketed'
+  | 'horizontal_descent';
 
 export const TOPOLOGY_VALUES: ReadonlySet<TopologyKind> = new Set<TopologyKind>([
   'hub_spoke', 'multi_hub',
   'linear_right',
   'y_fork', 't_junction', 'layer_cake', 'ring', 'spine_pockets',
   'two_arc_pocketed',
+  'horizontal_descent',
 ]);
 
 export interface StratumDef {

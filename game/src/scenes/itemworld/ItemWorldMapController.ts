@@ -2,8 +2,11 @@
 export const TILE_SIZE = 16;
 export const IW_GRID_W = 4;
 export const IW_GRID_H = 4;
-export const IW_ROOM_W_TILES = 48;
-export const IW_ROOM_H_TILES = 32;
+export const IW_ROOM_SLOT_W_TILES = 16;
+export const IW_ROOM_SLOT_H_TILES = 16;
+export const IW_ROOM_SOCKET_TILES = 8;
+export const IW_ROOM_W_TILES = IW_ROOM_SLOT_W_TILES;
+export const IW_ROOM_H_TILES = IW_ROOM_SLOT_H_TILES;
 export const IW_ROOM_W_PX = IW_ROOM_W_TILES * TILE_SIZE;
 export const IW_ROOM_H_PX = IW_ROOM_H_TILES * TILE_SIZE;
 export const IW_FULL_W_TILES = IW_GRID_W * IW_ROOM_W_TILES;

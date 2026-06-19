@@ -14,6 +14,10 @@ import { Game } from './Game';
 import { WorldScene } from '@scenes/WorldScene';
 import { TitleScene } from '@scenes/TitleScene';
 import { LdtkWorldScene } from '@scenes/LdtkWorldScene';
+import { ItemWorldScene } from '@scenes/ItemWorldScene';
+import { Player } from '@entities/Player';
+import { Inventory } from '@items/Inventory';
+import { createRustbornStarterItem } from '@items/StarterItemFactory';
 import { installBitmapFont } from '@ui/fonts';
 import { loadHudLayout } from '@ui/HUD';
 import { loadBundleOnce } from '@data/assetBundles';
@@ -65,6 +69,9 @@ try {
   showStatus('Initializing game...');
   const game = new Game();
   await game.init();
+  if (new URLSearchParams(window.location.search).has('debug')) {
+    (globalThis as { __abyssGame?: Game }).__abyssGame = game;
+  }
 
   // Apply persisted options before any BGM/ambient cue or scene UI is created.
   const settings = loadAndApplySettings();
@@ -98,7 +105,14 @@ try {
   showStatus('Loading...');
   // Use LDtk hand-crafted world (set ?mode=procgen in URL for procedural)
   const params = new URLSearchParams(window.location.search);
-  if (params.has('procgen')) {
+  if (params.has('debugItemWorld')) {
+    const inventory = new Inventory();
+    const item = createRustbornStarterItem();
+    inventory.add(item);
+    inventory.equip(item.uid, true);
+    const sourcePlayer = new Player(game);
+    await game.sceneManager.push(new ItemWorldScene(game, item, inventory, sourcePlayer));
+  } else if (params.has('procgen')) {
     await game.sceneManager.push(new WorldScene(game, createWorldSceneSaveAccess()));
   } else if (params.has('prologueCutscene')) {
     await game.sceneManager.push(new LdtkWorldScene(game, createLdtkSceneSaveAccess()));

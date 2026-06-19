@@ -20,15 +20,15 @@ import {
 } from '@scenes/shared/TileHazardRuntimeHelpers';
 import {
   IW_ROOM_H_PX,
-  IW_ROOM_H_TILES,
   IW_ROOM_W_PX,
-  IW_ROOM_W_TILES,
 } from './ItemWorldMapController';
+import type { ItemWorldRoomRectTiles } from './ItemWorldEnemySpawnRuntime';
 
 interface ItemWorldTileHazardRuntimeDeps {
   game: Game;
   getCollisionGrid: () => number[][];
   getCurrentRoom: () => { col: number; row: number };
+  getCurrentRoomRect: () => ItemWorldRoomRectTiles;
   getTileMutator: () => TileMutator;
   getTileMutatorRenderer: () => TileMutatorRenderer | null | undefined;
   getBurnableProps: () => BurnableProp[];
@@ -71,13 +71,13 @@ export class ItemWorldTileHazardRuntime {
     const viewT = cam.renderY - halfH - padY;
     const viewB = cam.renderY + halfH + padY;
 
-    const currentRoom = this.deps.getCurrentRoom();
-    const fallbackCx = currentRoom.col * IW_ROOM_W_TILES + Math.floor(IW_ROOM_W_TILES / 2);
-    const fallbackCy = currentRoom.row * IW_ROOM_H_TILES + Math.floor(IW_ROOM_H_TILES / 2);
-    const fallbackMinGx = fallbackCx - IW_ROOM_W_TILES * roomBuffer;
-    const fallbackMaxGx = fallbackCx + IW_ROOM_W_TILES * roomBuffer;
-    const fallbackMinGy = fallbackCy - IW_ROOM_H_TILES * roomBuffer;
-    const fallbackMaxGy = fallbackCy + IW_ROOM_H_TILES * roomBuffer;
+    const currentRect = this.deps.getCurrentRoomRect();
+    const fallbackCx = currentRect.tileX + Math.floor(currentRect.tileW / 2);
+    const fallbackCy = currentRect.tileY + Math.floor(currentRect.tileH / 2);
+    const fallbackMinGx = fallbackCx - currentRect.tileW * roomBuffer;
+    const fallbackMaxGx = fallbackCx + currentRect.tileW * roomBuffer;
+    const fallbackMinGy = fallbackCy - currentRect.tileH * roomBuffer;
+    const fallbackMaxGy = fallbackCy + currentRect.tileH * roomBuffer;
     const minGx = Math.min(
       Number.isFinite(viewL) ? Math.floor(viewL / 16) : fallbackMinGx,
       fallbackMinGx,

@@ -1,62 +1,62 @@
 /**
- * itemWorldSpawnTable.ts — Item World enemy spawn configuration.
+ * itemWorldSpawnTable.ts — Item World enemy spawn pools (2-axis model).
  *
  * SSoT: Sheets/Content_ItemWorld_SpawnTable.csv (imported at build time via ?raw)
- * CSV columns: Rarity,Stratum,EnemyType,Weight,Level,MinCount,MaxCount,IsBoss
+ * CSV columns (RES-IWS-01 §7.1 contract):
+ *   Family,Behavior,FluidOverride,MinStratum,MaxStratum,Weight,ClusterMin,ClusterMax
+ *
+ * - Family: forge|iron|rust|spark|shadow — pool key, resolved from the dive
+ *   weapon's temperamentPrimary. The special family `boss` feeds the boss slot.
+ * - Behavior: implemented enemy type name (EnemyFactory). Attribute-free —
+ *   the family's fluid applies via temperament resolution, not per-row.
+ * - FluidOverride: parsed per contract; per-enemy fluid module attach is an
+ *   M2 work item (no runtime consumer yet).
+ * - Min/MaxStratum: depth window. Rarity gating is implicit (stratum count).
  *
  * Edit the CSV in Sheets/; rebuild picks it up automatically.
  */
 
-import type { Rarity } from '@data/weapons';
 import csvText from '../../../Sheets/Content_ItemWorld_SpawnTable.csv?raw';
 
-export interface SpawnEntry {
+export interface FamilySpawnEntry {
+  family: string;
   enemyType: string;
+  fluidOverride: string;
+  minStratum: number;
+  maxStratum: number;
   weight: number;
-  level: number;
-  minCount: number;
-  maxCount: number;
-  isBoss: boolean;
+  clusterMin: number;
+  clusterMax: number;
 }
 
-interface SpawnBucket {
-  normal: SpawnEntry[];
-  boss: SpawnEntry | null;
-}
+// Index by family ('forge'|'iron'|'rust'|'spark'|'shadow'|'boss')
+const POOLS = new Map<string, FamilySpawnEntry[]>();
 
-// Index by "rarity:stratum"
-const SPAWN_TABLE = new Map<string, SpawnBucket>();
+const DEFAULT_FAMILY = 'forge';
 
-/** Parse CSV text into spawn table. */
+/** Parse CSV text into family pools. */
 function parseCSV(text: string): void {
-  SPAWN_TABLE.clear();
+  POOLS.clear();
   const lines = text.trim().split('\n');
   // Skip header
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].trim().split(',');
     if (cols.length < 8) continue;
 
-    const rarity = cols[0].trim().toLowerCase();
-    const stratum = parseInt(cols[1].trim(), 10);
-    const entry: SpawnEntry = {
-      enemyType: cols[2].trim(),
-      weight: parseInt(cols[3].trim(), 10),
-      level: parseInt(cols[4].trim(), 10),
-      minCount: parseInt(cols[5].trim(), 10),
-      maxCount: parseInt(cols[6].trim(), 10),
-      isBoss: cols[7].trim().toLowerCase() === 'true',
+    const entry: FamilySpawnEntry = {
+      family: cols[0].trim().toLowerCase(),
+      enemyType: cols[1].trim(),
+      fluidOverride: cols[2].trim().toLowerCase(),
+      minStratum: parseInt(cols[3].trim(), 10),
+      maxStratum: parseInt(cols[4].trim(), 10),
+      weight: parseInt(cols[5].trim(), 10),
+      clusterMin: parseInt(cols[6].trim(), 10),
+      clusterMax: parseInt(cols[7].trim(), 10),
     };
+    if (!entry.family || !entry.enemyType) continue;
 
-    const key = `${rarity}:${stratum}`;
-    if (!SPAWN_TABLE.has(key)) {
-      SPAWN_TABLE.set(key, { normal: [], boss: null });
-    }
-    const bucket = SPAWN_TABLE.get(key)!;
-    if (entry.isBoss) {
-      bucket.boss = entry;
-    } else {
-      bucket.normal.push(entry);
-    }
+    if (!POOLS.has(entry.family)) POOLS.set(entry.family, []);
+    POOLS.get(entry.family)!.push(entry);
   }
 }
 
@@ -71,13 +71,25 @@ export async function loadSpawnTable(): Promise<void> {
   return;
 }
 
-/** Get spawn entries for a given rarity and stratum (1-based). */
-export function getSpawnTable(rarity: Rarity, stratum: number): SpawnBucket {
-  return SPAWN_TABLE.get(`${rarity}:${stratum}`) ?? { normal: [], boss: null };
+/**
+ * Get the spawn pool for a family, filtered by stratum depth window (1-based).
+ * Unknown/missing family falls back to the default family pool.
+ */
+export function getFamilyPool(family: string | null | undefined, stratum: number): FamilySpawnEntry[] {
+  const pool = POOLS.get((family ?? DEFAULT_FAMILY).toLowerCase())
+    ?? POOLS.get(DEFAULT_FAMILY)
+    ?? [];
+  return pool.filter(e => stratum >= e.minStratum && stratum <= e.maxStratum);
 }
 
-/** Pick a random enemy type from weighted entries using a PRNG value (0~1). */
-export function pickWeightedEnemy(entries: SpawnEntry[], roll: number): SpawnEntry | null {
+/** Get the boss entry for a stratum (special `boss` family pool). */
+export function getBossEntry(stratum: number): FamilySpawnEntry | null {
+  const pool = POOLS.get('boss') ?? [];
+  return pool.find(e => stratum >= e.minStratum && stratum <= e.maxStratum) ?? null;
+}
+
+/** Pick a random entry from weighted entries using a PRNG value (0~1). */
+export function pickWeightedEnemy(entries: FamilySpawnEntry[], roll: number): FamilySpawnEntry | null {
   if (entries.length === 0) return null;
   const totalWeight = entries.reduce((sum, e) => sum + e.weight, 0);
   let cumulative = 0;

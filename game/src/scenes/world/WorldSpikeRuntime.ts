@@ -39,8 +39,8 @@ export class WorldSpikeRuntime {
     const player = this.deps.getPlayer();
     if (player.invincible || player.hp <= 0) return;
 
-    const inTileSpike = isInSpike(player.x, player.y, player.width, player.height, player.roomData);
-    const playerBox = { x: player.x, y: player.y, width: player.width, height: player.height };
+    const playerBox = player.getHurtAABB();
+    const inTileSpike = isInSpike(playerBox.x, playerBox.y, playerBox.width, playerBox.height, player.roomData);
     const inEntitySpike = this.deps.getRegistry().overlapsAabb(playerBox);
     if (!inTileSpike && !inEntitySpike) return;
 

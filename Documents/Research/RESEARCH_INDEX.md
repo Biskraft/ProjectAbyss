@@ -63,7 +63,7 @@
 | **ItemWorld_DepthReward_RiskBalance** | 지수 HP + 구간별 데미지 스케일링, 손실회피(λ=2.25) 보정 기대값, 톱니파 긴장곡선 |
 | **ItemWorld_EntryTransition** | 아이템 다이브 연출 시퀀스, 14종 픽셀아트 전환 기법(GLSL), 레어리티별 차별화 |
 | **ItemWorld_RecursiveEntry** | 장르 최초 중첩 재귀 메커닉 확인, 7가지 설계 원칙, UX 브레드크럼/순차복귀 설계 |
-| **Research_ItemWorld_MonsterSpawn_Balancing** (RES-IWS-01) | D3 Greater Rift·D4 Pit/NMD/Monster Family·로그라이크 전수조사 → 2축 분리 모델(강도=레어리티×지층 ⟂ 정체성=무기기질→5권속). 같은 NORMAL 다른 몬스터=기질→권속 매핑. 방당 기능예산 조성, enemyCountBonus 활성화, 무기종류→조성편향 매트릭스 |
+| **Research_ItemWorld_MonsterSpawn_Balancing** (RES-IWS-01) | D3 Greater Rift·D4 Pit/NMD/Monster Family·로그라이크 전수조사 → 2축 분리 모델(강도=레어리티×지층 ⟂ 정체성=무기기질→5계열). 같은 NORMAL 다른 몬스터=기질→계열 매핑. 방당 기능예산 조성, enemyCountBonus 활성화, 무기종류→조성편향 매트릭스 |
 | **SkillSystem_ActionRPG** | 7종 게임 분석, "무기별 분기+공용 트리" 하이브리드 구조, 4슬롯 깊이 확보 6방안 |
 | **EnemyDesign_MobArchetype** | 9대 아키타입 분류 + 조우 구성 매트릭스 + 테마×적 매핑 + Phase 1 최소 7종 로스터 |
 | **Vertical_Traversal_Gimmicks** | 6원칙 정리 + BLAME! GBE/공동/엘리베이터 분석 + 8종 기믹 제안 (Build 0-2 우선순위) |

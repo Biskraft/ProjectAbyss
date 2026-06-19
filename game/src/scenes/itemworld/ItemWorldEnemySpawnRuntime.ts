@@ -4,8 +4,6 @@ import { initializeEnemySpawnedEntity, type EnemySpawnInitializationDeps } from 
 import { setEnemyRoomKey } from '@entities/EnemyMetadata';
 import type { LdtkLevel } from '@level/LdtkLoader';
 import {
-  IW_ROOM_H_PX,
-  IW_ROOM_W_PX,
   TILE_SIZE,
 } from './ItemWorldMapController';
 import type { ItemWorldSpawnController } from './ItemWorldSpawnController';
@@ -17,7 +15,18 @@ export interface ItemWorldEnemySpawnContext {
   offY: number;
   roomTopCol: number;
   roomTopRow: number;
+  roomWidthTiles: number;
+  roomHeightTiles: number;
+  roomWidthPx: number;
+  roomHeightPx: number;
   spawnPoints: Array<{ x: number; y: number }>;
+}
+
+export interface ItemWorldRoomRectTiles {
+  tileX: number;
+  tileY: number;
+  tileW: number;
+  tileH: number;
 }
 
 interface ItemWorldEnemySpawnRuntimeDeps {
@@ -38,13 +47,18 @@ export class ItemWorldEnemySpawnRuntime {
     };
   }
 
-  createContext(col: number, absRow: number, isBossRoom: boolean): ItemWorldEnemySpawnContext | null {
-    const offX = col * IW_ROOM_W_PX;
-    const offY = absRow * IW_ROOM_H_PX;
-    const roomTopRow = Math.floor(offY / TILE_SIZE);
-    const roomTopCol = Math.floor(offX / TILE_SIZE);
+  createContext(
+    col: number,
+    absRow: number,
+    isBossRoom: boolean,
+    rect: ItemWorldRoomRectTiles,
+  ): ItemWorldEnemySpawnContext | null {
+    const offX = rect.tileX * TILE_SIZE;
+    const offY = rect.tileY * TILE_SIZE;
+    const roomTopRow = rect.tileY;
+    const roomTopCol = rect.tileX;
     const spawnPoints = this.deps.getSpawnController()
-      .computeSpawnPoints(this.deps.getCollisionGrid(), roomTopCol, roomTopRow);
+      .computeSpawnPoints(this.deps.getCollisionGrid(), roomTopCol, roomTopRow, rect.tileW, rect.tileH);
 
     if (spawnPoints.length === 0 && !isBossRoom) return null;
 
@@ -54,6 +68,10 @@ export class ItemWorldEnemySpawnRuntime {
       offY,
       roomTopCol,
       roomTopRow,
+      roomWidthTiles: rect.tileW,
+      roomHeightTiles: rect.tileH,
+      roomWidthPx: rect.tileW * TILE_SIZE,
+      roomHeightPx: rect.tileH * TILE_SIZE,
       spawnPoints,
     };
   }
@@ -77,12 +95,16 @@ export class ItemWorldEnemySpawnRuntime {
     this.trackEnemy(enemy, roomKey);
   }
 
-  spawnAuthoredPrologueMonsters(level: LdtkLevel, col: number, absRow: number): number {
+  spawnAuthoredPrologueMonsters(
+    level: LdtkLevel,
+    col: number,
+    absRow: number,
+    roomX: number,
+    roomY: number,
+  ): number {
     if (!level.identifier.startsWith('ItemStratum_Prologue_')) return 0;
 
     const roomKey = `${col},${absRow}`;
-    const offX = col * IW_ROOM_W_PX;
-    const offY = absRow * IW_ROOM_H_PX;
     let spawned = 0;
 
     for (const entity of level.entities) {
@@ -93,8 +115,8 @@ export class ItemWorldEnemySpawnRuntime {
       const enemyLevel = this.numberField(entity.fields, ['Level', 'level']) ?? 1;
       const enemy = this.deps.getSpawnController().createEnemyFromType(enemyType, enemyLevel);
       this.spawnAt(enemy, roomKey, {
-        x: offX + entity.px[0],
-        y: offY + entity.px[1] - enemy.height,
+        x: roomX + entity.px[0],
+        y: roomY + entity.px[1] - enemy.height,
       });
       spawned++;
     }

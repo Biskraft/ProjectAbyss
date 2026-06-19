@@ -1,5 +1,7 @@
 import { CameraConst } from '@data/constData';
 
+type CameraFollowPolicy = 'centered' | 'profile';
+
 export class Camera {
   x = 0;
   y = 0;
@@ -8,6 +10,7 @@ export class Camera {
   readonly viewportH: number;
 
   // Follow
+  followPolicy: CameraFollowPolicy = 'centered';
   followLerp = CameraConst.FollowLerp;
   deadZoneX = CameraConst.DeadZoneX;
   deadZoneY = CameraConst.DeadZoneY;
@@ -107,9 +110,27 @@ export class Camera {
 
   /** Instantly set look-ahead to its final value (no lerp) */
   setLookAhead(direction: number): void {
+    if (this.followPolicy === 'centered') {
+      this.facingDirection = 0;
+      this.targetLookAheadX = 0;
+      this.currentLookAheadX = 0;
+      return;
+    }
     this.facingDirection = direction;
     this.targetLookAheadX = direction * this.lookAheadDistance;
     this.currentLookAheadX = this.targetLookAheadX;
+  }
+
+  setFollowPolicy(policy: CameraFollowPolicy): void {
+    this.followPolicy = policy;
+    if (policy === 'centered') {
+      this.currentLookAheadX = 0;
+      this.targetLookAheadX = 0;
+      this.currentLookAheadY = 0;
+      this.targetLookAheadY = 0;
+      this.facingDirection = 0;
+      this.lookDirection = 0;
+    }
   }
 
   /** Instantly snap camera to a position (no lerp, no look-ahead offset) */
@@ -193,6 +214,18 @@ export class Camera {
       this.zoom = this.targetZoom;
     }
 
+    if (this.followPolicy === 'centered') {
+      this.x = this.target.x;
+      this.y = this.target.y;
+      this.currentLookAheadX = 0;
+      this.targetLookAheadX = 0;
+      this.currentLookAheadY = 0;
+      this.targetLookAheadY = 0;
+      this.clampToBounds();
+      this.updateShake();
+      return;
+    }
+
     // Dead zone check + Smooth Follow
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
@@ -250,6 +283,10 @@ export class Camera {
       }
     }
 
+    this.updateShake();
+  }
+
+  private updateShake(): void {
     // Shake (Sakurai: directional bias + random variation)
     if (this.shakeIntensity > this.shakeMinThreshold) {
       const randX = (Math.random() * 2 - 1);

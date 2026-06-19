@@ -1,12 +1,11 @@
 import { isSolid, TILE_AIR } from '@core/Physics';
 import type { PRNG } from '@utils/PRNG';
 import {
-  IW_ROOM_H_PX,
-  IW_ROOM_W_PX,
   TILE_SIZE,
 } from './ItemWorldMapController';
 import type { ItemWorldResidentRuntime } from './ItemWorldResidentRuntime';
 import type { ItemWorldSpawnController } from './ItemWorldSpawnController';
+import type { ItemWorldRoomRectTiles } from './ItemWorldEnemySpawnRuntime';
 
 interface ItemWorldSafeRoomResidentSpawnRuntimeDeps {
   getItemUid: () => number;
@@ -19,15 +18,22 @@ interface ItemWorldSafeRoomResidentSpawnRuntimeDeps {
 export class ItemWorldSafeRoomResidentSpawnRuntime {
   constructor(private readonly deps: ItemWorldSafeRoomResidentSpawnRuntimeDeps) {}
 
-  spawnAmbientForRoom(role: string | undefined, col: number, absRow: number): void {
+  spawnAmbientForRoom(
+    role: string | undefined,
+    col: number,
+    absRow: number,
+    rect: ItemWorldRoomRectTiles,
+  ): void {
     if (role !== 'hub') return;
 
-    const offX = col * IW_ROOM_W_PX;
-    const offY = absRow * IW_ROOM_H_PX;
-    const roomTopRow = Math.floor(offY / TILE_SIZE);
-    const roomTopCol = Math.floor(offX / TILE_SIZE);
     const fullGrid = this.deps.getCollisionGrid();
-    const rawPoints = this.deps.getSpawnController().computeSpawnPoints(fullGrid, roomTopCol, roomTopRow);
+    const rawPoints = this.deps.getSpawnController().computeSpawnPoints(
+      fullGrid,
+      rect.tileX,
+      rect.tileY,
+      rect.tileW,
+      rect.tileH,
+    );
     const points = rawPoints.filter(point => {
       const tcBelow = Math.floor(point.x / TILE_SIZE);
       const trBelow = Math.floor(point.y / TILE_SIZE);

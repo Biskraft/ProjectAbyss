@@ -11,6 +11,8 @@ export const Debug = {
   /** True = show HUD debug text such as item-world buff diagnostics. */
   infoVisible: typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('debug'),
+  /** Debug-only gameplay/animation time scale. Shift+Y toggles 1.0 / 0.1 in Game.ts. */
+  animationTimeScale: 1,
   log(...args: unknown[]): void {
     if (this.infoVisible) console.log(...args);
   },

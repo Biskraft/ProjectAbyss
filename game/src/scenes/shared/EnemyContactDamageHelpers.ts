@@ -26,12 +26,13 @@ interface ApplyEnemyContactDamageInput {
 
 export function applyEnemyContactDamageForPlayer(input: ApplyEnemyContactDamageInput): boolean {
   const { player } = input;
+  const playerBox = player.getHurtAABB();
   for (const enemy of input.enemies) {
     if (!enemy.alive) continue;
     if (player.invincible || player.hp <= 0) continue;
 
     const overlap = aabbOverlap(
-      { x: player.x, y: player.y, width: player.width, height: player.height },
+      playerBox,
       { x: enemy.x, y: enemy.y, width: enemy.width, height: enemy.height },
     );
     if (!overlap) continue;

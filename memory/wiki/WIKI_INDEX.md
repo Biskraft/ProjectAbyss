@@ -118,6 +118,7 @@
 - [ItemWorldFullMapLayerRuntime](features/ItemWorldFullMapLayerRuntime.md)
 - [ItemWorldFullMapRuntimePath](features/ItemWorldFullMapRuntimePath.md)
 - [ItemWorldHudRuntime](features/ItemWorldHudRuntime.md)
+- [ItemWorldRoomGraph](features/ItemWorldRoomGraph.md)
 - [ItemWorldMemoryRoomPlacementRuntime](features/ItemWorldMemoryRoomPlacementRuntime.md)
 - [ItemWorldMemoryShardSpawnRuntime](features/ItemWorldMemoryShardSpawnRuntime.md)
 - [ItemWorldMemoryTriggerRuntime](features/ItemWorldMemoryTriggerRuntime.md)
@@ -169,8 +170,10 @@
 - [PauseMenuModalLifecycle](features/PauseMenuModalLifecycle.md)
 - [PauseMenuPulse](features/PauseMenuPulse.md)
 - [PlayerMovement](features/PlayerMovement.md)
+- [PlayerLadderClimb](features/PlayerLadderClimb.md)
 - [ProximityInteractionHelpers](features/ProximityInteractionHelpers.md)
 - [RefactorRoadmap](features/RefactorRoadmap.md)
+- [Rendering3DIntegration](features/Rendering3DIntegration.md) — PixiJS + Three.js decorative 3D integration feasibility and constraints
 - [SavePointRuntime](features/SavePointRuntime.md)
 - [SettingsOptions](features/SettingsOptions.md)
 - [SharedUiBindings](features/SharedUiBindings.md)
@@ -342,6 +345,9 @@
 - [2026-06-08](daily/2026-06-08.md)
 - [2026-06-09](daily/2026-06-09.md) — 내러티브 세계관 정식화 (7얼굴+지원 8세력·D-20 매핑·아틀라스)
 - [2026-06-10](daily/2026-06-10.md) — R11 공중 확장(B57·B58) + 적 아키타입 16종 코드 + 내러티브 로어 20편 + 배포 f39dce63
+- [2026-06-12](daily/2026-06-12.md) — 유체 증발 y축 수축 (수위 하강 ease-out + 알파 용해)
+- [2026-06-13](daily/2026-06-13.md) — 아이템계 스폰 2축 모델 가동 (권속 그리드 v2 캐논 + SpawnTable 계약 스키마 + 역할 예산 루프 M1-B + Response 태그) + LDtk 레시피 방 5종 배치 명세
+
 
 
 

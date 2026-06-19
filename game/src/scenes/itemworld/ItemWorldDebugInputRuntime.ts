@@ -15,6 +15,7 @@ interface ItemWorldDebugInputRuntimeDeps {
   onDebugIgniteAtPlayer: () => void;
   onDebugFreezeAtPlayer: () => void;
   onDebugThunderAtPlayer: () => void;
+  onDebugRegenerateMap: () => void;
 }
 
 export class ItemWorldDebugInputRuntime {
@@ -27,7 +28,7 @@ export class ItemWorldDebugInputRuntime {
     if (new URLSearchParams(window.location.search).has('debug') && input.shiftDown) {
       if (input.isJustPressed(GameAction.DEBUG_FIRE)) this.deps.onDebugIgniteAtPlayer();
       if (input.isJustPressed(GameAction.DEBUG_ICE)) this.deps.onDebugFreezeAtPlayer();
-      if (input.isJustPressed(GameAction.DEBUG_THUNDER)) this.deps.onDebugThunderAtPlayer();
+      if (input.isJustPressed(GameAction.DEBUG_THUNDER)) this.deps.onDebugRegenerateMap();
       if (input.isJustPressed(GameAction.DEBUG_CHEAT)) {
         if (player.debugCheatActive) {
           player.disableCheatBundle();

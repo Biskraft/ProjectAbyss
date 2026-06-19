@@ -207,6 +207,11 @@ export class LoreDisplay {
 
   /** Show a sequence of lore lines. Resolves when all lines are dismissed. */
   showDialogue(lines: LoreLine[], freezePlayer?: boolean): Promise<void> {
+    if (lines.length === 0) {
+      this.blocksMovement = false;
+      return Promise.resolve();
+    }
+
     this.lines = lines;
     this.lineIndex = 0;
 

@@ -53,8 +53,7 @@ import { OxygenOverlay } from '@ui/OxygenOverlay';
 import { attachGamepadToast } from '@ui/GamepadToastBinding';
 import { BossHpRuntime } from '@ui/BossHpRuntime';
 import { Inventory } from '@items/Inventory';
-import { SWORD_DEFS } from '@data/weapons';
-import { createItem } from '@items/ItemInstance';
+import { createRustbornStarterItem } from '@items/StarterItemFactory';
 import type { ItemInstance } from '@items/ItemInstance';
 import { LorePopup } from '@ui/LorePopup';
 import { LoreDisplay } from '@ui/LoreDisplay';
@@ -287,6 +286,8 @@ const BUILDER_WORLD_ID = 'Builder';
 const WORLD_AREA_IDS = ['world_shaft_bg', 'world_shaft_wall', 'world_prologue_bg', 'world_prologue_wall'] as const;
 const FALLBACK_ENTRANCE_LEVEL = 'World_Level_16';
 const WORLD_DEATH_RESPAWN_LEVEL_ID = 'Start_Room_01';
+const ITEM_WORLD_TEST_START_ENABLED: boolean = true;
+const ITEM_WORLD_TEST_START_LEVEL_ID = 'Start_Room_01';
 
 // Parallax BG area per level. The prologue levels use their own pre-colored
 // near art (world_prologue_bg in Content_System_Area_Palette.csv); every other
@@ -1789,8 +1790,9 @@ export class LdtkWorldScene extends Scene {
     this.itemStratumLoader.load(json, 'ItemStratum');
     seedItemWorldTemplates(this.itemStratumLoader.getLevelIds().map(id => this.itemStratumLoader!.getLevel(id)!));
 
-    // Load save or create fresh inventory
-    const saveData = SaveManager.load();
+    // Load save or create fresh inventory. Current test progression skips the
+    // prologue and starts in Start_Room_01 with Rustborn as the only item.
+    const saveData = ITEM_WORLD_TEST_START_ENABLED ? null : SaveManager.load();
     if (saveData) {
       this.introHandoffRuntime.skipIntroSequence();
       this.inventory = SaveManager.loadInventory(saveData);
@@ -1798,21 +1800,15 @@ export class LdtkWorldScene extends Scene {
       this.worldPlayerProgressionState.replaceFromSave(saveData);
       this.game.stats.playTimeMs = saveData.playtime;
     } else {
-      // Fresh start keeps the original early-world inventory seed. The later
-      // Start_Room_01 chapter handoff normalizes to Rustborn after the first
-      // Item World event is complete.
       this.inventory = new Inventory();
-      const starterDef = SWORD_DEFS.find(d => d.id === 'sword_scalpel') ?? SWORD_DEFS[0];
-      const starterSword = createItem(starterDef, 'normal');
+      const starterSword = createRustbornStarterItem();
       this.inventory.add(starterSword);
       this.inventory.equip(starterSword.uid, true);
-      const halfbladeDef = SWORD_DEFS.find(d => d.id === 'sword_halfblade');
-      if (halfbladeDef) {
-        this.inventory.add(createItem(halfbladeDef, 'normal'));
-        this.saveAccess.markItemSeen('sword_halfblade');
+      if (ITEM_WORLD_TEST_START_ENABLED) this.applyItemWorldTestStartState();
+      else {
+        this.saveAccess.markFirstPickupDone();
+        this.saveAccess.markItemSeen(starterSword.def.id);
       }
-      this.saveAccess.markFirstPickupDone();
-      this.saveAccess.markItemSeen('sword_scalpel');
     }
 
     // Lazy-load only the tilesets this area needs. Driven by the Tileset
@@ -1912,7 +1908,7 @@ export class LdtkWorldScene extends Scene {
 
     // Player
     this.player = new Player(this.game);
-    this.player.attackInputEnabled = false;
+    this.player.attackInputEnabled = ITEM_WORLD_TEST_START_ENABLED;
     this.player.fluidOverlayQuery = (x, y, w, h) => this.worldFluidRuntime.spawners.queryTileAtAabb(x, y, w, h, this.collisionGridRuntime.grid);
     this.player.onFlaskHeal = (amount) => {
       this.combatFeedbackRuntime.screenFlash.flash(0x44ff44, 0.3, 150);
@@ -2247,7 +2243,9 @@ export class LdtkWorldScene extends Scene {
     // Spawn level: prefer the saved level, but fall back if the LDtk project
     // changed since the save was written. A stale save level used to leave the
     // scene initialized with only HUD visible and no currentLevel.
-    this.worldSpawnState.setCurrentLevelId(this.worldSpawnState.resolveLevelId(saveData?.levelId));
+    this.worldSpawnState.setCurrentLevelId(this.worldSpawnState.resolveLevelId(
+      ITEM_WORLD_TEST_START_ENABLED ? ITEM_WORLD_TEST_START_LEVEL_ID : saveData?.levelId,
+    ));
     if (!this.loadLevel(this.worldSpawnState.currentLevelId, 'down')) {
       const fallbackLevelId = this.worldSpawnState.findFallbackLevelId();
       if (fallbackLevelId !== this.worldSpawnState.currentLevelId) {
@@ -3152,10 +3150,31 @@ export class LdtkWorldScene extends Scene {
       originTileX: Math.round(b.container.x / 16),
       originTileY: Math.round(b.container.y / 16),
     } : undefined;
+    const debugBoxes = [];
+    const playerHurt = p.getHurtAABB();
+    debugBoxes.push(
+      { x: p.x + colOffX, y: p.y + colOffY, w: p.collisionW, h: p.collisionH, kind: 'collision' as const, owner: 'player' as const },
+      { x: playerHurt.x, y: playerHurt.y, w: playerHurt.width, h: playerHurt.height, kind: 'hurtbox' as const, owner: 'player' as const },
+    );
+    for (const enemy of this.worldEnemyRegistry.enemies) {
+      if (!enemy.alive) continue;
+      const enemyHurt = enemy.getHurtAABB?.();
+      debugBoxes.push(
+        { x: enemy.x, y: enemy.y, w: enemy.width, h: enemy.height, kind: 'collision' as const, owner: 'enemy' as const },
+        {
+          x: enemyHurt?.x ?? enemy.x,
+          y: enemyHurt?.y ?? enemy.y,
+          w: enemyHurt?.width ?? enemy.width,
+          h: enemyHurt?.height ?? enemy.height,
+          kind: 'hurtbox' as const,
+          owner: 'enemy' as const,
+        },
+      );
+    }
     this.collisionDebug.update(this.collisionGridRuntime.grid, this.game.camera, {
       x: p.x + colOffX, y: p.y + colOffY, w: p.collisionW, h: p.collisionH,
       grounded: p.isGrounded(), source: p.groundSource, detail: p.groundSourceDetail,
-    }, builderGrid);
+    }, builderGrid, debugBoxes);
   }
 
   exit(): void {
@@ -3625,14 +3644,21 @@ export class LdtkWorldScene extends Scene {
     }
   }
   private keepOnlyRustbornEquipped(): void {
-    const rustbornDef = SWORD_DEFS.find(d => d.id === 'sword_rustborn') ?? SWORD_DEFS[0];
     this.inventory = new Inventory();
-    const rustborn = createItem(rustbornDef, 'normal');
+    const rustborn = createRustbornStarterItem();
     this.inventory.add(rustborn);
     this.inventory.equip(rustborn.uid, true);
     this.inventoryUI?.setInventory(this.inventory);
     this.saveAccess.markItemSeen(rustborn.def.id);
     this.worldPlayerStatRuntime?.sync();
+  }
+
+  private applyItemWorldTestStartState(): void {
+    this.saveAccess.setScene('chapter_01');
+    this.saveAccess.markFirstPickupDone();
+    this.saveAccess.markFirstDiveDone();
+    this.saveAccess.markItemSeen('sword_rustborn');
+    this.worldProgressState.unlockedEvents.add('__itemWorldTutorialDone');
   }
 
   private normalizeStartRoomInventoryAfterItemWorld(): void {

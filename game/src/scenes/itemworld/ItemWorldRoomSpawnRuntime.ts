@@ -29,6 +29,7 @@ export class ItemWorldRoomSpawnRuntime {
     const grid = this.deps.getUnifiedGrid();
     const cell = grid.cells[absRow]?.[col];
     if (!cell) return;
+    if (cell.isFiller) return;
 
     if (this.deps.spawnAuthoredMonsters(col, absRow) > 0) return;
 

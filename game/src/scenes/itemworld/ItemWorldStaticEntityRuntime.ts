@@ -70,7 +70,8 @@ export class ItemWorldStaticEntityRuntime {
   private applySpikeDamage(): void {
     const player = this.deps.getPlayer();
     if (player.invincible || player.hp <= 0) return;
-    if (!isInSpike(player.x, player.y, player.width, player.height, this.deps.getCollisionGrid())) return;
+    const playerBox = player.getHurtAABB();
+    if (!isInSpike(playerBox.x, playerBox.y, playerBox.width, playerBox.height, this.deps.getCollisionGrid())) return;
 
     applyPlayerSpikeHitFeedback({
       player,

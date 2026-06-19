@@ -268,6 +268,134 @@ T6-7: 역위 닻             → "위와 아래가 무너진다" (초월)   ← 
 
 ---
 
+---
+
+## Part 7: 캐슬바니아 전 시리즈 상세 조사 (이가바니아 + 휴대용)
+
+> **갱신일:** 2026-06-18
+> **목적:** Part 1의 SotN 단일 항목을 전 시리즈(GBA·NDS·PS2·고전)로 확장. ECHORIS Core 6 재설계의 직접 레퍼런스로 활용.
+> **출처:** `Reference/castlevania-wiki-md/` 7,434개 파일 전수 조사 (위키 MD 기반)
+
+---
+
+### 7.1 시리즈별 핵심 능력 전수 테이블
+
+| 작품 | 플랫폼 | 대시·회피 | 점프 확장 | 수직 이동 | 환경 통과 | 변신·폼 | 특이 메커닉 |
+|:--|:--|:--|:--|:--|:--|:--|:--|
+| **Symphony of the Night** (1997) | PS1/SS | Back Dash (기본) | Leap Stone → 2단 점프 | Gravity Boots (↓↑ 커맨드 High Jump) | Holy Symbol (수중), Mist Form (그레이팅 통과) | Soul of Bat, Power of Wolf, Form of Mist | Devil Familiar → 원격 스위치 조작 |
+| **Circle of the Moon** (2001) | GBA | 기본 대시 | Double Necklace | Roc Wing → High Jump | Cleansing (수중 정화) | — | DSS 카드 조합, Tackle (석조 블록 파괴) |
+| **Harmony of Dissonance** (2002) | GBA | L/R 버튼 대시 | Sylph Feather (2단 점프) | Griffon Wing (공중 가속 상승) | — | — | Infinite Boots (무한 다단 점프) |
+| **Aria of Sorrow** (2003) | GBA | Back Dash (기본) | Malphas soul (2단 점프) | Hippogryph soul (L버튼 대직진 상승, MP 소모 없음) | — | Giant Bat soul | **Comet Kick** (2단 점프 중 DOWN+A → 하방 킥), Skeleton Blaze → Slide |
+| **Dawn of Sorrow** (2005) | NDS | Back Dash (기본) | Malphas soul | Hippogryph soul | — | Bat Company soul | Julius·Alucard·Yoko 기본 2단 점프, 마법진 시스템 |
+| **Portrait of Ruin** (2006) | NDS | Back Dash (기본) | Stone of Flight | Griffon Wing | — | Owl Morph (Charlotte 비행 변신) | **Richter Tackle** (공중 전방 돌진+데미지+무적), Jonathan+Charlotte 2인 협동 이동 |
+| **Order of Ecclesia** (2008) | NDS | Back Dash (기본) | Ordinary Rock (2단 점프 글리프) | Volaticus (비행 글리프) | **Paries** (빛나는 포탈 배치 → 벽 통과) | 적 형태 글리프 흡수 변신 | **Magnes** (자기 디스크 앵커 슬링샷), 환경 글리프 흡수 → 통로 개방 |
+| **Lament of Innocence** (2003) | PS2 | Quick Step (전방향 무적 회피, 롤) | 기본 2단 점프 | — | — | — | Quick Step 2 (연속 무적), 서브 웨폰 이동 활용 |
+| **Curse of Darkness** (2005) | PS2 | Quick Step | 기본 2단 점프 | — | — | — | Double Step, Innocent Devil 이동 보조 (비행형 ID) |
+| **Rondo of Blood** (1993) | PC-E | 기본 후퇴 점프 | — | — | — | — | Richter Tackle (지상 전방 돌진, 적 관통) |
+| **Bloodlines** (1994) | GEN | Slide (엎드려 이동) | — | — | — | — | John 체인 스윙 (그래플 이동) |
+
+---
+
+### 7.2 비전통적 메커닉 하이라이트 (ECHORIS 적용 가능성 기준 선별)
+
+#### Magnes — Order of Ecclesia
+
+**메커닉:** 맵에 배치된 자기 디스크(Magnetic Disk) 앵커에 글리프를 발동하면 Shanoa가 앵커 방향으로 슬링샷되듯 고속 이동.
+
+**설계 구조:**
+- 레벨 디자이너가 자기 디스크 아이콘 하나를 배치 = 이동 가능 지점 완전 정의
+- 디스크가 없는 공간에서는 이 이동 불가 — 무허가 통과 원천 차단
+- 2개 이상 디스크 사이를 교대로 슬링샷 = 수직 샤프트 상승 패턴 구현
+
+**ECHORIS 적용:** 이단 점프를 공중 자유 점프 대신 "빌더 자기 앵커 소켓에서만 2차 도약"으로 재설계할 때 직접 선례. 소켓 하나 배치 = 통과 지점 완전 정의 → 레벨 디자이너 비용 최소.
+
+---
+
+#### Richter Tackle — Portrait of Ruin / Rondo of Blood
+
+**메커닉:** 전방으로 몸을 날리는 돌진 기술. Portrait of Ruin에서는 공중에서도 가능, 돌진 중 피해 판정 + 무적 프레임 보유.
+
+**설계 구조:**
+- 이동(갭 횡단) + 회피(무적) + 공격(데미지)을 단일 입력에서 해결
+- Wolf Form의 Power of Wolf(SotN)도 같은 계열 — 고속 이동 중 약한 적을 자동 관통 피해
+
+**ECHORIS 적용:** 대시가 "전투용으로 어떤 형태로든 필요하다"는 요건의 직접 선례. 이동+전투를 단일 버튼에 통합하는 디자인. 잔상(에코) 방향 대시 시 보너스 피해를 붙이는 방안과 결합 가능.
+
+---
+
+#### Paries — Order of Ecclesia
+
+**메커닉:** 빛나는 포탈 글리프를 발동하면 Shanoa가 특정 벽을 통과. 포탈은 레벨에 고정 배치된 지점에서만 사용 가능.
+
+**설계 구조:**
+- 레벨 디자이너가 포탈 배치 = 통과 지점 완전 정의
+- 일반 벽은 통과 불가 — 임의 벽 통과 없음
+- 시각적으로 빛나는 포탈이 사전 표시 → 플레이어 인지 비용 0
+
+**ECHORIS 적용:** "특정 지점에서만 벽 점프가 된다"는 방향의 직접 선례. 자기 패널 타일(빌더 소재) 태깅 방식과 구조가 동일 — 환경 오브젝트 하나가 통과 경로를 정의.
+
+---
+
+#### Hippogryph soul — Aria / Dawn of Sorrow
+
+**메커닉:** L 버튼을 누르면 그 방향으로 대직진 고속 추진. 지상·공중 어디서나 발동. MP 소모 없음(Dawn of Sorrow에서 소량 소모).
+
+**설계 구조:**
+- "이단 점프"가 아니라 "방향 지정 가속기" — 수직 상승뿐 아니라 대각선·수평도 가능
+- 점프 타이밍이 아닌 방향 지정이 핵심
+- 짧은 샤프트에서 수직 돌진, 넓은 공간에서 대각선 이동으로 활용이 달라짐
+
+**ECHORIS 적용:** Surge(역류의 쇄도) 메커닉의 직접 선례이자 검증. "방향성 추진"이 이미 캐슬바니아에서 자연스럽게 작동함.
+
+---
+
+#### Comet Kick — Aria of Sorrow
+
+**메커닉:** 2단 점프 직후 DOWN+A 입력으로 하방 킥으로 전환. 점프 확장이 공격 콤보에 연결.
+
+**설계 구조:**
+- 점프 연장 → 공격이라는 시퀀스가 단일 버튼 흐름 안에 있음
+- 이동 능력이 전투로 자연스럽게 이어지는 설계
+- diveAttack의 직접 선례
+
+---
+
+#### 환경 글리프 흡수 — Order of Ecclesia
+
+**메커닉:** 특정 환경 오브젝트(용암, 부서지는 벽, 특수 문 등)에 글리프를 사용하면 Shanoa가 그것을 흡수해 통로를 개방. 플레이어가 강해지는 게 아니라 환경이 변함.
+
+**ECHORIS 적용:** 유체 재경로(배수 노드 조작) 방향의 선례. "플레이어가 변하는 게 아니라 세계가 변한다"는 설계 철학의 기존 구현.
+
+---
+
+#### Soul of Bat + Form of Mist (SotN) — 폼별 단점 설계
+
+**메커닉:** 세 변신 폼이 각각 강점과 단점을 가짐.
+- Bat Form: 자유 비행이지만 공격 불가
+- Wolf Form: 고속 이동이지만 수직 이동 제한
+- Mist Form: 그레이팅 통과이지만 무방비 + MP 소모
+
+**ECHORIS 적용:** 능력이 단순 추가가 아니라 트레이드오프를 가질 때 선택 가치가 생긴다는 원칙의 선례. Mag-Clamp(활성 시 일반 벽점프 무효)가 이미 이 방향.
+
+---
+
+### 7.3 ECHORIS Core 6 재설계 방향 (이번 조사 결과 반영)
+
+> 2026-06-18 업데이트. 이전 방향(껍데기 리네이밍)을 폐기하고 게임플레이 자체를 바꾸는 방향으로 수정.
+
+| # | 현재 | 문제 진단 | 재설계 방향 | 캐슬바니아 선례 | 레벨 비용 |
+|:--|:--|:--|:--|:--|:--|
+| 1 | 대시 | 전투용 유지 필요. 단순 이동 대시는 모든 메트로베니아에 있음 | 이동+전투 융합. 에코 잔상 방향 대시 시 보너스 피해. 잔상 없어도 이동은 가능 | Richter Tackle, Wolf Power of Wolf | 낮음 (잔상 배치 = 전투 배치와 동일) |
+| 2 | 이단 점프 | 공중 자유 재점프 — 어느 메트로베니아에나 있음. 재고 가능 | **앵커 도약** — 빌더 자기 앵커 소켓 배치 지점에서만 2차 도약 가능. 소켓 하나 = 통과 지점 완전 정의 | **Magnes (OoE)** | 매우 낮음 (앵커 소켓 아이콘 배치 1개 = 완전 정의) |
+| 3 | 벽 점프 | 특정 지점에서만 — 방향은 맞음 | **소재 반발** — 빌더 자기 패널 타일에서만 반발. 일반 벽 불가. 타일 속성 지정으로 제어 | **Paries (OoE)** | 낮음 (타일 속성 체크) |
+| 4 | 수중 호흡 | 수동 환경 저항 — 스파이크 없음 | **유체 재경로** — 에르다가 배수 노드를 조작해 침수 구역을 배수. 에르다가 변하는 게 아니라 공간이 변함 | OoE 환경 글리프 흡수 → 통로 개방 | 낮음 (유체 존 + 노드 배치) |
+| 5 | surge | 이미 정합. Hippogryph soul과 구조 동일 | 유지 | Hippogryph soul (AoS/DoS) | — |
+| 6 | diveAttack | 이미 정합 | 유지 | Comet Kick (AoS), Ram Rune (Dead Cells) | — |
+
+**핵심 변화:** 능력이 에르다를 바꾸는 게 아니라, 능력이 세계와 상호작용하는 방법을 바꿈. Builder 4(Mag-Clamp·Control Node·Polarity Boots·Resonance Pulse)가 이미 구현한 방향을 Core 6에도 적용.
+
+---
+
 ## Sources
 
 ### 게임별 능력 목록

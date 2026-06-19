@@ -205,6 +205,18 @@ export function getAreaPalette(id: string): AreaPaletteEntry {
   return entry;
 }
 
+/** Resolve an AreaID with a deterministic fallback for optional/theme-derived palettes. */
+export function resolveAreaPaletteId(id: string, fallbackId: string): string {
+  return AREA_PALETTES.has(id) ? id : fallbackId;
+}
+
+/** Resolve optional item-world theme slugs to the closest supported palette slug. */
+export function resolveItemWorldThemeSlug(themeSlug: string): string {
+  const normalized = themeSlug.trim().toLowerCase();
+  const bgId = resolveAreaPaletteId(`iw_${normalized}_bg`, 'iw_foundry_bg');
+  return bgId.replace(/^iw_/, '').replace(/_bg$/, '');
+}
+
 /** Convert an area palette entry into a PaletteDefinition for the filter. */
 export function toPaletteDefinition(entry: AreaPaletteEntry): PaletteDefinition {
   return { name: entry.id, stops: entry.stops };

@@ -21,3 +21,9 @@
 - `hint_jump` no longer belongs to `game/src/scenes/world/WorldTutorialHintRuntime.ts`; world spawn movement no longer triggers jump tutorial timing.
 - `WorldTutorialHintRuntime` remains responsible for drop-through and attack tutorial hint flow.
 - `game/src/scenes/ItemWorldScene.ts` now starts a 1000ms jump tutorial timer after first Item World ground contact.
+
+## 2026-06-18 - Jump hint returned to Start_Room_01
+
+- `hint_jump` is owned by `game/src/scenes/world/WorldTutorialHintRuntime.ts` again for the current Start_Room_01 test flow.
+- In `Start_Room_01`, the first left/right movement input starts a 1000ms timer, then `tutorial.jump` is shown through the shared `TutorialHint`.
+- `game/src/scenes/ItemWorldScene.ts` no longer starts the jump hint timer; it only dismisses an already-visible `hint_jump` if the player presses jump while inside Item World.

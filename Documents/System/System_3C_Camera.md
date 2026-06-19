@@ -4,8 +4,8 @@
 
 ## 🏗️ 구현 현황 (Implementation Status)
 
-> **최근 업데이트:** 2026-03-23
-> **문서 상태:** `작성 중 (Draft)`
+> **최근 업데이트:** 2026-06-17 (실제 코드 대조 + 2D 카메라 전수조사 반영)
+> **문서 상태:** `작성 중 (Draft)` — ⚠️ 아래 구현 현황 표는 stale(설계 초안 시점). **정확한 현황·갭은 §8 참조.** §6 기법 정밀 레퍼런스 / §7 아이템계 특수 카메라(DIR-IWS-01) 신설.
 > **2-Space:** 전체
 > **기둥:** 탐험
 
@@ -288,8 +288,8 @@ clampedY = clamp(camera.y, bounds.top + halfViewH, bounds.bottom - halfViewH)
 ```yaml
 camera:
   # --- 뷰포트 (Viewport) ---
-  viewport_width: 480          # 기본 뷰포트 너비 (px, 30 타일 기준)
-  viewport_height: 270         # 기본 뷰포트 높이 (px, 약 17 타일 기준)
+  viewport_width: 640          # 논리 해상도 너비 (px) — 코드 기준 GAME_WIDTH=640 (Content_ConstData.csv)
+  viewport_height: 360         # 논리 해상도 높이 (px) — 코드 기준 GAME_HEIGHT=360
   tile_size: 16                # 1 타일 크기 (px)
 
   # --- Follow Mode ---
@@ -372,6 +372,142 @@ camera:
 
 ---
 
+## 6. 기법 정밀 레퍼런스 (Technique Reference — 2026-06-17 전수조사)
+
+> 출처: Itay Keren "Scroll Back"(GDC), Eiserloh "Juicing Your Cameras"(GDC), Vlambeer "Art of Screenshake", Rory Driscoll(프레임 독립 감쇠), Celeste, GMTK. 로컬 사본: `Reference/gdc/source/How Cameras in Side-Scrollers Work.en.txt` , `Reference/gdc/source/50 Game Camera Mistakes.en.txt` , `Reference/gmtk/How to Make a Good 2D Camera.txt` .
+
+### 6-1. 프레임 독립 보간
+
+- 본 엔진은 **고정 타임스텝(16.6667ms, 60fps; Content_ConstData.csv FixedStepMs)** 이므로 §3-1의 `* (deltaTime/16.67)` 형태로 충분하다(고정 스텝 → 결정론적, 프레임 독립 문제 없음).
+- 가변 타임스텝을 도입하면 지수감쇠형으로 교체: `cam = lerp(cam, target, 1 - pow(smoothing, dt))` (smoothing=1초 후 남는 비율; 0.001 snappy ~ 0.5 floaty). 프레임 수가 아니라 경과 시간에 의존.
+
+### 6-2. 스무딩 선택
+
+- **Lerp(지수 접근):** 끝없이 쫓음. 기본 팔로우. (현재 Camera.ts 사용)
+- **임계 감쇠 스프링(ζ=1):** 속도 인식, 오버슈트 없이 정착. *정해진 A→B 이동*(풍덩 정착·시네마틱 팬)에 적합. 반실시간 안정 업데이트식(Allen Chou) 사용 — 명시적 오일러는 저프레임에서 발산.
+
+### 6-3. 룩어헤드 3종
+
+- static-forward(고정 방향) / **dual-forward(방향 따라 오프셋 전환 — 권장)** / projected(속도 외삽 — 점프엔 부적합).
+- dual-forward는 *히스테리시스 임계*로 중앙 근처 떨림 방지. 오프셋 자체를 lerp(즉시 점프 금지).
+- **현재:** `LookAheadDistance=0`(비활성, Camera.ts:207). 활성화 시 §6-1 + 바운드 클램프 필수.
+
+### 6-4. 플랫폼 스내핑(수직) — *현재 미구현, 월드 권장*
+
+- 공중에선 Y 추적 보류, **착지 시에만** 새 지면 높이로 ease → 점프마다 화면 출렁임 제거.
+- `targetY = grounded ? player.y : lastGroundedY`. 큰 낙하는 §7-3 하강 룩어헤드로 보완(속도 임계로 게이팅).
+
+### 6-5. 트라우마 셰이크(Eiserloh) — *현재 선형 방향성 → 업그레이드 권장*
+
+- trauma∈[0,1], 이벤트는 *가산*(set 아님). `shake = trauma²`. 오프셋·회전을 **Perlin 노이즈**로(랜덤 아님 → 슬로모·일시정지에서도 자연, 재현 가능).
+
+```
+addTrauma(a): trauma = clamp(trauma + a, 0, 1)          // 소 +0.2 / 대 +0.5
+update(dt):   trauma = max(0, trauma - DECAY*dt); s = trauma*trauma
+  angle = MAXA * s * perlin(seed0, t*FREQ)               // FREQ ~25-40Hz
+  ox    = MAXO * s * perlin(seed1, t*FREQ)
+  oy    = MAXO * s * perlin(seed2, t*FREQ)
+```
+
+- 2D는 위치 오프셋 + **미세 회전** 동시(회전이 더 잘 팖). X/Y/각 노이즈 시드 분리.
+- 톤: *희소한 숭고 순간*(지층 균열·풍덩 착지)에만. 현재 방향성 바이어스(Sakurai)는 trauma 위 `kick`(아래)으로 보존.
+- **kick(방향성 펀치):** 충격 반대로 한 번 밀고 이즈 복귀. `kickOffset += -impactDir*strength; kickOffset = lerp(kickOffset,0,1-pow(RET,dt))`.
+
+### 6-6. 줌-투-핏(멀티타깃) — Phase 3 협동
+
+- 타깃 바운딩 박스 + 여백 → 화면 종횡비와 비교해 width/height-bound 줌 산출, min/max 클램프. 중심 = 가중 평균. 줌 변경 후 §3-6 바운드 재클램프(halfView가 줌에 의존).
+
+### 6-7. 전환 곡선
+
+- cut(즉시) / pan(smoothstep 기간 기반) / blend(파라미터 보간, 존). 줌과 위치는 *같은 곡선*으로 블렌드(따로 놀면 고무줄). ease는 linear 대신 smoothstep `t*t*(3-2t)`.
+
+### 6-8. 흔한 실패(50 Camera Mistakes 발췌)
+
+- 과도한 셰이크·급격한 줌/FOV·걷기 사이클 바운스·점프 중 수직 추적 = 멀미 유발. *less is more*. 접근성: 셰이크 off 옵션 필수.
+
+---
+
+## 7. 아이템계 특수 카메라 (DIR-IWS-01 "빠진다")
+
+> [DIR-IWS-01](../Design/Design_ItemWorld_HookAndSpike.md) 의 풍덩·원질 법칙·복원/파괴를 카메라가 구현한다. 톤: 고독·숭고 → *저진폭·저주파·긴 지속·완만*. (전부 신규 — §8 로드맵.)
+
+### 7-1. 풍덩 진입 셋피스 (CAM-11) — P1, DIR-IWS-01 1번 약속
+
+4단계, 전부 *타이밍·이즈*(즉시 스냅 = 로딩 화면, 금지):
+
+1. **풀백(예비):** wideZoom으로 smoothstep ~0.8s + 잠깐 정지(held still) + 레터박스 슬라이드 인.
+2. **드롭-팔로우(낙하):** 다이빙 대상을 *느슨한* 수직 lerp(뒤처짐 = 속도감), 낙하속도↑에 살짝 줌아웃, 상방 스트리킹 입자.
+3. **임팩트(도착):** hitstop 6~10f + 하향 kick + trauma += 0.5 + 줌 펀치(스냅 인 후 이즈).
+4. **정착:** 레터박스 슬라이드 아웃, 줌·오프셋 rest로 FRI 감쇠, `|cam-target| < ε` 에 조작 반환.
+
+*고독 톤 변주:* 1~2단계 길게 + **줌아웃(광활함 공개)**, 3단계는 약한 trauma·단일 긴 프리즈로 "충돌"이 아니라 "잠겨듦".
+
+### 7-2. 중력 플립/회전 — 추락을 상승으로 (CAM-12) — P2
+
+- 카메라 *컨테이너* 회전(개별 스프라이트 아님; 현재 gameContainer 회전 미적용): `rot = lerp(rot, targetRot, 1-pow(0.005,dt))`.
+- 중력 플립 `targetRot += PI`, 플레이어는 시각적으로 정립 유지.
+- "추락=상승" 리프레임(Spider-Verse "leap of faith"): 중력 부호 반전 + 180° 이즈 → 하강 속도가 *상승*으로 읽힘(RES-IWS-03 원질 "무중력" 시그니처 원더와 정합). 비90° 픽셀 회전은 슈퍼샘플; 즉시 플립은 퍼즐 기믹에만.
+
+### 7-3. 수직 하강 동적 (CAM-13) — P2
+
+- 낙하속도 임계 초과 시에만(소점프 제외) 하향 룩어헤드 + 빠른 캐치업 + 하강 줌아웃:
+
+```
+if vy > fallThreshold:
+  targetY = player.y + map(vy, fallThreshold,vMax, 0,maxDownLook)
+  catchup = fast; zoom → zoomOutFalling
+```
+
+- 아이템계 다이브·diveAttack 렐릭과 직결. 비대칭 캐치업(하강 빠름/상승 느림)으로 착지마다 튕김 방지.
+
+### 7-4. 수중/원질 매질 느낌 (CAM-14) — P3
+
+- 팔로우 감쇠를 늦추고(더 큰 lag) 저진폭·저주파 Perlin 스웨이 상시 가산. §6-5 노이즈 머신을 *극저진폭·극저주파·상시*로 재사용:
+
+```
+smoothing = UNDERWATER (육지보다 높게)
+swayX = AMP * perlin(s0, t*0.15); swayY = AMP * perlin(s1, t*0.12)   // 진폭 작게 — 조작감 보존
+```
+
+### 7-5. 원질별 카메라 다이얼 (RES-IWS-03 정합)
+
+| 원질 | 카메라 느낌 |
+| :--- | :--- |
+| 물 | 수중 드리프트(7-4) + 부력 룩어헤드 |
+| 마그마 | 미세 열파 흔들림(극저 trauma 상시) + 바닥=죽음 하향 바이어스 |
+| 빙결 | 정적 + 설맹(흰 보이드) + 미끄럼 관성 룩어헤드 |
+| 방전 | 간헐 정전기 마이크로 셰이크 |
+| 무중력 | 느린 드리프트 + 중력 플립 리프레임(7-2) |
+| 붕괴 | 하강 줌아웃(7-3) 상시 + 흔들림 |
+
+---
+
+## 8. 현재 코드 대비 갭 & 구현 로드맵 (2026-06-17 실제 코드 대조)
+
+> 실제 코드(`Camera.ts`, `CameraZoneRuntime.ts`, `ItemWorldCameraRuntime.ts`) 기준. **상단 구현 현황 표는 stale — 아래가 정확.**
+
+| 기능 | 현재 상태 | 코드 위치 | 목표/갭 |
+| :--- | :--- | :--- | :--- |
+| 팔로우 + 데드존(64×48) | ✅ 구현 | Camera.ts:196-205 | — |
+| 바운드 클램프(줌 인식) | ✅ 구현 | Camera.ts:215-251 | — |
+| 줌(lerp/락) | ✅ 구현 | Camera.ts:76-106 | 동적 속도/하강 줌 추가(7-3) |
+| 셰이크(방향성·선형) | ✅ 구현 | Camera.ts:146-270 | 트라우마+Perlin 업그레이드(6-5) |
+| 카메라 존(LDtk) | ✅ 구현 | CameraZoneRuntime.ts | — |
+| 수직 peek | 🟡 아이템계만 | ItemWorldCameraRuntime.ts | — |
+| 수평 룩어헤드 | 🟡 비활성(=0) | Camera.ts:207 | dual-forward 활성(6-3) |
+| 플랫폼 스내핑 | ⬜ 없음 | — | 월드 점프 출렁임 제거(6-4) |
+| **풍덩 셋피스** | ⬜ 없음 | ItemWorldScene 진입=스냅 | **P1 신설(7-1)** |
+| 중력 플립 회전 | ⬜ 없음 | gameContainer 회전 필요 | P2(7-2) |
+| 하강 동적 | ⬜ 없음 | — | P2(7-3) |
+| 수중 느낌 | ⬜ 없음 | — | P3(7-4) |
+| 보스 락 · 시네마틱 · 멀티 | ⬜ 없음 | — | P2 / P3 / Phase3 |
+
+**권장 착수 순서:** 풍덩(P1) → 수평 룩어헤드 활성(P1) → 트라우마 셰이크(P2) → 하강 동적(P2) → 중력 플립(P2) → 수중(P3) → 멀티(Phase 3).
+
+**합성 규율(중요):** 단일 카메라 리그에 *가산 합성* — `final = followPos + kick + shake + lookahead + sway`, `rotation = base + shakeAngle + flipRot`, `scale = zoom`. 각 서브시스템이 자기 감쇠를 소유. `Camera.ts` 의 `renderX`/`renderY` 게터가 합성 지점이며, 모든 클라이언트는 raw `x`/`y`가 아니라 이 게터를 사용한다.
+
+---
+
 ## 🎯 검증 기준 (Verification Checklist)
 
 * [ ] Follow Mode에서 캐릭터가 데드존 안에 있을 때 카메라가 정지하는가
@@ -391,3 +527,9 @@ camera:
 * [ ] 네트워크 300ms 이상 끊김 시 카메라가 로컬 플레이어만 추적하는가
 * [ ] 브라우저 창 리사이즈 시 레터박스가 올바르게 적용되는가
 * [ ] 아이템계에서 Shake 강도가 1.5배로 적용되는가
+* [ ] (7-1) 풍덩 진입이 4단계(풀백→드롭→임팩트→정착)로 이즈되며, 즉시 스냅(로딩 화면 느낌)이 아닌가
+* [ ] (7-1) 고독 톤 변주에서 임팩트가 과한 셰이크 없이 "잠겨듦"으로 읽히는가
+* [ ] (7-2) 중력 플립 회전이 컨테이너 단위로 부드럽게(즉시 스냅 아님) 일어나는가
+* [ ] (7-3) 하강 룩어헤드가 소점프엔 발동하지 않고 실제 낙하(속도 임계 초과)에만 발동하는가
+* [ ] (6-5) 트라우마 셰이크가 Perlin 기반이라 일시정지·슬로모에서도 자연스러운가
+* [ ] (6-3) 수평 룩어헤드 활성 시 방향 전환에서 떨림 없이 오프셋이 이즈되는가

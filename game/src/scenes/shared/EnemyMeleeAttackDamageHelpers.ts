@@ -22,6 +22,7 @@ interface ApplyEnemyMeleeAttackDamageInput {
 
 export function applyEnemyMeleeAttackDamageForPlayer(input: ApplyEnemyMeleeAttackDamageInput): boolean {
   const { player } = input;
+  const playerBox = player.getHurtAABB();
   for (const enemy of input.enemies) {
     if (!enemy.alive) continue;
     if (!input.isMeleeAttacking(enemy)) continue;
@@ -31,12 +32,12 @@ export function applyEnemyMeleeAttackDamageForPlayer(input: ApplyEnemyMeleeAttac
     if (attackBox) {
       if (!aabbOverlap(
         attackBox,
-        { x: player.x, y: player.y, width: player.width, height: player.height },
+        playerBox,
       )) continue;
     } else {
-      const dx = Math.abs((enemy.x + enemy.width / 2) - (player.x + player.width / 2));
-      const dy = Math.abs((enemy.y + enemy.height / 2) - (player.y + player.height / 2));
-      if (dx >= enemy.width + player.width || dy >= Math.max(enemy.height, player.height)) continue;
+      const dx = Math.abs((enemy.x + enemy.width / 2) - (playerBox.x + playerBox.width / 2));
+      const dy = Math.abs((enemy.y + enemy.height / 2) - (playerBox.y + playerBox.height / 2));
+      if (dx >= enemy.width + playerBox.width || dy >= Math.max(enemy.height, playerBox.height)) continue;
     }
 
     const dir = enemy.facingRight ? 1 : -1;

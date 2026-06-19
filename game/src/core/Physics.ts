@@ -54,6 +54,7 @@ export const TILE_VOID = 10;
 export const TILE_OIL = 11;
 export const TILE_METAL = 12;
 export const TILE_ACID = 13;
+export const TILE_LADDER = 14;
 export const TILE_WOOD = 15;
 export const TILE_GRASS = 16;
 // TILE_CYRO 2026-05-18: 14 → 20 (LDtk SSoT 와 정렬, Editor 재정렬 후 cyro=20).
@@ -114,6 +115,10 @@ export function isAcid(tileId: number): boolean {
   return tileId === TILE_ACID;
 }
 
+export function isLadder(tileId: number): boolean {
+  return tileId === TILE_LADDER;
+}
+
 export function isCyro(tileId: number): boolean {
   return tileId === TILE_CYRO;
 }
@@ -171,6 +176,16 @@ export function isOnIce(x: number, y: number, width: number, height: number, roo
   const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
   for (let col = leftCol; col <= rightCol; col++) {
     if (isIce(getTile(roomData, col, feetRow))) return true;
+  }
+  return false;
+}
+
+export function isOnLadder(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
+  const centerCol = Math.floor((x + width / 2) / TILE_SIZE);
+  const topRow = Math.floor((y + 2) / TILE_SIZE);
+  const bottomRow = Math.floor((y + height - 3) / TILE_SIZE);
+  for (let row = topRow; row <= bottomRow; row++) {
+    if (isLadder(getTile(roomData, centerCol, row))) return true;
   }
   return false;
 }

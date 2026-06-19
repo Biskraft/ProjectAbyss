@@ -4,7 +4,7 @@ import type { LdtkLevel } from '@level/LdtkLoader';
 import { prepareItemWorldTemplates } from '@level/ItemWorldTemplatePool';
 import { preloadMissingLdtkTilesets } from '@level/LdtkTilesetPaths';
 import { loadBundleOnce } from '@data/assetBundles';
-import { ensureAreaTilesetsLoaded } from '@data/areaPalettes';
+import { ensureAreaTilesetsLoaded, resolveItemWorldThemeSlug } from '@data/areaPalettes';
 import type { ItemInstance } from '@items/ItemInstance';
 
 export class ItemWorldEntryPreloader {
@@ -27,7 +27,7 @@ export class ItemWorldEntryPreloader {
   }
 
   static getThemeSlug(item: ItemInstance): string {
-    return (item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', '');
+    return resolveItemWorldThemeSlug((item.def.themeId ?? 'T-HABITAT').toLowerCase().replace('t-', ''));
   }
 
   private async loadEntryAssets(

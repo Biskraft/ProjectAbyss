@@ -1,5 +1,6 @@
 import { GameAction, actionKey } from '@core/InputManager';
 import { t } from '@i18n';
+import type { TutorialHint } from '@ui/TutorialHint';
 import type { UISkin } from '@ui/UISkin';
 import type { Game } from '../../Game';
 import type { ItemWorldUiController } from './ItemWorldUiController';
@@ -8,6 +9,7 @@ interface ItemWorldOnboardingRuntimeDeps {
   game: Game;
   getUiController: () => ItemWorldUiController;
   getHudSkin: () => UISkin | null;
+  getTutorialHint: () => TutorialHint;
 }
 
 function getOnboardingMessages(): string[] {
@@ -22,6 +24,8 @@ function getOnboardingMessages(): string[] {
 }
 
 export class ItemWorldOnboardingRuntime {
+  private jumpTutorialHintHandled = false;
+
   constructor(private readonly deps: ItemWorldOnboardingRuntimeDeps) {}
 
   start(): void {
@@ -40,5 +44,15 @@ export class ItemWorldOnboardingRuntime {
       });
     }
     return true;
+  }
+
+  updateJumpTutorialHint(): void {
+    if (this.jumpTutorialHintHandled) return;
+
+    const tutorialHint = this.deps.getTutorialHint();
+    if (tutorialHint.isShowing('hint_jump') && this.deps.game.input.isJustPressed(GameAction.JUMP)) {
+      tutorialHint.dismissAfter('hint_jump', 1000);
+      this.jumpTutorialHintHandled = true;
+    }
   }
 }

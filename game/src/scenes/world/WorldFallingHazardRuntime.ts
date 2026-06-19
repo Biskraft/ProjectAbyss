@@ -45,7 +45,7 @@ export class WorldFallingHazardRuntime {
 
   update(dt: number): void {
     const player = this.deps.getPlayer();
-    const playerBox = { x: player.x, y: player.y, width: player.width, height: player.height };
+    const playerBox = player.getHurtAABB();
     const grid = this.deps.getCollisionGrid();
     const registry = this.deps.getRegistry();
 

@@ -39,3 +39,29 @@
 
 - Use `Player.updateWithSuppressedInput(dt)` for temporary gameplay/cutscene locks where the player should stop naturally. It makes movement/jump/dash/attack/flask input read as false while still running `Player.update()`, so velocity decelerates and animation can return to idle/fall normally.
 - Do not use `stopPlayerMotion()` as a general cutscene movement lock; keep it for placement/teleport/snap cases where velocity must be zeroed immediately.
+
+## 2026-06-14 - Player attack hit recoil
+
+- Player attack lunge still moves forward on whiff, but a confirmed enemy hit cancels the remaining lunge and applies a short recoil velocity opposite the swing direction.
+- `HitManager` routes hit recoil through `CombatEntity.onAttackHitRecoil`; `Player` implements it with a brief attack-only recoil timer. Do not restore hit-confirm `startHitAdvance` as forward movement unless this recoil rule is intentionally redesigned.
+
+## 2026-06-14 - Debug animation slow mode
+
+- In `?debug` mode, `Shift+Y` toggles `Debug.animationTimeScale` between `1.0` and `0.1`.
+- `Game.ts` applies this scale to scene and transition update `dt`, so gameplay-driven animations run 10x slower for inspection. Input, FPS UI, and playtime accounting stay on real fixed-step time.
+
+- 2026-06-15: Erda attack visuals now resolve ttack1, ttack2, ttack_air, im, lift, and wake_up from ssets/characters/erda_atlas.json frameTags instead of relying only on old hardcoded indices. This prevents the player animation from breaking when attack strips expand, such as ttack1/attack2 changing from 4 to 8 frames. Weapon pose slices are keyed by absolute atlas frame and fall back to nearest/tag-normalized poses when the atlas lacks per-frame weapon slices.
+
+- 2026-06-15: Player attacks now use Sheets/Content_PlayerAttackTimeline.csv as the timing SSoT. Aseprite erda_atlas.json owns animation frame durations; Content_PlayerAttackTimeline.csv owns hitbox/fx/cancel/input/move/lunge timing markers; Content_Combat_Combo.csv remains combat numeric data such as hitbox size, hitstun, knockback, shake, and lunge distance. The local tool is available through 
+pm run hud-tool then http://localhost:4330/attack.html.
+
+## 2026-06-16 - Player movement collision vs hurtbox split
+
+- Player movement collision must stay data-driven from `Sheets/Content_Player.csv` (`CollisionW`, `CollisionH`) so slopes/steps keep their tuned body size.
+- Damage checks that need the player body use `Player.getHurtAABB()` instead of increasing movement collision dimensions.
+- Prevention rule: do not solve player damage coverage by increasing `collisionW`/`collisionH`; route damage-only overlaps through `getHurtAABB()` so movement, doors, platforms, and slopes remain stable.
+
+## 2026-06-18 - WaterBreathing water movement boost
+
+- `Player.abilities.waterBreathing` keeps its oxygen immunity and now changes water horizontal movement from fluid slowdown to a `1.25x` multiplier.
+- The boost applies only while `Player.inWater` is true. Other fluids still use `Player.Water.WaterMoveMult` for horizontal slowdown.
