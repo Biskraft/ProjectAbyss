@@ -3606,6 +3606,12 @@ export class ItemWorldScene extends Scene {
   private createEnemySpawnActorDeps() {
     return {
       getPlayer: () => this.player,
+      getCameraViewport: () => ({
+        x: this.game.camera.renderX - (GAME_WIDTH / 2) / this.game.camera.zoom,
+        y: this.game.camera.renderY - (GAME_HEIGHT / 2) / this.game.camera.zoom,
+        width: GAME_WIDTH / this.game.camera.zoom,
+        height: GAME_HEIGHT / this.game.camera.zoom,
+      }),
     };
   }
 

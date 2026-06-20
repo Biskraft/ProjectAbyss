@@ -146,10 +146,17 @@ export class ItemWorldEnemyEncounterRuntime {
           1 + cycle,
         );
         this.applyNormalScaling(enemy, stratumDef.hpMul, stratumDef.atkMul, distScale);
+        const spawnPosition = this.deps.getEnemySpawnRuntime().pickSafeSpawn(
+          args.spawnContext,
+          spawnRng,
+          enemy.width,
+          enemy.height,
+        );
+        if (!spawnPosition) continue;
         this.deps.getEnemySpawnRuntime().spawnAt(
           enemy,
           args.spawnContext.roomKey,
-          this.deps.getEnemySpawnRuntime().pickSpawn(args.spawnContext, spawnRng, enemy.height),
+          spawnPosition,
         );
         spawned++;
       }
@@ -167,10 +174,17 @@ export class ItemWorldEnemyEncounterRuntime {
     gold.hp = gold.maxHp = Math.max(1, Math.floor(gold.hp * stratumDef.hpMul));
     gold.atk = Math.max(1, Math.floor(gold.atk * stratumDef.atkMul));
     const goldRng = new PRNG(roomSeed + 99);
+    const spawnPosition = this.deps.getEnemySpawnRuntime().pickSafeSpawn(
+      args.spawnContext,
+      goldRng,
+      gold.width,
+      gold.height,
+    );
+    if (!spawnPosition) return;
     this.deps.getEnemySpawnRuntime().spawnAt(
       gold,
       args.spawnContext.roomKey,
-      this.deps.getEnemySpawnRuntime().pickSpawn(args.spawnContext, goldRng, gold.height),
+      spawnPosition,
     );
   }
 

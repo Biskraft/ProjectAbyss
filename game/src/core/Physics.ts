@@ -27,16 +27,16 @@ export const TILE_SIZE = 16;
  *   6 = magma (passable, contact = Burn 3s + DoT) [Phase 1]
  *   7 = ice (solid, zero friction surface) [Phase 1]
  *   8 = charged (passable, contact = Shock DoT volumetric field) [Phase 1]
- *   9 = breakable (solid, 1-hit destroy → air) [Phase 0]
+ *   9 = breakable (solid, 1-hit destroy ??air) [Phase 0]
  *  10 = void (passable, contact = void drop sequence, no damage)
- *  11 = oil (passable, slight slip, ignites from Fire attack → fire spreads + air) [Phase 1]
+ *  11 = oil (passable, slight slip, ignites from Fire attack ??fire spreads + air) [Phase 1]
  *  12 = metal (solid, Thunder flood-fill conductor, acid corrodes) [Phase 1]
  *  13 = acid (passable, DoT + corrodes adjacent metal + conducts thunder + vapor on magma) [Phase 1]
- *  20 = cyro (passable, light DoT + Frozen status: 이동 -75% / 3s) [V2.4 2026-05-18, Iron primary signature.
- *           LDtk Editor enum value: SSoT — Editor 재정렬 후 cyro=20 으로 고정.
- *           Spelled "cyro" not "cryo" — LDtk Cyro enum 표기와 코드베이스가 mirror.]
- *  15 = wood plank (solid, slow burn ~3s when fire spreads → air on consume) [Phase 1]
- *  16 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s → air) [Phase 1]
+ *  20 = cyro (passable, light DoT + Frozen status: ?�동 -75% / 3s) [V2.4 2026-05-18, Iron primary signature.
+ *           LDtk Editor enum value: SSoT ??Editor ?�정????cyro=20 ?�로 고정.
+ *           Spelled "cyro" not "cryo" ??LDtk Cyro enum ?�기?� 코드베이?��? mirror.]
+ *  15 = wood plank (solid, slow burn ~3s when fire spreads ??air on consume) [Phase 1]
+ *  16 = grass (passable thin cover sitting in air-cell above wall, fast burn ~0.6s ??air) [Phase 1]
  *
  * GDD: Documents/System/System_World_TileSystem.md
  */
@@ -54,10 +54,10 @@ export const TILE_VOID = 10;
 export const TILE_OIL = 11;
 export const TILE_METAL = 12;
 export const TILE_ACID = 13;
-export const TILE_LADDER = 14;
+export const TILE_LADDER = 23;
 export const TILE_WOOD = 15;
 export const TILE_GRASS = 16;
-// TILE_CYRO 2026-05-18: 14 → 20 (LDtk SSoT 와 정렬, Editor 재정렬 후 cyro=20).
+// TILE_CYRO 2026-05-18: 14 ??20 (LDtk SSoT ?� ?�렬, Editor ?�정????cyro=20).
 export const TILE_CYRO = 20;
 
 export function isSolid(tileId: number): boolean {
@@ -158,7 +158,7 @@ export function isSpecialVisualTile(tileId: number): boolean {
   );
 }
 
-/** Check if an entity is standing ON a one-way (drop-through) platform — for tutorial gating. */
+/** Check if an entity is standing ON a one-way (drop-through) platform ??for tutorial gating. */
 export function isOnOneWay(x: number, y: number, width: number, height: number, roomData: number[][]): boolean {
   const feetRow = Math.floor((y + height) / TILE_SIZE);
   const leftCol = Math.floor(x / TILE_SIZE);
@@ -259,7 +259,7 @@ export const isInOil = isInTile(isOil);
 /** Check if an entity AABB overlaps any acid tile. */
 export const isInAcid = isInTile(isAcid);
 
-/** Check if an entity AABB overlaps any cryo tile (any cell = Frozen 상태이상 + light DOT). */
+/** Check if an entity AABB overlaps any cryo tile (any cell = Frozen ?�태?�상 + light DOT). */
 export const isInCyro = isInTile(isCyro);
 
 /**
@@ -326,7 +326,7 @@ export function resolveY(
   if (vy === 0) {
     // Even when stationary, check if standing on a solid or one-way tile
     // so grounded state persists across frames (prevents one-way platform
-    // flicker where player cycles ground→air→ground every frame).
+    // flicker where player cycles ground?�air?�ground every frame).
     const feetRow = Math.floor((y + height) / TILE_SIZE);
     const leftCol = Math.floor(x / TILE_SIZE);
     const rightCol = Math.floor((x + width - 1) / TILE_SIZE);
@@ -473,7 +473,7 @@ export function resolveYPixelStep(
 }
 
 /**
- * Corner correction for upward movement (vy<0) — "ledge grab" QoL helper.
+ * Corner correction for upward movement (vy<0) ??"ledge grab" QoL helper.
  * When the player's head is about to clip a ceiling tile at a corner, and the
  * overlap with the obstacle is within `tolerance`, nudge the player
  * horizontally so they pass through instead of stopping.
@@ -500,7 +500,7 @@ export function tryCornerCorrectUp(
   const leftSolid = isSolid(getTile(roomData, leftCol, headRow));
   const rightSolid = isSolid(getTile(roomData, rightCol, headRow));
 
-  // One side blocked, the other free — candidate for corner nudge.
+  // One side blocked, the other free ??candidate for corner nudge.
   if (leftSolid && !rightSolid) {
     const obstacleRight = (leftCol + 1) * TILE_SIZE;
     const overlap = obstacleRight - x;
@@ -532,7 +532,7 @@ export function tryCornerCorrectUp(
 }
 
 /**
- * Ledge snap for horizontal movement — "ledge grab" QoL helper.
+ * Ledge snap for horizontal movement ??"ledge grab" QoL helper.
  * When a horizontal move would hit a tile's side but the player is only
  * slightly below the top of that tile (overlap <= tolerance) AND the tile
  * above is empty, lift the player up onto the ledge.
@@ -561,7 +561,7 @@ export function tryLedgeSnap(
   }
   if (topSolidRow < 0) return null;
 
-  // Must be a ledge — tile above must be empty (not solid).
+  // Must be a ledge ??tile above must be empty (not solid).
   if (isSolid(getTile(roomData, checkCol, topSolidRow - 1))) return null;
 
   const tileTop = topSolidRow * TILE_SIZE;
@@ -672,15 +672,15 @@ export function findSlope2x1AtFoot(
 }
 
 /**
- * Debug 전용 — 셀 범위 [c0..c1] × [r0..r1] 와 겹치는 모든 가상 2x1 슬로프 세그먼트를
- * 수집한다. 각 (startCol, lowRow) 조합당 upRight/upLeft 후보를 1회씩만 시도하므로
- * 중복은 발생하지 않는다. CollisionDebugOverlay 의 경사면 표시에 사용.
+ * Debug ?�용 ???� 범위 [c0..c1] × [r0..r1] ?� 겹치??모든 가??2x1 ?�로???�그먼트�?
+ * ?�집?�다. �?(startCol, lowRow) 조합??upRight/upLeft ?�보�?1?�씩�??�도?��?�?
+ * 중복?� 발생?��? ?�는?? CollisionDebugOverlay ??경사�??�시???�용.
  */
 export function collectSlopes2x1(
   roomData: number[][], c0: number, r0: number, c1: number, r1: number,
 ): SlopeSegment2x1[] {
   const out: SlopeSegment2x1[] = [];
-  // startCol 은 세그먼트 좌측 셀 — 좌측 2칸 패딩으로 부분 가시 슬로프도 포함.
+  // startCol ?� ?�그먼트 좌측 ?� ??좌측 2�??�딩?�로 부�?가???�로?�도 ?�함.
   for (let startCol = c0 - 2; startCol <= c1; startCol++) {
     for (let lowRow = r0 - 1; lowRow <= r1 + 1; lowRow++) {
       const up = buildUpRightSlope(roomData, startCol, lowRow);
@@ -894,14 +894,14 @@ export function resolveYPixelStepWithSlopes2x1(
 }
 
 /**
- * Dash corner correction — 대시 중 수평 진행이 벽에 막힐 때 세로로 살짝 밀어 통과시키는 보정.
+ * Dash corner correction ???�??�??�평 진행??벽에 막힐 ???�로�??�짝 밀???�과?�키??보정.
  *
- * 대시는 수평(vy=0) 으로 전진하므로, 진행 방향 leading 컬럼의 플레이어 세로 스팬에
- * 솔리드가 "한쪽 끝(top-only or bottom-only)" 만 있고 overlap 이 tolerance 이내면
- * 그 반대 방향으로 밀어 지나가게 한다. 양쪽 다 막혔거나 중간이 막혀 있으면 미동작.
+ * ?�?�는 ?�평(vy=0) ?�로 ?�진?��?�? 진행 방향 leading 컬럼???�레?�어 ?�로 ?�팬??
+ * ?�리?��? "?�쪽 ??top-only or bottom-only)" �??�고 overlap ??tolerance ?�내�?
+ * �?반�? 방향?�로 밀??지?��?�??�다. ?�쪽 ??막혔거나 중간??막�? ?�으�?미동??
  *
- * 적용 대상: 대시 상태 전용. 일반 수평 이동에는 tryLedgeSnap 을 쓴다 (방향이 편도).
- * Returns: 보정된 y, 또는 null (보정 불가).
+ * ?�용 ?�?? ?�???�태 ?�용. ?�반 ?�평 ?�동?�는 tryLedgeSnap ???�다 (방향???�도).
+ * Returns: 보정??y, ?�는 null (보정 불�?).
  */
 export function tryDashCornerCorrect(
   x: number, y: number, width: number, height: number,
@@ -913,18 +913,18 @@ export function tryDashCornerCorrect(
   const checkCol = Math.floor(leadX / TILE_SIZE);
   const topRow = Math.floor(y / TILE_SIZE);
   const bottomRow = Math.floor((y + height - 1) / TILE_SIZE);
-  if (topRow === bottomRow) return null; // 단일 행 스팬은 의미 없음
+  if (topRow === bottomRow) return null; // ?�일 ???�팬?� ?��? ?�음
 
   const topSolid = isSolid(getTile(roomData, checkCol, topRow));
   const bottomSolid = isSolid(getTile(roomData, checkCol, bottomRow));
 
-  // 머리 쪽만 막힘 → 아래로 밀어 통과.
+  // 머리 쪽만 막힘 ???�래�?밀???�과.
   if (topSolid && !bottomSolid) {
     const obstacleBottom = (topRow + 1) * TILE_SIZE;
     const overlap = obstacleBottom - y;
     if (overlap > 0 && overlap <= tolerance) {
       const ny = obstacleBottom;
-      // 보정 후 leading 컬럼의 새 세로 스팬이 완전히 비어 있는지 검증.
+      // 보정 ??leading 컬럼?????�로 ?�팬???�전??비어 ?�는지 검�?
       const nTop = Math.floor(ny / TILE_SIZE);
       const nBot = Math.floor((ny + height - 1) / TILE_SIZE);
       for (let row = nTop; row <= nBot; row++) {
@@ -933,7 +933,7 @@ export function tryDashCornerCorrect(
       return ny;
     }
   }
-  // 발 쪽만 막힘 → 위로 밀어 통과.
+  // �?쪽만 막힘 ???�로 밀???�과.
   if (bottomSolid && !topSolid) {
     const obstacleTop = bottomRow * TILE_SIZE;
     const overlap = (y + height) - obstacleTop;

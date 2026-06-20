@@ -20,3 +20,10 @@ Scene-owned boundaries:
 - Do not duplicate `setEnemyRoomKey()` or room-enemy-count increments back in `ItemWorldScene`; new enemy spawn paths should register through this runtime.
 
 Verification after extraction: `npx tsc --noEmit`, `npm run build`, `http://localhost:3000/play/?debug=1` Puppeteer smoke, and `git diff --check` passed. `git diff --check` only reported existing line-ending warnings.
+
+## 2026-06-20 - Spawn visibility safety
+
+- Normal and treasure enemy materialization uses `ItemWorldEnemySpawnRuntime.pickSafeSpawn()` instead of raw random `pickSpawn()`.
+- A spawn candidate is rejected when its enemy AABB intersects the current camera viewport expanded by 160px or is within 320px of the player center.
+- If no safe candidate exists, that enemy is not materialized in the current spawn pass. Do not fall back to visible candidates, or monsters can pop in directly in front of the player.
+- Boss fallback spawn still uses the older boss placement path; boss presentation should be handled separately if needed.

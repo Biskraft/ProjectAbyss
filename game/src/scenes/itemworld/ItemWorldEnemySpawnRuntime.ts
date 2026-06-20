@@ -9,6 +9,9 @@ import {
 import type { ItemWorldSpawnController } from './ItemWorldSpawnController';
 import type { PRNG } from '@utils/PRNG';
 
+const SPAWN_CAMERA_MARGIN_PX = 160;
+const SPAWN_PLAYER_MIN_DISTANCE_PX = 320;
+
 export interface ItemWorldEnemySpawnContext {
   roomKey: string;
   offX: number;
@@ -32,6 +35,7 @@ export interface ItemWorldRoomRectTiles {
 interface ItemWorldEnemySpawnRuntimeDeps {
   getCollisionGrid: () => number[][];
   getPlayer: () => Player;
+  getCameraViewport: () => { x: number; y: number; width: number; height: number };
   addEnemy: (enemy: Enemy<string>) => void;
   getRoomEnemyCount: () => Map<string, number>;
   getSpawnController: () => ItemWorldSpawnController;
@@ -85,6 +89,37 @@ export class ItemWorldEnemySpawnRuntime {
     return { x: point.x, y: point.y - entityHeight };
   }
 
+  pickSafeSpawn(
+    context: ItemWorldEnemySpawnContext,
+    rng: PRNG,
+    entityWidth: number,
+    entityHeight: number,
+  ): { x: number; y: number } | null {
+    if (context.spawnPoints.length === 0) return null;
+
+    const camera = this.expandRect(this.deps.getCameraViewport(), SPAWN_CAMERA_MARGIN_PX);
+    const player = this.deps.getPlayer();
+    const playerCenter = {
+      x: player.x + player.width / 2,
+      y: player.y + player.height / 2,
+    };
+    const safe: Array<{ x: number; y: number }> = [];
+    const start = rng.nextInt(0, context.spawnPoints.length - 1);
+
+    for (let i = 0; i < context.spawnPoints.length; i++) {
+      const point = context.spawnPoints[(start + i) % context.spawnPoints.length];
+      const candidate = { x: point.x, y: point.y - entityHeight };
+      if (this.isVisibleInCamera(candidate.x, candidate.y, entityWidth, entityHeight, camera)) continue;
+      if (this.distanceSq(candidate.x + entityWidth / 2, candidate.y + entityHeight / 2, playerCenter.x, playerCenter.y) <
+          SPAWN_PLAYER_MIN_DISTANCE_PX * SPAWN_PLAYER_MIN_DISTANCE_PX) {
+        continue;
+      }
+      safe.push(candidate);
+    }
+
+    return safe.length > 0 ? safe[0] : null;
+  }
+
   spawnAt(
     enemy: Enemy<string>,
     roomKey: string,
@@ -128,6 +163,37 @@ export class ItemWorldEnemySpawnRuntime {
     setEnemyRoomKey(enemy, roomKey);
     const roomEnemyCount = this.deps.getRoomEnemyCount();
     roomEnemyCount.set(roomKey, (roomEnemyCount.get(roomKey) ?? 0) + 1);
+  }
+
+  private expandRect(
+    rect: { x: number; y: number; width: number; height: number },
+    margin: number,
+  ): { x: number; y: number; width: number; height: number } {
+    return {
+      x: rect.x - margin,
+      y: rect.y - margin,
+      width: rect.width + margin * 2,
+      height: rect.height + margin * 2,
+    };
+  }
+
+  private isVisibleInCamera(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    camera: { x: number; y: number; width: number; height: number },
+  ): boolean {
+    return x < camera.x + camera.width &&
+      x + width > camera.x &&
+      y < camera.y + camera.height &&
+      y + height > camera.y;
+  }
+
+  private distanceSq(ax: number, ay: number, bx: number, by: number): number {
+    const dx = ax - bx;
+    const dy = ay - by;
+    return dx * dx + dy * dy;
   }
 
   private stringField(fields: Record<string, unknown>, names: string[]): string | null {
